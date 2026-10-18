@@ -1,12 +1,14 @@
 <!-- doc:summary: Diseño de perfiles MCP por cuaderno y requisitos de verificación de identidad corporativa. -->
 # Perfiles MCP por cuaderno (diseño)
 
-La elección, persistencia y edición de perfiles ya están implementadas. **El acceso MCP del perfil
-corporativo permanece bloqueado** hasta contar con una prueba verificable de la cuenta de Claude.
-Actualmente `service/mcp.ts` usa stdio y envía a `service/server.ts` un token de sesión de
-Bitácora. Ese token acredita un permiso sobre el cuaderno, pero no la identidad de la cuenta de
-Claude que inició el proceso. `service/domain.ts` admite Claude, Codex y Antigravity cuando existe
-la autorización local de empresa.
+La elección, persistencia y edición de perfiles ya están implementadas. El perfil corporativo
+admite **solo Claude Code** tras una [verificación local de buena fe](#verificación-local-de-buena-fe)
+de la organización de Claude con la que ha iniciado sesión en este equipo. No es una prueba
+firmada por Anthropic: evita usar un cuaderno corporativo con la cuenta personal por error, pero no
+protege frente a la manipulación deliberada del equipo. `service/mcp.ts` usa stdio y envía a
+`service/server.ts` un token de sesión de Bitácora y, en Claude, la organización detectada.
+`service/domain.ts` admite Claude, Codex y Antigravity en el perfil personal cuando existe la
+autorización local de empresa.
 
 ## Selección y persistencia
 
@@ -21,10 +23,36 @@ la autorización local de empresa.
   y muestra la conexión personal o el aviso de bloqueo corporativo. El perfil personal conserva
   los tres proveedores y los límites, la confirmación de autorización y la revisión de
   propuestas actuales.
-- El valor persistido expresa la política elegida, **no** que Claude haya superado la verificación.
+- El valor persistido expresa la política elegida, **no** que Claude haya superado la verificación;
+  la verificación se repite en cada alta, renovación y llamada.
   Un cuaderno corporativo puede existir sin habilitar su MCP mientras falte esa prueba.
 
-## Regla corporativa y frontera de confianza
+## Verificación local de buena fe
+
+Implementada en `service/claudeIdentity.ts` y aplicada desde `service/server.ts`:
+
+- **Política:** `corporate-policy.json` en la carpeta de datos de Bitácora, fuera del vault, con
+  el formato `{"claudeOrgIds": ["<orgId>"]}` (máximo 20). La aplicación solo la lee; ni la
+  interfaz ni las propuestas MCP la modifican. Sin política no hay acceso corporativo. El `orgId`
+  se obtiene con `claude auth status`.
+- **Cuenta aceptada:** el servicio ejecuta `claude auth status --json` sin shell (o la ruta de
+  `BITACORA_CLAUDE_PATH`) y exige `loggedIn`, `authMethod: claude.ai`, `apiProvider: firstParty`,
+  plan `team` o `enterprise` y un `orgId` incluido en la política. No guarda ni registra el correo.
+- **Permiso:** crear, renovar o cambiar los proyectos de una sesión corporativa repite la consulta
+  sin caché. El permiso queda ligado a ese `orgId`; Codex y Antigravity se rechazan.
+- **Cada llamada `/mcp`:** el conector ejecuta la misma consulta con el entorno del Claude Code
+  que lo lanzó y envía el `orgId` en la cabecera `X-Bitacora-Claude-Org`. El servicio exige que
+  coincida con su propia verificación (caché de 60 s) y con el `orgId` del permiso. Si Claude Code
+  cambia de cuenta u organización, las llamadas se rechazan.
+- **Interfaz:** Asistentes muestra la organización detectada o el motivo del bloqueo y la ruta de
+  la política, y solo ofrece Claude.
+
+**Límite.** Todo lo anterior se basa en información que declara el propio equipo. Un usuario local
+puede sustituir el ejecutable `claude`, alterar su configuración o falsear la cabecera. La vía
+firmada descrita a continuación sigue siendo la mejora necesaria para obtener una garantía frente a
+ese caso.
+
+## Regla corporativa y frontera de confianza (verificación firmada)
 
 El perfil corporativo solo aceptará Claude en la organización de Claude designada por la empresa.
 La aplicación no aceptará un correo con dominio laboral, una casilla marcada por la persona, un
@@ -54,11 +82,10 @@ administrador de Team/Enterprise no impide por sí sola que una cuenta personal 
 endpoint. La restricción de conectores por dominio verificado publicada por Anthropic cubre una
 lista concreta de conectores y **no incluye los personalizados**.
 
-Por tanto, **la implementación actual no puede activar de forma segura el MCP corporativo**. El
-servicio deniega todos los permisos corporativos hasta disponer de un emisor y un canal con la
-garantía anterior.
-No se sustituirá esa prueba con una comprobación local de la configuración de Claude, una cabecera
-enviada por el cliente o un token que el cliente pueda copiar a otra cuenta.
+Por tanto, **la implementación actual no ofrece esa garantía firmada**. Como paso intermedio se ha
+aceptado la [verificación local de buena fe](#verificación-local-de-buena-fe), que se apoya
+precisamente en la configuración local de Claude y en una cabecera del conector; no debe
+presentarse como prueba de identidad frente a un usuario local malintencionado.
 
 ### Vía candidata: autorización empresarial gestionada
 
@@ -101,19 +128,21 @@ el perfil corporativo seguirá sin acceso MCP.
    perfiles o cuadernos. Revoca todos los extractos autorizados. Las propuestas pendientes
    emitidas bajo el perfil anterior se rechazan para evitar
    aceptarlas bajo otra política; los registros ya aceptados permanecerán en el vault e historial.
-3. En corporativo, Asistentes oculta el formulario de conexión y el servidor rechaza permisos para
-   todos los proveedores, incluido Claude hasta la verificación corporativa. Al volver a personal,
-   las sesiones personales deben crearse de nuevo bajo las reglas actuales.
+3. En corporativo, Asistentes oculta el formulario de conexión hasta verificar Claude Code y el
+   servidor rechaza permisos para Codex, Antigravity y cualquier Claude sin organización permitida.
+   Al volver a personal, las sesiones personales deben crearse de nuevo bajo las reglas actuales.
 4. El bloqueo, la eliminación, la restauración y el cambio de cuaderno invalidarán permisos y
    pruebas ligadas al cuaderno anterior. Las copias conservarán el perfil cifrado, pero nunca
    credenciales de identidad ni sesiones activas. El índice sin contraseña no revelará el perfil.
 
-## Comprobación pendiente para habilitar el MCP corporativo
+## Comprobaciones
 
-Quedan por implementar y probar la aceptación de la cuenta corporativa de Claude y el rechazo de
-cuentas personales, de otra organización, pruebas caducadas y llamadas sin prueba. La prueba
-corporativa deberá usar un mecanismo documentado y
-verificable del proveedor, no un doble de prueba como única evidencia de la identidad real.
+`tests/service.test.ts` cubre, con un doble de `claude auth status`, la aceptación de Team con
+organización permitida y el rechazo sin política, de cuentas Pro, Console o de otro proveedor, de
+otra organización, de sesión cerrada, de Codex y de llamadas sin cabecera o con otra organización.
+`tests/workspaces.test.ts` comprueba en el dominio el vínculo del permiso con la organización. La
+lectura real se ha probado manualmente con Claude Code y una cuenta Team. Queda pendiente la
+verificación firmada (ID-JAG) descrita arriba, que no puede sustituirse por un doble de prueba.
 
 ## Fuentes de los límites del proveedor
 

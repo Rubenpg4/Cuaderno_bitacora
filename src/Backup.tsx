@@ -113,7 +113,7 @@ export default function Backup({
         </Field>
         <p className="muted">
           {selectedProfile === 'corporativo'
-            ? 'Solo se admitirá Claude con una cuenta corporativa verificada. El acceso MCP permanecerá bloqueado hasta disponer de esa verificación.'
+            ? 'Solo se admitirá Claude Code con sesión en una organización Team o Enterprise incluida en la política corporativa local; Bitácora lo comprueba en este equipo.'
             : 'Permite Claude, Codex y Antigravity con las autorizaciones actuales.'}{' '}
           Cambiar de perfil revoca sesiones, extractos y propuestas pendientes.
         </p>

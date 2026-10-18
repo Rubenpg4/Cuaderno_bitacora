@@ -30,6 +30,9 @@ const AsvsProposals = lazy(() => import('./AsvsProposals'));
 const AsvsTaskProposalInfo = lazy(() => import('./AsvsTaskProposalInfo'));
 
 const names = { claude: 'Claude', codex: 'Codex', antigravity: 'Antigravity' };
+type ClaudeIdentityStatus =
+  | { verified: true; orgId: string; orgName: string; subscriptionType: string }
+  | { verified: false; error: string; policyPath: string };
 const fieldNames: Record<string, string> = {
   title: 'Título',
   body: 'Informe',
@@ -205,8 +208,23 @@ export default function Assistants({
       label: string;
       asvsIds: string[];
       asvsBasis: string;
-    } | null>(null);
+    } | null>(null),
+    [claudeIdentity, setClaudeIdentity] = useState<ClaudeIdentityStatus | null>(null);
 
+  const corporate = snapshot.mcpProfile === 'corporativo';
+  function checkClaudeIdentity() {
+    setClaudeIdentity(null);
+    void api<ClaudeIdentityStatus>('claude-identity')
+      .then(setClaudeIdentity)
+      .catch((e: Error) =>
+        setClaudeIdentity({ verified: false, error: e.message, policyPath: '' }),
+      );
+  }
+  useEffect(() => {
+    if (!corporate) return;
+    setProvider('claude');
+    checkClaudeIdentity();
+  }, [corporate]);
   const projects = snapshot.records.filter((record) => record.kind === 'project');
   const pending = snapshot.proposals.filter((p) => p.status === 'pending');
   const asvsPending = snapshot.asvs?.proposals?.filter((p) => p.status === 'pending') ?? [];
@@ -410,18 +428,41 @@ export default function Assistants({
       </div>
       {activeTab === 'connect' ? (
         <>
-          {snapshot.mcpProfile === 'corporativo' ? (
-            <Notice>
-              Este cuaderno tiene perfil corporativo. Solo podrá conectarse Claude con una cuenta
-              corporativa verificada. La conexión MCP está bloqueada hasta que Bitácora pueda
-              comprobar esa identidad; puedes cambiar el perfil en Ajustes y copias.
-            </Notice>
+          {corporate && !claudeIdentity?.verified ? (
+            <section className="form-section">
+              <Notice>
+                Este cuaderno tiene perfil corporativo. Solo puede conectarse Claude Code con sesión
+                iniciada en una organización Team o Enterprise permitida por la política local. La
+                conexión MCP está bloqueada hasta comprobarlo; puedes cambiar el perfil en Ajustes y
+                copias.
+              </Notice>
+              <p className="muted">
+                {claudeIdentity
+                  ? claudeIdentity.error
+                  : 'Comprobando la cuenta de Claude Code en este equipo…'}
+              </p>
+              {claudeIdentity?.policyPath && (
+                <p className="muted">
+                  {`La política se define en ${claudeIdentity.policyPath} con el formato {"claudeOrgIds": ["<orgId>"]}. Obtén el orgId con «claude auth status».`}
+                </p>
+              )}
+              <Button variant="secondary" onClick={checkClaudeIdentity}>
+                Comprobar de nuevo
+              </Button>
+            </section>
           ) : (
             <>
-              <Notice>
-                Las IA usan tus suscripciones en sus clientes oficiales. El contexto leído se envía
-                al proveedor. Bitácora no utiliza API de pago ni puede consultar tu cuota restante.
-              </Notice>
+              {claudeIdentity?.verified && corporate ? (
+                <Notice>
+                  {`Perfil corporativo: Claude Code tiene sesión en ${claudeIdentity.orgName} (${claudeIdentity.subscriptionType}). Es una comprobación local en este equipo; la sesión se revoca si Claude Code cambia de organización.`}
+                </Notice>
+              ) : (
+                <Notice>
+                  Las IA usan tus suscripciones en sus clientes oficiales. El contexto leído se
+                  envía al proveedor. Bitácora no utiliza API de pago ni puede consultar tu cuota
+                  restante.
+                </Notice>
+              )}
               <label className="checkbox authorization">
                 <input
                   type="checkbox"
@@ -452,11 +493,13 @@ export default function Assistants({
                       setConfig('');
                     }}
                   >
-                    {Object.entries(names).map(([v, l]) => (
-                      <option key={v} value={v}>
-                        {l}
-                      </option>
-                    ))}
+                    {Object.entries(names)
+                      .filter(([v]) => !corporate || v === 'claude')
+                      .map(([v, l]) => (
+                        <option key={v} value={v}>
+                          {l}
+                        </option>
+                      ))}
                   </select>
                 </Field>
                 <Field label="Duración de la sesión">

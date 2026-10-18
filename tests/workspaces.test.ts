@@ -185,8 +185,22 @@ describe('cuadernos aislados', () => {
     expect(() => workspaces.domain!.grant('claude', [], 'projects', [corporateId])).toThrow(
       'verificar la cuenta',
     );
-    expect(() => workspaces.domain!.grant('codex', [], 'projects', [corporateId])).toThrow(
-      'verificar la cuenta',
+    expect(() =>
+      workspaces.domain!.grant('codex', [], 'projects', [corporateId], 60, false, 'org-empresa'),
+    ).toThrow('solo admite Claude');
+    const verified = workspaces.domain!.grant(
+      'claude',
+      [],
+      'projects',
+      [corporateId],
+      60,
+      false,
+      'org-empresa',
+    );
+    expect(workspaces.domain!.authorize(verified.token, 'org-empresa').orgId).toBe('org-empresa');
+    expect(() => workspaces.domain!.authorize(verified.token)).toThrow('Sesión revocada');
+    expect(() => workspaces.domain!.authorize(verified.token, 'org-otra')).toThrow(
+      'Sesión revocada',
     );
     workspaces.domain!.setMcpProfile('personal');
     workspaces.domain!.settings({ companyAuthorized: true, universityStructure: '' });

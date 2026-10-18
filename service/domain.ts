@@ -114,6 +114,8 @@ function includeEntryMentionIds(data: Record<string, unknown>, ids: EntryMention
 interface Grant extends GrantInfo {
   hash: string;
   profileVersion: number;
+  /** Organización de Claude verificada al crear un permiso corporativo. */
+  orgId?: string;
 }
 export class Domain {
   state?: Snapshot;
@@ -183,7 +185,7 @@ export class Domain {
       ...s,
       grants: [...this.grants.values()]
         .filter((g) => Date.parse(g.expiresAt) > Date.now())
-        .map(({ hash, profileVersion, ...g }) => g),
+        .map(({ hash, profileVersion, orgId, ...g }) => g),
     };
   }
   asvsList(input: unknown) {
@@ -1589,9 +1591,12 @@ export class Domain {
     projectIds: string[] = [],
     durationMinutes: number = DEFAULT_SESSION_DURATION_MINUTES,
     canCompleteTasks = false,
+    corporateOrgId?: string,
   ) {
     const s = this.require();
-    if (s.mcpProfile === 'corporativo')
+    if (s.mcpProfile === 'corporativo' && provider !== 'claude')
+      throw Error('El perfil corporativo solo admite Claude.');
+    if (s.mcpProfile === 'corporativo' && !corporateOrgId)
       throw Error('El MCP corporativo requiere verificar la cuenta de Claude.');
     if (
       this.activeProjectId &&
@@ -1640,16 +1645,21 @@ export class Domain {
       expiresAt: new Date(Date.now() + durationMinutes * 60000).toISOString(),
       hash: createHash('sha256').update(token).digest('hex'),
       profileVersion: s.mcpProfileVersion,
+      ...(s.mcpProfile === 'corporativo' && { orgId: corporateOrgId }),
     };
     this.grants.set(id, g);
     return { id, token, expiresAt: g.expiresAt };
   }
-  renewGrant(id: string, durationMinutes: number = DEFAULT_SESSION_DURATION_MINUTES) {
+  renewGrant(
+    id: string,
+    durationMinutes: number = DEFAULT_SESSION_DURATION_MINUTES,
+    corporateOrgId?: string,
+  ) {
     const state = this.require();
     const grant = this.grants.get(id);
     if (
       !grant ||
-      state.mcpProfile === 'corporativo' ||
+      !this.corporateMatches(state, grant, corporateOrgId) ||
       grant.profileVersion !== state.mcpProfileVersion ||
       grant.scope !== 'projects' ||
       Date.parse(grant.expiresAt) <= Date.now()
@@ -1670,7 +1680,7 @@ export class Domain {
   revokeGrant(id: string) {
     this.grants.delete(id);
   }
-  updateGrantProjects(id: string, projectIds: string[]) {
+  updateGrantProjects(id: string, projectIds: string[], corporateOrgId?: string) {
     const s = this.require();
     if (
       this.activeProjectId &&
@@ -1682,7 +1692,7 @@ export class Domain {
     const grant = this.grants.get(id);
     if (
       !grant ||
-      s.mcpProfile === 'corporativo' ||
+      !this.corporateMatches(s, grant, corporateOrgId) ||
       grant.profileVersion !== s.mcpProfileVersion ||
       grant.scope !== 'projects' ||
       Date.parse(grant.expiresAt) <= Date.now()
@@ -1702,7 +1712,12 @@ export class Domain {
     grant.projectIds = [...projectIds];
     return { id: grant.id, projectIds: grant.projectIds };
   }
-  authorize(token: string) {
+  /** En corporativo, la organización verificada ahora debe ser la que obtuvo el permiso. */
+  private corporateMatches(state: Snapshot, grant: Grant, corporateOrgId?: string) {
+    if (state.mcpProfile !== 'corporativo') return true;
+    return grant.provider === 'claude' && !!grant.orgId && grant.orgId === corporateOrgId;
+  }
+  authorize(token: string, corporateOrgId?: string) {
     const state = this.require();
     const hash = createHash('sha256').update(token).digest('hex');
     const g = [...this.grants.values()].find(
@@ -1710,7 +1725,7 @@ export class Domain {
     );
     if (
       !g ||
-      state.mcpProfile === 'corporativo' ||
+      !this.corporateMatches(state, g, corporateOrgId) ||
       g.profileVersion !== state.mcpProfileVersion ||
       !state.settings.companyAuthorized
     )

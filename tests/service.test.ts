@@ -1,14 +1,26 @@
 import { beforeAll, afterAll, describe, it, expect } from 'vitest';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startServer } from '../service/server';
 import { blank } from '../service/domain';
 import { exportDocument } from '../service/export';
+import { parseClaudeIdentity } from '../service/claudeIdentity';
 let app: Awaited<ReturnType<typeof startServer>>, dir: string, projectId: string;
+const teamOrg = '11111111-aaaa-4bbb-8ccc-000000000001';
+const teamStatus = {
+  loggedIn: true,
+  authMethod: 'claude.ai',
+  apiProvider: 'firstParty',
+  orgId: teamOrg,
+  orgName: 'Empresa de prueba',
+  subscriptionType: 'team',
+};
+// Doble de «claude auth status»; la identidad real no se consulta en las pruebas.
+let claudeStatus: unknown = { loggedIn: false };
 beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), 'bitacora-http-'));
-  app = await startServer({ dir });
+  app = await startServer({ dir, claudeAuthStatus: async () => claudeStatus });
 });
 afterAll(async () => {
   await app.close();
@@ -68,6 +80,75 @@ describe('servicio local', () => {
         ).status,
       ).toBe(400);
     } finally {
+      await request('/api/mcp-profile', { profile: 'personal' });
+    }
+  });
+  it('valida la cuenta de Claude Code antes de aceptarla como corporativa', () => {
+    expect(parseClaudeIdentity(teamStatus)).toEqual({
+      orgId: teamOrg,
+      orgName: 'Empresa de prueba',
+      subscriptionType: 'team',
+    });
+    for (const status of [
+      { ...teamStatus, subscriptionType: 'pro' },
+      { ...teamStatus, authMethod: 'console' },
+      { ...teamStatus, apiProvider: 'bedrock' },
+      { ...teamStatus, loggedIn: false },
+      { ...teamStatus, orgId: undefined },
+      'texto',
+    ])
+      expect(() => parseClaudeIdentity(status)).toThrow();
+  });
+  it('admite en corporativo solo Claude Code de una organización permitida', async () => {
+    const policyPath = join(dir, 'corporate-policy.json');
+    const corporateGrant = (provider = 'claude') =>
+      request('/api/grant', { provider, scope: 'projects', projectIds: [projectId] });
+    const mcp = (token: string, orgId?: string) =>
+      fetch(`http://127.0.0.1:${app.port}/mcp`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          ...(orgId && { 'X-Bitacora-Claude-Org': orgId }),
+        },
+        body: JSON.stringify({ action: 'session', input: {} }),
+      });
+    expect((await request('/api/mcp-profile', { profile: 'corporativo' })).status).toBe(200);
+    app.domain.settings({ companyAuthorized: true, universityStructure: '' });
+    try {
+      claudeStatus = teamStatus;
+      expect((await corporateGrant()).status).toBe(400);
+      const missingPolicy = await (await request('/api/claude-identity')).json();
+      expect(missingPolicy).toMatchObject({ verified: false, policyPath });
+
+      writeFileSync(policyPath, JSON.stringify({ claudeOrgIds: [teamOrg] }));
+      expect(await (await request('/api/claude-identity')).json()).toMatchObject({
+        verified: true,
+        orgId: teamOrg,
+      });
+      expect((await corporateGrant('codex')).status).toBe(400);
+      const response = await corporateGrant();
+      expect(response.status).toBe(200);
+      const grant = await response.json();
+      expect((await mcp(grant.token)).status).toBe(401);
+      expect((await mcp(grant.token, 'otra-organizacion-0001')).status).toBe(401);
+      expect((await mcp(grant.token, teamOrg)).status).toBe(200);
+      expect(
+        (await request('/api/renew-grant', { id: grant.id, durationMinutes: 30 })).status,
+      ).toBe(200);
+
+      claudeStatus = { ...teamStatus, subscriptionType: 'pro', orgId: 'personal-0000001' };
+      expect(
+        (await request('/api/renew-grant', { id: grant.id, durationMinutes: 30 })).status,
+      ).toBe(400);
+      expect((await corporateGrant()).status).toBe(400);
+      claudeStatus = { ...teamStatus, orgId: 'otra-organizacion-0001' };
+      expect((await corporateGrant()).status).toBe(400);
+      claudeStatus = { loggedIn: false };
+      expect((await corporateGrant()).status).toBe(400);
+    } finally {
+      claudeStatus = { loggedIn: false };
+      if (existsSync(policyPath)) unlinkSync(policyPath);
       await request('/api/mcp-profile', { profile: 'personal' });
     }
   });
