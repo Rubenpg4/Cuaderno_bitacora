@@ -7,7 +7,7 @@ Los datos no forman parte del repositorio: cada instalación los guarda cifrados
 ## Inicio rápido (Windows)
 
 ```powershell
-corepack enable
+npm install -g pnpm@11.25.0
 pnpm install --frozen-lockfile
 pnpm run dev
 ```

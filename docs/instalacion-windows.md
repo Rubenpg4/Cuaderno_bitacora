@@ -10,10 +10,15 @@ Desde PowerShell, con [winget](https://learn.microsoft.com/windows/package-manag
 ```powershell
 winget install --id Git.Git -e
 winget install --id OpenJS.NodeJS.LTS -e
-corepack enable
 ```
 
-`corepack` activa la versión de pnpm fijada en `package.json`. Cierra y vuelve a abrir la terminal tras instalar Node. Microsoft Edge, que usa Playwright en las pruebas de interfaz, ya viene con Windows.
+Cierra y vuelve a abrir la terminal para que reconozca Node e instala la versión de pnpm fijada en `package.json`:
+
+```powershell
+npm install -g pnpm@11.25.0
+```
+
+Microsoft Edge, que usa Playwright en las pruebas de interfaz, ya viene con Windows.
 
 Solo para la aplicación de escritorio (Tauri) añade Rust y las herramientas de compilación de C++:
 

@@ -256,7 +256,7 @@ describe('estado automático de Hoy', () => {
 describe('sincronización y reactividad de estado al mover tareas', () => {
   it('retorna tareas En curso a Por hacer al mover su fecha a un día distinto al activo', () => {
     const today = madridDate();
-    const future = '2026-10-15';
+    const future = '2099-10-15';
     const t = task({ state: 'En curso', due: today });
     const change = resolveTaskMoveChange(t, { due: future }, today);
     expect(change).toEqual({ due: future, state: 'Por hacer' });
@@ -270,7 +270,7 @@ describe('sincronización y reactividad de estado al mover tareas', () => {
 
   it('inicia tareas Por hacer a En curso al trasladarlas a la jornada activa si sus dependencias están completadas', () => {
     const today = madridDate();
-    const future = '2026-10-15';
+    const future = '2099-10-15';
     const t = task({ state: 'Por hacer', due: future });
     const change = resolveTaskMoveChange(t, { due: today }, today);
     expect(change).toEqual({ due: today, state: 'En curso' });
