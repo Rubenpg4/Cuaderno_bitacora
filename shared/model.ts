@@ -37,6 +37,7 @@ export type Kind =
   | 'decision'
   | 'meeting'
   | 'project'
+  | 'subproject'
   | 'objective';
 export type Provider = 'claude' | 'codex' | 'antigravity';
 export type McpProfile = 'personal' | 'corporativo';
@@ -47,6 +48,8 @@ export interface Base {
   updatedAt: string;
   title: string;
   project: string;
+  /** Subproyecto propietario; vacío significa «General del proyecto». */
+  subprojectId?: string;
 }
 export interface Attachment {
   id: string;
@@ -212,6 +215,13 @@ export interface Project extends Base {
   validationDate: string;
   validationReference: string;
 }
+export const SUBPROJECT_STATES = ['Activo', 'Archivado'] as const;
+export interface Subproject extends Base {
+  kind: 'subproject';
+  description: string;
+  status: (typeof SUBPROJECT_STATES)[number];
+  archivedAt?: string;
+}
 export interface ObjectiveLink {
   id: string;
   sourceKind: 'task' | 'entry';
@@ -232,7 +242,7 @@ export interface Objective extends Base {
   };
 }
 export type RecordItem =
-  Task | Entry | Incident | Idea | Practice | Decision | Meeting | Project | Objective;
+  Task | Entry | Incident | Idea | Practice | Decision | Meeting | Project | Subproject | Objective;
 export interface QuickCapture {
   id: string;
   project: string;
@@ -283,6 +293,8 @@ export interface GrantInfo {
   shareIds: string[];
   scope: 'selected' | 'projects';
   projectIds: string[];
+  /** Ámbitos autorizados: `general` y/o IDs de subproyectos activos. */
+  scopes?: string[];
   canCompleteTasks?: boolean;
 }
 export interface Snapshot {
@@ -290,6 +302,8 @@ export interface Snapshot {
   recurrenceWarning?: string;
   mcpProfile: McpProfile;
   mcpProfileVersion: number;
+  /** 1 once the vault uses subproject scopes and earlier MCP excerpts were revoked. */
+  subprojectModel?: 1;
   records: RecordItem[];
   weeklyReview?: WeeklyReviewState;
   captures?: QuickCapture[];
@@ -361,6 +375,7 @@ export function applicable(p: Practice, t: Task) {
     p.status !== 'Retirada' &&
     p.status !== 'Borrador' &&
     (!p.project || p.project === t.project) &&
+    (!p.subprojectId || p.subprojectId === t.subprojectId) &&
     (!p.phases.length || p.phases.includes(t.phase)) &&
     (!p.tags.length || p.tags.some((tag) => t.tags.includes(tag) || tag === t.type))
   );

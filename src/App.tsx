@@ -50,8 +50,17 @@ import {
   type Objective,
   type Practice,
   type Proposal,
+  type Subproject,
   type WorkspaceStatus,
 } from '../shared/model';
+import {
+  GENERAL_SCOPE,
+  findSubproject,
+  inSelection,
+  isArchivedScope,
+  subprojectsOf,
+  type ScopeSelection,
+} from '../shared/subprojects';
 import { api, getSnapshot, saveRecord } from './api';
 import { Badge, Button, Empty, Field, Modal, Notice } from './ui';
 import TodayTaskRow from './app/TodayTaskRow';
@@ -69,6 +78,8 @@ import Assistants from './Assistants';
 import Backup from './Backup';
 import Export from './Export';
 import LockScreen from './app/LockScreen';
+import ProjectTree from './app/ProjectTree';
+import SubprojectManager from './app/SubprojectManager';
 import QuickCapture, { QuickCaptureButton } from './app/QuickCapture';
 import ThemeToggle from './app/ThemeToggle';
 import { kindNames, navigation, pageCopy } from './app/navigation';
@@ -107,7 +118,9 @@ type Dialog =
       capture?: CaptureNote;
       followUp?: { meetingId: string; agreementId: string; meetingVersion: number };
       focusEvidence?: boolean;
+      chooseScope?: boolean;
     }
+  | { type: 'subprojects' }
   | { type: 'assistants'; proposalId?: string }
   | { type: 'backup' }
   | { type: 'export'; body: string };
@@ -135,6 +148,8 @@ export default function App() {
   const [workspaceProfile, setWorkspaceProfile] = useState<McpProfile>('personal');
   const [view, rawSetView] = useState('Hoy');
   const [project, rawSetProject] = useState('');
+  // Selected scope inside the unlocked notebook; it is discarded when locking or switching.
+  const [scope, rawSetScope] = useState<ScopeSelection>('all');
   const [weeklySignalPage, setWeeklySignalPage] = useState<{
     projectId: string;
     signals: WeeklySignal[];
@@ -231,6 +246,12 @@ export default function App() {
   function setDay(v: string) {
     void flushBefore(() => rawSetDay(v));
   }
+  function setScope(next: ScopeSelection) {
+    void flushBefore(() => {
+      rawSetScope(next);
+      setSelected('');
+    });
+  }
   const close = useCallback(() => {
     void flushAll()
       .then(() => setDialog(undefined))
@@ -248,6 +269,7 @@ export default function App() {
       setStatus(status);
       if (!status.unlocked) {
         setSnapshot(undefined);
+        rawSetScope('all');
         setDialog(undefined);
         setCaptureOpen(false);
       } else throw e;
@@ -314,8 +336,13 @@ export default function App() {
   }
   useEffect(() => {
     if (!snapshot || view !== 'Hoy' || syncingTodayTasks.current) return;
+    // Only tasks of the selected, writable scope may be started or stopped from this view.
     const tasks = snapshot.records.filter(
-      (record): record is Task => record.kind === 'task' && !record.recurrence?.canceledAt,
+      (record): record is Task =>
+        record.kind === 'task' &&
+        !record.recurrence?.canceledAt &&
+        inSelection(record, scope) &&
+        !isArchivedScope(snapshot.records, record),
     );
     const scoped = tasks.filter(
       (task) =>
@@ -372,7 +399,16 @@ export default function App() {
       .finally(() => {
         syncingTodayTasks.current = false;
       });
-  }, [snapshot, view, project, search, todayFilters, day, refresh]);
+  }, [snapshot, view, project, scope, search, todayFilters, day, refresh]);
+  useEffect(() => {
+    if (
+      snapshot &&
+      scope !== 'all' &&
+      scope !== GENERAL_SCOPE &&
+      !findSubproject(snapshot.records, scope)
+    )
+      rawSetScope('all');
+  }, [snapshot, scope]);
   useEffect(() => {
     if (!snapshot) return;
     let last = 0;
@@ -442,6 +478,7 @@ export default function App() {
     const content = capture.text;
     const initial = {
       project: capture.project,
+      ...scopeDefaults(),
       title,
       ...(kind === 'entry'
         ? { activity: content, original: content }
@@ -450,13 +487,18 @@ export default function App() {
           : { description: content }),
     };
     setCaptureOpen(false);
-    setDialog({ type: 'record', kind, initial, capture });
+    setDialog({ type: 'record', kind, initial, capture, chooseScope: scope === 'all' });
+  }
+  /** New records use the selected scope; «Todo el proyecto» asks for a destination. */
+  function scopeDefaults(): { subprojectId?: string } {
+    return scope !== 'all' && scope !== GENERAL_SCOPE ? { subprojectId: scope } : {};
   }
   async function unlock() {
     setError('');
     setBusy(true);
     try {
       const s = await api<Snapshot>('unlock', { projectId: selectedWorkspace, password });
+      rawSetScope('all');
       setSnapshot(s);
       const current = await api<WorkspaceStatus>('status');
       setStatus(current);
@@ -483,6 +525,7 @@ export default function App() {
         password,
         profile: workspaceProfile,
       });
+      rawSetScope('all');
       setSnapshot(s);
       const current = await api<WorkspaceStatus>('status');
       setStatus(current);
@@ -522,6 +565,7 @@ export default function App() {
       await flushAll();
       await api('lock');
       setSnapshot(undefined);
+      rawSetScope('all');
       setStatus(await api<WorkspaceStatus>('status'));
       setDialog(undefined);
       setCaptureOpen(false);
@@ -647,9 +691,11 @@ export default function App() {
         kind,
         initial: {
           project,
+          ...scopeDefaults(),
           ...(kind === 'task' ? { due: view === 'Hoy' ? day : madridDate() } : {}),
           ...initial,
         },
+        chooseScope: scope === 'all',
       });
     });
   }
@@ -660,6 +706,7 @@ export default function App() {
         kind: 'task',
         initial: {
           project: meeting.project,
+          ...(meeting.subprojectId ? { subprojectId: meeting.subprojectId } : {}),
           due: madridDate(),
           title: `Dar seguimiento a ${agreement.text.slice(0, 200)}`,
           description: `Acuerdo de ${meeting.title}\n${agreement.text}`,
@@ -793,10 +840,23 @@ export default function App() {
       </>
     );
   }
-  const records = snapshot.records.filter(
+  const subprojects = subprojectsOf(snapshot.records);
+  const selectedChild = findSubproject(snapshot.records, scope);
+  const archivedScope = selectedChild?.status === 'Archivado';
+  // Views read only the selected scope; «Todo el proyecto» aggregates every child.
+  const scopedSnapshot: Snapshot = {
+    ...snapshot,
+    records: snapshot.records.filter((record) => inSelection(record, scope)),
+  };
+  const records = scopedSnapshot.records.filter(
     (record) => record.kind !== 'task' || !record.recurrence?.canceledAt,
   );
-  const projects = records.filter((r) => r.kind === 'project');
+  const projects = records.filter((r): r is Project => r.kind === 'project');
+  const rootProject = projects[0];
+  const scopeLabel =
+    scope === 'all'
+      ? 'Todo el proyecto'
+      : `${rootProject?.title || 'Proyecto'} / ${selectedChild?.title || 'General'}`;
   const objectives = records.filter((r): r is Objective => r.kind === 'objective');
   const tasks = records.filter((r): r is Task => r.kind === 'task');
   const entries = records.filter((r): r is Entry => r.kind === 'entry');
@@ -858,8 +918,11 @@ export default function App() {
     currentDay,
   ).filter(
     (signal) =>
-      !search ||
-      `${signal.title} ${signal.explanation}`.toLowerCase().includes(search.toLowerCase()),
+      (signal.kind === 'asvs'
+        ? scope === 'all' || scope === GENERAL_SCOPE
+        : records.some((record) => record.id === signal.recordId)) &&
+      (!search ||
+        `${signal.title} ${signal.explanation}`.toLowerCase().includes(search.toLowerCase())),
   );
   const dailyTasks = todayTasks
     .filter(
@@ -918,8 +981,10 @@ export default function App() {
   const meetings = scoped
     .filter((r): r is Meeting => r.kind === 'meeting')
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  function projectName(id: string) {
-    return projects.find((p) => p.id === id)?.title || 'Transversal';
+  function projectName(id: string, subprojectId?: string) {
+    const title = projects.find((p) => p.id === id)?.title || 'Transversal';
+    if (!subprojects.length) return title;
+    return `${title} / ${findSubproject(snapshot!.records, subprojectId)?.title || 'General'}`;
   }
   function taskRow(task: Task, isUpcoming = false) {
     return (
@@ -1012,22 +1077,25 @@ export default function App() {
           <span>Mis proyectos</span>
         </div>
         <div className="project-list">
-          {projects.map((p) => (
-            <div className="project-nav" key={p.id}>
-              <button className={project === p.id ? 'selected' : ''} onClick={() => openRecord(p)}>
-                <span className="project-dot" />
-                {p.title}
-              </button>
-              <button
-                className="icon-button"
-                aria-label={`Editar proyecto ${p.title}`}
-                onClick={() => openRecord(p)}
-              >
-                <MoreHorizontal size={15} />
-              </button>
-            </div>
-          ))}
-          {!projects.length && <p>Cuaderno sin ficha de proyecto.</p>}
+          {rootProject ? (
+            <ProjectTree
+              project={rootProject}
+              subprojects={subprojects}
+              tasks={snapshot.records.filter((r): r is Task => r.kind === 'task')}
+              scope={scope}
+              onSelect={(next) => {
+                setScope(next);
+                setMobileNav(false);
+              }}
+              onOpenProject={() => openRecord(rootProject)}
+              onManage={() => {
+                setMobileNav(false);
+                void flushBefore(() => setDialog({ type: 'subprojects' }));
+              }}
+            />
+          ) : (
+            <p>Cuaderno sin ficha de proyecto.</p>
+          )}
         </div>
         <div className="sidebar-bottom">
           <button onClick={() => setDialog({ type: 'assistants' })}>
@@ -1056,7 +1124,10 @@ export default function App() {
               <Menu size={20} />
             </button>
             <span className="breadcrumb">
-              Mi espacio <ChevronRight size={13} /> <strong>{view}</strong>
+              <span className="breadcrumb-scope" title={scopeLabel}>
+                {scopeLabel}
+              </span>{' '}
+              <ChevronRight size={13} aria-hidden="true" /> <strong>{view}</strong>
             </span>
           </div>
           <div className="top-actions">
@@ -1081,11 +1152,12 @@ export default function App() {
             <div className="page-heading">
               <div>
                 <div className="page-context">
-                  {view === 'Hoy'
-                    ? dateLabel
-                    : project
-                      ? projectName(project)
-                      : 'Mi recorrido profesional'}
+                  {view === 'Hoy' && `${dateLabel} · `}
+                  {project ? (
+                    <span className="page-scope">{scopeLabel}</span>
+                  ) : (
+                    view !== 'Hoy' && 'Mi recorrido profesional'
+                  )}
                 </div>
                 <h1>{pageCopy[view][0]}</h1>
                 <p>{pageCopy[view][1]}</p>
@@ -1123,6 +1195,13 @@ export default function App() {
                 </Button>
               ) : null}
             </div>
+            {archivedScope && (
+              <Notice>
+                «{selectedChild.title}» está archivado: puedes consultar su contenido, pero no crear
+                ni editar registros. Restáuralo desde «Gestionar subproyectos» para volver a
+                trabajar en él.
+              </Notice>
+            )}
             {view === 'Hoy' && (
               <>
                 <div className="week-strip">
@@ -1504,15 +1583,18 @@ export default function App() {
                     <p className="muted">No hay ideas registradas para este día.</p>
                   )}
                 </section>
-                <DailyComposer
-                  key={`${day}-${project}-${dailyComposerRevision}`}
-                  day={day}
-                  project={project}
-                  snapshot={snapshot}
-                  refresh={refresh}
-                  registerFlush={registerFlush}
-                  openRecord={openRecord}
-                />
+                {!archivedScope && (
+                  <DailyComposer
+                    key={`${day}-${project}-${scope}-${dailyComposerRevision}`}
+                    day={day}
+                    project={project}
+                    subprojectId={selectedChild?.id}
+                    snapshot={scopedSnapshot}
+                    refresh={refresh}
+                    registerFlush={registerFlush}
+                    openRecord={openRecord}
+                  />
+                )}
                 {todayEntries.length > 0 && (
                   <section className="focus-section">
                     <div className="section-heading">
@@ -1622,9 +1704,14 @@ export default function App() {
               <>
                 <TaskSeriesManager
                   series={(snapshot.taskSeries ?? []).filter(
-                    (item) => !project || item.project === project,
+                    (item) =>
+                      (!project || item.project === project) &&
+                      (scope === 'all' ||
+                        (scope === GENERAL_SCOPE
+                          ? !item.subprojectId
+                          : item.subprojectId === scope)),
                   )}
-                  tasks={snapshot.records.filter(
+                  tasks={scopedSnapshot.records.filter(
                     (record): record is Task => record.kind === 'task',
                   )}
                   refresh={refresh}
@@ -1638,6 +1725,11 @@ export default function App() {
                 />
                 <TaskListView
                   tasks={listTasks}
+                  scopeLabel={
+                    scope === 'all' && subprojects.length
+                      ? (task) => projectName(task.project, task.subprojectId)
+                      : undefined
+                  }
                   total={projectTaskCount}
                   search={search}
                   onSearchChange={setSearch}
@@ -1678,7 +1770,14 @@ export default function App() {
                     onClick={() => {
                       const from = reportStart(records),
                         to = new Date().toISOString();
-                      const report = weeklyReport(records, from, to);
+                      // Sources must share the meeting's scope; «Todo el proyecto» starts in General.
+                      const report = weeklyReport(
+                        scope === 'all'
+                          ? records.filter((record) => inSelection(record, GENERAL_SCOPE))
+                          : records,
+                        from,
+                        to,
+                      );
                       create('meeting', {
                         title: `Reunión · ${madridDate()}`,
                         from,
@@ -1913,7 +2012,9 @@ export default function App() {
                 setCategory={setCategory}
                 projectName={projectName}
                 openRecord={openRecord}
-                hasDraftNew={!!snapshot.drafts?.['new:practice']}
+                hasDraftNew={
+                  !!snapshot.drafts?.[`new:practice${selectedChild ? `:${selectedChild.id}` : ''}`]
+                }
                 onOpenNewDraft={() => create('practice')}
               />
             )}
@@ -1958,11 +2059,13 @@ export default function App() {
               ? dialog.kind === 'entry'
                 ? 'Deja constancia de tu día'
                 : `${dialog.record ? 'Editar' : dialog.kind === 'objective' ? 'Nuevo' : 'Nueva'} ${kindNames[dialog.kind]}`
-              : dialog.type === 'assistants'
-                ? 'Tus asistentes, tu contexto'
-                : dialog.type === 'backup'
-                  ? 'Ajustes y copias'
-                  : 'Revisar antes de exportar'
+              : dialog.type === 'subprojects'
+                ? 'Subproyectos'
+                : dialog.type === 'assistants'
+                  ? 'Tus asistentes, tu contexto'
+                  : dialog.type === 'backup'
+                    ? 'Ajustes y copias'
+                    : 'Revisar antes de exportar'
           }
           onClose={close}
           wide={dialog.type !== 'backup'}
@@ -1982,6 +2085,8 @@ export default function App() {
               capture={dialog.capture}
               followUp={dialog.followUp}
               focusEvidence={dialog.focusEvidence}
+              chooseScope={dialog.chooseScope}
+              onManageSubprojects={() => setDialog({ type: 'subprojects' })}
               snapshot={snapshot}
               onSaved={() => void saved()}
               onRefresh={refresh}
@@ -2005,6 +2110,18 @@ export default function App() {
                             ? () => void deleteObjective(dialog.record as Objective)
                             : undefined
               }
+            />
+          ) : dialog.type === 'subprojects' ? (
+            <SubprojectManager
+              snapshot={snapshot}
+              refresh={refresh}
+              onChanged={setToast}
+              onEnter={(child: Subproject) => {
+                rawSetScope(child.id);
+                setSelected('');
+                setMobileNav(false);
+                close();
+              }}
             />
           ) : dialog.type === 'assistants' ? (
             <Assistants

@@ -31,7 +31,7 @@ interface BoardViewProps {
   incidents?: Incident[];
   filters: ReactNode;
   selectedId: string;
-  projectName: (id: string) => string;
+  projectName: (id: string, subprojectId?: string) => string;
   openTask: (task: Task) => void;
   openIncident?: (incident: Incident) => void;
   createTask: (state: Task['state']) => void;
@@ -326,7 +326,9 @@ export default function BoardView({
                       }
                     >
                       <div className="row spread" style={{ alignItems: 'center' }}>
-                        <span className="card-project">{projectName(incident.project)}</span>
+                        <span className="card-project">
+                          {projectName(incident.project, incident.subprojectId)}
+                        </span>
                         <Badge tone="red">
                           <AlertCircle size={11} style={{ marginRight: 4 }} />
                           Sin solucionar
@@ -377,7 +379,9 @@ export default function BoardView({
                         }}
                       >
                         <button className="task-card-main" onClick={() => openTask(task)}>
-                          <span className="card-project">{projectName(task.project)}</span>
+                          <span className="card-project">
+                            {projectName(task.project, task.subprojectId)}
+                          </span>
                           <h3>{task.title}</h3>
                           <p>
                             {task.description ||
@@ -449,7 +453,9 @@ export default function BoardView({
                       }
                     >
                       <div className="row spread" style={{ alignItems: 'center' }}>
-                        <span className="card-project">{projectName(incident.project)}</span>
+                        <span className="card-project">
+                          {projectName(incident.project, incident.subprojectId)}
+                        </span>
                         <Badge tone="green">
                           <CheckCircle2 size={11} style={{ marginRight: 4 }} />
                           Solucionada

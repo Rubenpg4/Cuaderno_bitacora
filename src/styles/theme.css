@@ -301,6 +301,19 @@
 :root[data-theme='dark'] .project-nav > button.selected {
   color: var(--blue);
 }
+:root[data-theme='dark'] .scope-item {
+  color: #b4c5da;
+}
+:root[data-theme='dark'] .scope-item:hover {
+  background: #1d2b3d;
+}
+:root[data-theme='dark'] .scope-item.selected {
+  color: var(--blue);
+  background: #1b2c45;
+}
+:root[data-theme='dark'] .scope-tree {
+  border-left-color: #2a3a4f;
+}
 :root[data-theme='dark'] .week-strip .week-task-summary,
 :root[data-theme='dark'] .month-task:not(.completed),
 :root[data-theme='dark'] .calendar-note-count.task,

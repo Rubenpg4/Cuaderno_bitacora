@@ -21,6 +21,7 @@ import {
 } from '../shared/model';
 import portableSkill from '../.agents/skills/bitacora-mcp/SKILL.md?raw';
 import { planProposalReview, taskCompletionReviewGroup } from '../shared/proposalReview';
+import { GENERAL_SCOPE, findSubproject, grantScopes, subprojectsOf } from '../shared/subprojects';
 import { attachmentSummary, batchPreview, proposalChanges } from '../shared/proposalPreview';
 import { playProposalSound } from './app/proposalSound';
 import { api } from './api';
@@ -113,6 +114,7 @@ const kindSectionLabels: Record<Kind, string> = {
   decision: 'Decisiones de arquitectura',
   meeting: 'Reuniones',
   project: 'Proyectos',
+  subproject: 'Subproyectos',
   objective: 'Objetivos',
 };
 
@@ -125,6 +127,7 @@ const kindDescriptions: Record<Kind, string> = {
   decision: 'Propuestas de decisiones técnicas y de arquitectura.',
   meeting: 'Propuestas de actas y acuerdos de reunión.',
   project: 'Propuestas de especificaciones y datos de proyectos.',
+  subproject: 'Los subproyectos se gestionan desde la barra lateral.',
   objective: 'Los objetivos se editan desde Memoria.',
 };
 
@@ -191,6 +194,7 @@ export default function Assistants({
     [selectedProjects] = useState<string[]>(() =>
       snapshot.records.filter((record) => record.kind === 'project').map((record) => record.id),
     ),
+    [selectedScopes, setSelectedScopes] = useState<string[]>([GENERAL_SCOPE]),
     [config, setConfig] = useState(''),
     [activeTab, setActiveTab] = useState<'connect' | 'proposals'>(() =>
       snapshot.proposals.some((p) => p.status === 'pending') ||
@@ -208,6 +212,17 @@ export default function Assistants({
     } | null>(null);
 
   const projects = snapshot.records.filter((record) => record.kind === 'project');
+  const activeChildren = subprojectsOf(snapshot.records).filter(
+    (child) => child.status === 'Activo',
+  );
+  // A permit only covers the scopes ticked here; new children are never added implicitly.
+  const grantedScopes = selectedScopes.filter(
+    (scope) => scope === GENERAL_SCOPE || activeChildren.some((child) => child.id === scope),
+  );
+  const scopeTitle = (scope: string) =>
+    scope === GENERAL_SCOPE
+      ? 'General'
+      : (findSubproject(snapshot.records, scope)?.title ?? 'Subproyecto retirado');
   const pending = snapshot.proposals.filter((p) => p.status === 'pending');
   const asvsPending = snapshot.asvs?.proposals?.filter((p) => p.status === 'pending') ?? [];
   useEffect(() => {
@@ -353,6 +368,7 @@ export default function Assistants({
         provider,
         projectIds: selectedProjects,
         scope: 'projects',
+        scopes: grantedScopes,
         durationMinutes: effectiveDuration,
         canCompleteTasks,
       });
@@ -504,6 +520,31 @@ export default function Assistants({
                     <CopyRecordId id={project.id} title={project.title} />
                   </div>
                 ))}
+                {activeChildren.length > 0 && (
+                  <fieldset className="scope-grants">
+                    <legend>Ámbitos autorizados</legend>
+                    <p className="muted">
+                      La sesión solo verá y propondrá cambios en los ámbitos marcados. Las prácticas
+                      generales se comparten con los subproyectos elegidos.
+                    </p>
+                    {[GENERAL_SCOPE, ...activeChildren.map((child) => child.id)].map((scope) => (
+                      <label className="checkbox" key={scope}>
+                        <input
+                          type="checkbox"
+                          checked={grantedScopes.includes(scope)}
+                          onChange={(event) =>
+                            setSelectedScopes((current) =>
+                              event.target.checked
+                                ? [...current.filter((item) => item !== scope), scope]
+                                : current.filter((item) => item !== scope),
+                            )
+                          }
+                        />
+                        <span>{scopeTitle(scope)}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                )}
                 <label className="checkbox authorization">
                   <input
                     type="checkbox"
@@ -520,7 +561,11 @@ export default function Assistants({
                   </span>
                 </label>
                 <Button
-                  disabled={!selectedProjects.length || !snapshot.settings.companyAuthorized}
+                  disabled={
+                    !selectedProjects.length ||
+                    !grantedScopes.length ||
+                    !snapshot.settings.companyAuthorized
+                  }
                   onClick={() => void createGrant()}
                 >
                   <KeyRound size={16} /> Crear sesión para este cuaderno
@@ -576,6 +621,9 @@ export default function Assistants({
                           .map((id) => projects.find((p) => p.id === id)?.title)
                           .filter(Boolean)
                           .join(', ')}. `}
+                        {activeChildren.length > 0 || grantScopes(g).length > 1
+                          ? `Ámbitos: ${grantScopes(g).map(scopeTitle).join(', ')}. `
+                          : ''}
                         Caduca a las {new Date(g.expiresAt).toLocaleTimeString('es-ES')}
                         {g.canCompleteTasks ? ' · Puede completar tareas' : ''}
                       </small>

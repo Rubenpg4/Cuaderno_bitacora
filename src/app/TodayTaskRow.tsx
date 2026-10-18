@@ -24,7 +24,7 @@ interface TodayTaskRowProps {
   isUpcoming?: boolean;
   selected: boolean;
   dragging: boolean;
-  projectName: (id: string) => string;
+  projectName: (id: string, subprojectId?: string) => string;
   onDragStart: (event: DragEvent<HTMLElement>, task: Task) => void;
   onDragEnd: () => void;
   onSelect: () => void;
@@ -83,10 +83,10 @@ export default function TodayTaskRow({
           <strong>{task.title}</strong>
           <small>
             {isUpcoming
-              ? `${upcomingDateLabel(task.due, day)} · ${projectName(task.project)} · ${task.phase}`
+              ? `${upcomingDateLabel(task.due, day)} · ${projectName(task.project, task.subprojectId)} · ${task.phase}`
               : task.due !== day && isTaskCompletedOnDay(task, day)
-                ? `${taskDateLabel(day)} (prevista: ${task.due}) · ${projectName(task.project)} · ${task.phase}`
-                : `${taskDateLabel(task.due)} · ${projectName(task.project)} · ${task.phase}`}
+                ? `${taskDateLabel(day)} (prevista: ${task.due}) · ${projectName(task.project, task.subprojectId)} · ${task.phase}`
+                : `${taskDateLabel(task.due)} · ${projectName(task.project, task.subprojectId)} · ${task.phase}`}
             {task.blocked ? ' · Bloqueada' : ''}
           </small>
         </span>

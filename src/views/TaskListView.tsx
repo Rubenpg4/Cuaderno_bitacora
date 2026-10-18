@@ -20,6 +20,8 @@ import {
 
 interface Props {
   tasks: Task[];
+  /** Provenance shown in the aggregated view of a project with subprojects. */
+  scopeLabel?: (task: Task) => string;
   total: number;
   search: string;
   onSearchChange: (value: string) => void;
@@ -33,6 +35,7 @@ const defaultSort: TaskSortRule[] = [{ field: 'due', direction: 'asc' }];
 
 export default function TaskListView({
   tasks,
+  scopeLabel,
   total,
   search,
   onSearchChange,
@@ -248,6 +251,7 @@ export default function TaskListView({
                   />
                   <span>{task.title}</span>
                 </button>
+                {scopeLabel && <small className="task-list-scope">{scopeLabel(task)}</small>}
                 {task.blocked && <span className="task-list-blocked">Bloqueada</span>}
               </div>
               <div className="task-list-cell state" role="cell" data-label="Estado">

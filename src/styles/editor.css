@@ -605,3 +605,44 @@
     text-align: left;
   }
 }
+.scope-context {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.scope-context strong {
+  color: var(--ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.subproject-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.subproject-item {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+.subproject-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.subproject-summary strong {
+  overflow-wrap: anywhere;
+}
+.subproject-summary small {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 12px;
+}
+.subproject-actions {
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.subproject-edit {
+  display: grid;
+  gap: 8px;
+}

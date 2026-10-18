@@ -95,7 +95,7 @@ La vigencia se calcula en cada consulta usando fuentes, nivel y contexto actuale
 
 Cada cuaderno contiene un proyecto raíz, validado en `service/workspaces.ts`. `Snapshot` se guarda como documento en `app_state`, con esquema 1 sin ASVS o 2 tras su primera escritura, dentro del vault cifrado de `service/vault.ts`. Las propuestas genéricas admiten `create`, `update` y `check`; las evaluaciones MCP ASVS usan otro contrato. Las APIs/herramientas disponibles se enumeran arriba. Las entidades del diseño siguiente orientan trabajo pendiente; las asociaciones actuales viven en la tarea y sus verificaciones/propuestas en `Snapshot.asvs`.
 
-La integración cubre ese único proyecto, sin presuponer subproyectos, usuarios autenticados por persona ni políticas corporativas remotas. El usuario que desbloquea el cuaderno toma las decisiones humanas; el responsable escrito de una revisión aporta trazabilidad, pero no prueba identidad corporativa.
+La integración cubre ese único proyecto completo, incluidos sus [subproyectos](subproyectos.md), sin usuarios autenticados por persona ni políticas corporativas remotas. Por MCP, la parte del proyecto exige el ámbito «General» y la verificación de una tarea exige el ámbito de esa tarea. El usuario que desbloquea el cuaderno toma las decisiones humanas; el responsable escrito de una revisión aporta trazabilidad, pero no prueba identidad corporativa.
 
 ## Catálogo y selección acumulativa
 

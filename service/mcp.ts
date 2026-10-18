@@ -71,6 +71,7 @@ const readableKinds = z.enum([
   'decision',
   'meeting',
   'project',
+  'subproject',
   'objective',
 ]);
 const proposalKinds = z.enum([
@@ -87,7 +88,7 @@ server.registerTool(
   'estado_sesion',
   {
     description:
-      'Comprueba si Bitácora está abierta y la sesión autorizada sigue vigente. Devuelve proveedor, caducidad y proyectos visibles sin leer contenido.',
+      'Comprueba si Bitácora está abierta y la sesión autorizada sigue vigente. Devuelve proveedor, caducidad, proyectos y ámbitos autorizados («General» o subproyectos) sin leer contenido.',
     inputSchema: {},
     annotations: { readOnlyHint: true, openWorldHint: false },
   },
@@ -138,10 +139,11 @@ server.registerTool(
   'filtrar_registros',
   {
     description:
-      'Filtra metadatos de registros autorizados por proyecto, tipo, fecha y, para tareas, estado o prioridad. Usa leer_elementos para consultar el contenido elegido.',
+      'Filtra metadatos de registros autorizados por proyecto, ámbito (subprojectId o «general»), tipo, fecha y, para tareas, estado o prioridad. Usa leer_elementos para consultar el contenido elegido.',
     inputSchema: {
       kind: readableKinds.optional(),
       projectId: z.string().optional(),
+      subprojectId: z.string().optional(),
       from: z.string().optional(),
       to: z.string().optional(),
       state: z.enum(['Por hacer', 'En curso', 'En revisión', 'Completada']).optional(),
@@ -246,7 +248,7 @@ server.registerTool(
   'proponer_cambios',
   {
     description:
-      'Crea una propuesta pendiente. create admite task, entry, incident, idea, practice, decision y meeting; requiere patch.project autorizado. update y check requieren targetId y expectedVersion actuales. Para crear una tarea, consulta las prácticas, redacta objetivo, contexto y criterios de aceptación verificables; justifica prioridad, fase y fecha. En tareas de programación aplica el flujo SDD proporcional de consultar_guia: especificación, aclaración, plan, trabajo y verificación. Al trabajar en una tarea, consulta sus criterios antes y después y propón la verificación de cada criterio vigente evaluado, incluido el asociado manualmente. check exige una práctica asociada y vigente, y una nota con evidencias al marcar Cumplido o Requiere consulta; no marques Cumplido sin evidencia. Antes de cerrar una tarea, propón sus verificaciones y conserva la descripción original. Solo completar_tarea puede aceptar verificaciones y cierre con permiso explícito; las demás propuestas requieren revisión humana. Los campos de políticas, excepciones, validación y control son humanos. Consulta consultar_guia para contratos y adjuntos.',
+      'Crea una propuesta pendiente. create admite task, entry, incident, idea, practice, decision y meeting; requiere patch.project autorizado y, fuera de «General», patch.subprojectId de un ámbito autorizado. update no cambia el ámbito. update y check requieren targetId y expectedVersion actuales. Para crear una tarea, consulta las prácticas, redacta objetivo, contexto y criterios de aceptación verificables; justifica prioridad, fase y fecha. En tareas de programación aplica el flujo SDD proporcional de consultar_guia: especificación, aclaración, plan, trabajo y verificación. Al trabajar en una tarea, consulta sus criterios antes y después y propón la verificación de cada criterio vigente evaluado, incluido el asociado manualmente. check exige una práctica asociada y vigente, y una nota con evidencias al marcar Cumplido o Requiere consulta; no marques Cumplido sin evidencia. Antes de cerrar una tarea, propón sus verificaciones y conserva la descripción original. Solo completar_tarea puede aceptar verificaciones y cierre con permiso explícito; las demás propuestas requieren revisión humana. Los campos de políticas, excepciones, validación y control son humanos. Consulta consultar_guia para contratos y adjuntos.',
     inputSchema: {
       operation: z.enum(['create', 'update', 'check']),
       kind: proposalKinds,

@@ -11,7 +11,7 @@ interface DiaryViewProps {
   allRecords: RecordItem[];
   mode: DiaryMode;
   setMode: (mode: DiaryMode) => void;
-  projectName: (id: string) => string;
+  projectName: (id: string, subprojectId?: string) => string;
   openRecord: (record: RecordItem) => void;
 }
 
@@ -70,7 +70,7 @@ export default function DiaryView({
             <div className="copyable-card">
               <button className="journal-card" onClick={() => openRecord(record)}>
                 <div className="row spread">
-                  <Badge tone="blue">{projectName(record.project)}</Badge>
+                  <Badge tone="blue">{projectName(record.project, record.subprojectId)}</Badge>
                   <ChevronRight size={16} />
                 </div>
                 <h2>{record.title}</h2>

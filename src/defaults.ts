@@ -88,6 +88,8 @@ export function blank(kind: Kind): Record<string, any> {
         validationDate: '',
         validationReference: '',
       };
+    case 'subproject':
+      return { ...base, description: '', status: 'Activo' };
     case 'objective':
       return {
         ...base,

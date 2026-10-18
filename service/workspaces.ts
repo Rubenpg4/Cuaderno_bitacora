@@ -20,6 +20,7 @@ import {
   type Snapshot,
 } from '../shared/model.js';
 import { objectiveCoverage } from '../shared/objectiveCoverage.js';
+import { sameScope } from '../shared/subprojects.js';
 import { Domain, blank, initialState } from './domain.js';
 import { Vault } from './vault.js';
 import { validateAsvsState } from './asvs/tracking.js';
@@ -169,6 +170,68 @@ function invalidReviewReferences(state: Snapshot, projectId: string): boolean {
   );
 }
 
+/** Subprojects belong to the root, and references never cross scopes inside the vault. */
+function invalidScopes(state: Snapshot, projectId: string) {
+  const children = new Map(
+    state.records
+      .filter((record) => record.kind === 'subproject')
+      .map((record) => [record.id, record]),
+  );
+  const titles = new Set<string>();
+  for (const child of children.values()) {
+    if (child.kind !== 'subproject') return true;
+    const title = typeof child.title === 'string' ? child.title.trim().toLocaleLowerCase('es') : '';
+    if (
+      child.project !== projectId ||
+      'subprojectId' in child ||
+      !title ||
+      titles.has(title) ||
+      !['Activo', 'Archivado'].includes(child.status) ||
+      (child.status === 'Archivado') !== !!child.archivedAt
+    )
+      return true;
+    titles.add(title);
+  }
+  const unknownScope = (item: { subprojectId?: unknown } | null | undefined) =>
+    !!item &&
+    'subprojectId' in item &&
+    (typeof item.subprojectId !== 'string' || !children.has(item.subprojectId));
+  const byId = new Map(state.records.map((record) => [record.id, record]));
+  const crosses = (record: RecordItem, ids: string[] | undefined) =>
+    (ids ?? []).some((id) => {
+      const target = byId.get(id);
+      return target && target.kind !== 'project' && !sameScope(target, record);
+    });
+  return (
+    state.records.some(
+      (record) =>
+        ((record.kind === 'project' || record.kind === 'subproject') && 'subprojectId' in record) ||
+        unknownScope(record) ||
+        (record.kind === 'task' && crosses(record, record.dependencyIds)) ||
+        (record.kind === 'entry' &&
+          crosses(record, [...record.taskIds, ...(record.linkedIds ?? [])])) ||
+        (record.kind === 'meeting' &&
+          crosses(
+            record,
+            (record.agreementItems ?? []).flatMap((item) =>
+              item.followUpTaskId ? [item.followUpTaskId] : [],
+            ),
+          )) ||
+        (record.kind === 'objective' &&
+          crosses(
+            record,
+            (record.links ?? []).map((link) => link.sourceId),
+          )),
+    ) ||
+    state.history.some((entry) => unknownScope(entry.after) || unknownScope(entry.before)) ||
+    Object.values(state.drafts ?? {}).some(unknownScope) ||
+    (state.taskSeries ?? []).some(unknownScope) ||
+    state.proposals.some(
+      (proposal) => proposal.status === 'pending' && unknownScope(proposal.patch),
+    )
+  );
+}
+
 export class Workspaces {
   private readonly catalogPath: string;
   private readonly workspacesDir: string;
@@ -296,7 +359,8 @@ export class Workspaces {
           (proposal.projectId && proposal.projectId !== id),
       ) ||
       invalidObjectiveReferences(state, id) ||
-      invalidReviewReferences(state, id)
+      invalidReviewReferences(state, id) ||
+      invalidScopes(state, id)
     )
       throw Error('Los datos del cuaderno no corresponden con su identificador.');
   }

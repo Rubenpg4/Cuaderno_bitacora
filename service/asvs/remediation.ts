@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { GrantInfo, Snapshot, Task } from '../../shared/model.js';
+import { grantSees } from '../../shared/subprojects.js';
 import { asvsOverview } from './tracking.js';
 import { authorizeAsvsProject } from './revalidation.js';
 
@@ -23,13 +24,18 @@ export function planAsvsRemediation(state: Snapshot, grant: GrantInfo, input: un
       r.kind === 'task' &&
       r.project === request.projectId &&
       r.state !== 'Completada' &&
-      !r.recurrence?.canceledAt,
+      !r.recurrence?.canceledAt &&
+      grantSees(grant, r, state.records),
+  );
+  // Tasks of children outside the session are omitted, including their titles and counts.
+  const visibleIds = new Set(
+    state.records.filter((r) => grantSees(grant, r, state.records)).map((r) => r.id),
   );
   const gaps = overview.gaps.filter(
     (g) =>
       !request.category ||
       (request.category === 'unassigned'
-        ? !g.tasks.some((t) => t.state !== 'Completada')
+        ? !g.tasks.some((t) => visibleIds.has(t.id) && t.state !== 'Completada')
         : g.category === request.category),
   );
   const rank = { failed: 0, revalidation: 1, consultation: 2, partial: 3, pending: 4 };
@@ -48,14 +54,15 @@ export function planAsvsRemediation(state: Snapshot, grant: GrantInfo, input: un
     guidance:
       'Seguimiento del alcance evaluado, sin certificación. El nivel mínimo ASVS no es severidad. Confirmar impacto, exposición, evidencia y dependencias antes de fijar prioridad. Proponer como máximo los elementos de esta página; no crear una tarea por requisito por defecto.',
     items: gaps.slice(request.offset, request.offset + request.limit).map((gap) => {
+      const gapTasks = gap.tasks.filter((t) => visibleIds.has(t.id));
       const similar = openTasks.filter(
         (t) =>
-          !gap.tasks.some((related) => related.id === t.id) &&
+          !gapTasks.some((related) => related.id === t.id) &&
           new RegExp(`(?:^|[^\\d.])${gap.reqId.replace(/\./g, '\\.')}($|[^\\d.])`, 'i').test(
             `${t.title} ${t.description}`,
           ),
       );
-      const relatedOpen = gap.tasks.filter((t) => t.state !== 'Completada');
+      const relatedOpen = gapTasks.filter((t) => t.state !== 'Completada');
       const existing = [
         ...relatedOpen,
         ...similar.map(({ id, title, state, version }) => ({ id, title, state, version })),
@@ -78,7 +85,7 @@ export function planAsvsRemediation(state: Snapshot, grant: GrantInfo, input: un
         reqId: gap.reqId,
         category: gap.category,
         nextStep: gap.nextStep,
-        relatedTaskCount: gap.tasks.length,
+        relatedTaskCount: gapTasks.length,
         openTaskCount: relatedOpen.length,
         existingTasks: existing.slice(0, 10),
         existingTaskCount: existing.length,

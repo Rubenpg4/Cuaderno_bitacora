@@ -42,6 +42,17 @@ import { objectiveCoverage, validObjectiveLink } from '../shared/objectiveCovera
 import { captureWeeklyBaseline, weeklySignals } from '../shared/weeklyReviewSignals.js';
 import { addDays, occurrenceDays, type RecurrenceRule } from '../shared/recurrence.js';
 import {
+  GENERAL_SCOPE,
+  effectiveGrantScopes,
+  findSubproject,
+  grantScopes,
+  grantSees,
+  isArchivedScope,
+  practiceReaches,
+  sameScope,
+  scopeOf,
+} from '../shared/subprojects.js';
+import {
   applicable,
   snapshotCheck,
   unresolved,
@@ -60,6 +71,7 @@ import {
   type GrantInfo,
   type Objective,
   type ObjectiveLink,
+  type Subproject,
   type WeeklyReviewState,
   madridDate,
   PRIORITIES,
@@ -334,7 +346,11 @@ export class Domain {
         (linked?.kind === 'task' && !linked.recurrence?.canceledAt)
       )
         throw Error('El acuerdo ya no necesita una tarea de seguimiento.');
-      const task = this.write('task', { ...data, project: meeting.project }) as Task;
+      const task = this.write('task', {
+        ...data,
+        project: meeting.project,
+        subprojectId: meeting.subprojectId,
+      }) as Task;
       this.write(
         'meeting',
         {
@@ -384,6 +400,14 @@ export class Domain {
     });
     if (before && parsed.project && parsed.project !== before.project)
       throw Error('No se puede cambiar el proyecto de una serie.');
+    if (before && 'subprojectId' in content && scopeOf(parsed) !== scopeOf(before))
+      throw Error('No se puede trasladar una serie a otro ámbito del proyecto.');
+    const subprojectId = before ? before.subprojectId : parsed.subprojectId || undefined;
+    if (subprojectId) {
+      const child = findSubproject(state.records, subprojectId);
+      if (!child) throw Error('El subproyecto no existe en este cuaderno.');
+      this.assertWritable({ subprojectId });
+    }
     if (this.activeProjectId && parsed.project && parsed.project !== this.activeProjectId)
       throw Error('Proyecto fuera del cuaderno activo.');
     if (parsed.attachments?.length)
@@ -411,6 +435,7 @@ export class Domain {
               record.kind === 'practice' &&
               record.id === practiceId &&
               (!record.project || record.project === project) &&
+              practiceReaches(record, { subprojectId }) &&
               record.status !== 'Borrador' &&
               record.status !== 'Retirada',
           ),
@@ -422,7 +447,10 @@ export class Domain {
         (dependencyId) =>
           !state.records.some(
             (record) =>
-              record.kind === 'task' && record.id === dependencyId && record.project === project,
+              record.kind === 'task' &&
+              record.id === dependencyId &&
+              record.project === project &&
+              sameScope(record, { subprojectId }),
           ),
       )
     )
@@ -436,6 +464,7 @@ export class Domain {
         createdAt: before?.createdAt || now,
         updatedAt: now,
         project,
+        ...(subprojectId ? { subprojectId } : {}),
         title: template.title,
         rule,
         template,
@@ -518,6 +547,7 @@ export class Domain {
     if (before.archivedAt) throw Error('La serie ya está detenida.');
     if (this.activeProjectId && before.project !== this.activeProjectId)
       throw Error('Serie fuera del cuaderno activo.');
+    this.assertWritable(before);
     const today = madridDate();
     return this.transaction(() => {
       const now = new Date().toISOString();
@@ -565,6 +595,7 @@ export class Domain {
       if (
         series.archivedAt ||
         series.stoppedAt ||
+        isArchivedScope(state.records, series) ||
         (series.generatedThrough && series.generatedThrough >= horizon)
       )
         continue;
@@ -590,6 +621,7 @@ export class Domain {
               ...blank('task'),
               ...structuredClone(series.template),
               project: series.project,
+              subprojectId: series.subprojectId,
               due: day,
               state: 'Por hacer',
               checks: series.practiceIds.map((practiceId) => {
@@ -678,6 +710,7 @@ export class Domain {
     }
     if (item.project && !s.records.some((r) => r.kind === 'project' && r.id === item.project))
       throw Error('El proyecto no existe.');
+    this.assignScope(item, content, before);
     if (
       item.kind === 'practice' &&
       item.status === 'Política de empresa confirmada' &&
@@ -695,13 +728,22 @@ export class Domain {
       item.taskIds.some((id) => !s.records.some((r) => r.kind === 'task' && r.id === id))
     )
       throw Error('Una tarea vinculada ya no existe.');
+    if (
+      item.kind === 'entry' &&
+      [...item.taskIds, ...(item.linkedIds ?? [])].some((id) => {
+        const linked = s.records.find((r) => r.id === id);
+        return linked && !sameScope(linked, item);
+      })
+    )
+      throw Error('Un registro vinculado pertenece a otro ámbito del proyecto.');
     if (item.kind === 'entry') {
       const completedDayTaskIds = s.records
         .filter(
           (r): r is Task =>
             r.kind === 'task' &&
             isTaskCompletedOnDay(r, item.date) &&
-            (!item.project || r.project === item.project),
+            (!item.project || r.project === item.project) &&
+            sameScope(r, item),
         )
         .map((t) => t.id);
       if (completedDayTaskIds.length) {
@@ -744,6 +786,8 @@ export class Domain {
         const source = s.records.find((record) => record.id === link.sourceId);
         if (!source || source.kind !== link.sourceKind || source.project !== item.project)
           throw Error('El vínculo debe apuntar a un registro válido del mismo cuaderno.');
+        if (!sameScope(source, item))
+          throw Error('El vínculo debe apuntar a un registro del mismo ámbito del proyecto.');
         if (source.kind === 'task' && source.recurrence?.canceledAt && !existing)
           throw Error('Una aparición cancelada no puede aportar trabajo.');
         if (link.role === 'resultado' && !validObjectiveLink(item, link, s.records) && !existing)
@@ -788,7 +832,10 @@ export class Domain {
           : undefined;
         if (
           (agreement.followUpTaskId &&
-            (!followUp || followUp.kind !== 'task' || followUp.project !== item.project)) ||
+            (!followUp ||
+              followUp.kind !== 'task' ||
+              followUp.project !== item.project ||
+              !sameScope(followUp, item))) ||
           (agreement.followUpTaskId && !agreement.requiresFollowUp) ||
           (followUp?.kind === 'task' &&
             !!followUp.recurrence?.canceledAt &&
@@ -797,6 +844,13 @@ export class Domain {
           throw Error('El seguimiento debe apuntar a una tarea del mismo cuaderno.');
         return { ...agreement, id: agreementId, text: agreement.text.trim() };
       });
+      if (
+        item.sourceIds.some((id) => {
+          const source = s.records.find((record) => record.id === id);
+          return source && source.kind !== 'project' && !sameScope(source, item);
+        })
+      )
+        throw Error('Las fuentes de la reunión deben pertenecer a su mismo ámbito.');
     }
     if (item.kind === 'incident') {
       if (!!item.solution.trim() !== !!item.resolvedDate)
@@ -813,6 +867,8 @@ export class Domain {
         if (!dependency) throw Error('Una tarea de la que depende ya no existe.');
         if (this.activeProjectId && dependency.project !== this.activeProjectId)
           throw Error('Una tarea de la que depende pertenece a otro proyecto.');
+        if (!sameScope(dependency, item))
+          throw Error('Una tarea de la que depende pertenece a otro ámbito del proyecto.');
         return dependency;
       });
       const reachesItem = (task: Task, seen = new Set<string>()): boolean => {
@@ -847,6 +903,8 @@ export class Domain {
         if (!p && !old) throw Error('Criterio desconocido.');
         if (!restoring && p?.project && p.project !== item.project)
           throw Error('El criterio pertenece a otro proyecto.');
+        if (!restoring && !old && p && !practiceReaches(p, item))
+          throw Error('El criterio pertenece a otro ámbito del proyecto.');
         // Only a snapshot already stored in the encrypted history may restore policy fields.
         const authoritative = restoring ? c : (old ?? snapshotCheck(p!));
         return {
@@ -922,6 +980,163 @@ export class Domain {
       } else delete item.completedAt;
     }
     return item;
+  }
+  /** Validates the owning subproject; a record keeps its scope for its whole life. */
+  private assignScope(item: RecordItem, content: Record<string, unknown>, before?: RecordItem) {
+    const s = this.require();
+    if (item.kind === 'project') return;
+    if (item.kind === 'subproject') {
+      if (before && before.project !== item.project)
+        throw Error('No se puede cambiar el proyecto de un subproyecto.');
+      const title = item.title.trim().toLocaleLowerCase('es');
+      if (
+        s.records.some(
+          (record) =>
+            record.kind === 'subproject' &&
+            record.id !== item.id &&
+            record.title.trim().toLocaleLowerCase('es') === title,
+        )
+      )
+        throw Error('Ya existe un subproyecto con ese nombre.');
+      return;
+    }
+    if (before) {
+      if ('subprojectId' in content && scopeOf(content) !== scopeOf(before))
+        throw Error('No se puede trasladar un registro a otro ámbito del proyecto.');
+      item.subprojectId = before.subprojectId;
+    }
+    if (!item.subprojectId) {
+      delete item.subprojectId;
+      return;
+    }
+    const child = findSubproject(s.records, item.subprojectId);
+    if (!child || child.project !== item.project)
+      throw Error('El subproyecto no existe en este cuaderno.');
+    this.assertWritable(item);
+  }
+  private assertWritable(record: { subprojectId?: string }) {
+    const child = findSubproject(this.require().records, record.subprojectId);
+    if (child?.status === 'Archivado')
+      throw Error(
+        `El subproyecto «${child.title}» está archivado y su contenido es de solo lectura. Restáuralo para editarlo.`,
+      );
+  }
+  private subproject(id: unknown, expectedVersion: unknown) {
+    const child = typeof id === 'string' ? findSubproject(this.require().records, id) : undefined;
+    if (!child || (this.activeProjectId && child.project !== this.activeProjectId))
+      throw Error('Subproyecto no encontrado.');
+    if (child.version !== expectedVersion)
+      throw Error('Conflicto: el subproyecto ha cambiado. Vuelve a abrirlo.');
+    return child;
+  }
+  saveSubproject(input: unknown, id?: string, expectedVersion?: number) {
+    const data = z
+      .object({ title: short.trim().min(1, 'Indica un nombre.'), description: text.default('') })
+      .strict()
+      .parse(input);
+    return this.transaction(() => {
+      const before = id ? this.subproject(id, expectedVersion) : undefined;
+      if (before?.status === 'Archivado') this.assertWritable({ subprojectId: before.id });
+      const root = this.require().records.find((record) => record.kind === 'project');
+      if (!root) throw Error('Cuaderno no disponible.');
+      return this.write(
+        'subproject',
+        { ...(before ?? { status: 'Activo' }), ...data, project: root.id },
+        before?.id,
+        before?.version,
+        'Gestión de subproyectos',
+      ) as Subproject;
+    });
+  }
+  setSubprojectStatus(id: unknown, expectedVersion: unknown, status: unknown) {
+    const next = z.enum(['Activo', 'Archivado']).parse(status);
+    return this.transaction(() => {
+      const s = this.require();
+      const before = this.subproject(id, expectedVersion);
+      if (before.status === next)
+        throw Error(
+          next === 'Archivado'
+            ? 'El subproyecto ya está archivado.'
+            : 'El subproyecto ya está activo.',
+        );
+      if (next === 'Archivado') {
+        // Reject while the child is still writable, so closures revert the task state normally.
+        const inScope = new Set(
+          s.records.filter((record) => record.subprojectId === before.id).map((r) => r.id),
+        );
+        for (const proposal of s.proposals)
+          if (
+            proposal.status === 'pending' &&
+            ((proposal.targetId && inScope.has(proposal.targetId)) ||
+              (proposal.operation === 'create' && proposal.patch.subprojectId === before.id))
+          )
+            this.applyReview(s, proposal, false);
+        for (const proposal of s.asvs?.proposals ?? [])
+          if (proposal.status === 'pending' && inScope.has(proposal.request.taskId ?? ''))
+            proposal.status = 'rejected';
+        this.dropGrantScope(before.id);
+      }
+      const now = new Date().toISOString();
+      const after: Subproject = {
+        ...structuredClone(before),
+        status: next,
+        version: before.version + 1,
+        updatedAt: now,
+      };
+      if (next === 'Archivado') after.archivedAt = now;
+      else delete after.archivedAt;
+      s.records[s.records.indexOf(before)] = after;
+      s.history.unshift({
+        id: randomUUID(),
+        recordId: after.id,
+        at: now,
+        actor: next === 'Archivado' ? 'Archivo de subproyecto' : 'Restauración de subproyecto',
+        before: structuredClone(before),
+        after: structuredClone(after),
+      });
+      return after;
+    });
+  }
+  deleteSubproject(id: unknown, expectedVersion: unknown) {
+    return this.transaction(() => {
+      const s = this.require();
+      const child = this.subproject(id, expectedVersion);
+      const inScope = new Set(
+        s.records.filter((record) => record.subprojectId === child.id).map((r) => r.id),
+      );
+      if (
+        inScope.size ||
+        (s.taskSeries ?? []).some((series) => series.subprojectId === child.id) ||
+        Object.values(s.drafts ?? {}).some((draft) => draft.subprojectId === child.id) ||
+        s.proposals.some(
+          (proposal) => proposal.status === 'pending' && proposal.patch.subprojectId === child.id,
+        ) ||
+        s.shares.some((share) => share.recordId === child.id)
+      )
+        throw Error(
+          'El subproyecto tiene registros, borradores o propuestas. Archívalo para conservar su contenido.',
+        );
+      s.records = s.records.filter((record) => record.id !== child.id);
+      s.history = s.history.filter((entry) => entry.recordId !== child.id);
+      for (const capture of s.captures ?? [])
+        if (capture.linkedRecordId === child.id) {
+          delete capture.linkedRecordId;
+          capture.version++;
+          capture.updatedAt = new Date().toISOString();
+        }
+      this.dropGrantScope(child.id);
+      return { ok: true };
+    });
+  }
+  /** Removes a child scope from MCP sessions; a session left without scopes is revoked. */
+  private dropGrantScope(subprojectId: string) {
+    for (const [grantId, grant] of this.grants) {
+      const scopes = grantScopes(grant);
+      if (!scopes.includes(subprojectId)) continue;
+      const remaining = scopes.filter((scope) => scope !== subprojectId);
+      if (remaining.length) grant.scopes = remaining;
+      else this.grants.delete(grantId);
+    }
   }
   private write(
     kind: Kind,
@@ -1016,6 +1231,7 @@ export class Domain {
     draftKey?: string,
   ) {
     if (!(kind in schemas)) throw Error('Tipo desconocido.');
+    if (kind === 'subproject') throw Error('Gestiona los subproyectos desde su panel.');
     if (kind === 'task') {
       const before = id ? this.require().records.find((record) => record.id === id) : undefined;
       if (!before && data.recurrence !== undefined)
@@ -1152,6 +1368,7 @@ export class Domain {
     });
     const ready = candidates.filter(
       (task) =>
+        !isArchivedScope(s.records, task) &&
         task.state !== 'Completada' &&
         task.state !== 'En curso' &&
         task.state !== 'En revisión' &&
@@ -1185,6 +1402,7 @@ export class Domain {
         record.state === 'Por hacer' &&
         record.due < today &&
         (!this.activeProjectId || record.project === this.activeProjectId) &&
+        !isArchivedScope(s.records, record) &&
         record.dependencyIds.every((id) =>
           s.records.some(
             (dependency) =>
@@ -1215,7 +1433,9 @@ export class Domain {
       return task;
     });
     const today = madridDate();
-    const leaving = candidates.filter((task) => task.state === 'En curso' && task.due >= today);
+    const leaving = candidates.filter(
+      (task) => task.state === 'En curso' && task.due >= today && !isArchivedScope(s.records, task),
+    );
     if (!leaving.length) return [];
     return this.transaction(() =>
       leaving.map((task) =>
@@ -1238,6 +1458,8 @@ export class Domain {
       throw Error('Borrador inválido o demasiado grande.');
     if (this.activeProjectId && data.project && data.project !== this.activeProjectId)
       throw Error('Proyecto fuera del cuaderno activo.');
+    if (data.subprojectId && !findSubproject(this.require().records, String(data.subprojectId)))
+      throw Error('El subproyecto no existe en este cuaderno.');
     return this.transaction(() => {
       const state = this.require();
       (state.drafts ??= {})[key] = structuredClone(data);
@@ -1317,6 +1539,7 @@ export class Domain {
         idea: 'idea',
         meeting: 'reunión',
         project: 'proyecto',
+        subproject: 'subproyecto',
         practice: 'política o criterio',
         objective: 'objetivo',
       };
@@ -1329,6 +1552,7 @@ export class Domain {
         throw Error(
           `Conflicto: ${kind === 'project' || kind === 'practice' ? 'el' : 'la'} ${label} ha cambiado. Vuelve a abrirl${kind === 'project' || kind === 'practice' ? 'o' : 'a'}.`,
         );
+      this.assertWritable(recordToDelete);
       s.records = s.records.filter((r) => r.id !== id);
       for (const capture of s.captures ?? []) {
         if (capture.linkedRecordId === id) {
@@ -1339,7 +1563,7 @@ export class Domain {
       }
       delete (s.drafts ??= {})[`record:${id}`];
       if (recordToDelete.kind === 'entry') {
-        const dailyKey = `daily:${recordToDelete.date}:${recordToDelete.project || 'none'}`;
+        const dailyKey = `daily:${recordToDelete.date}:${recordToDelete.project || 'none'}${recordToDelete.subprojectId ? `:${recordToDelete.subprojectId}` : ''}`;
         if (s.drafts?.[dailyKey]?.id === id) delete s.drafts[dailyKey];
       }
       for (const record of s.records) {
@@ -1449,6 +1673,7 @@ export class Domain {
       const t = s.records.find((r): r is Task => r.id === id && r.kind === 'task');
       if (!t || t.version !== version || t.state === 'Completada')
         throw Error('La tarea no admite esta revisión.');
+      this.assertWritable(t);
       const before = structuredClone(t);
       const ps = s.records.filter((r): r is Practice => r.kind === 'practice');
       t.checks = t.checks
@@ -1487,6 +1712,8 @@ export class Domain {
         throw Error(
           'La creación se conserva para mantener las referencias. Puedes editar el registro.',
         );
+      if (h.before.kind === 'subproject')
+        throw Error('Gestiona los cambios del subproyecto desde su panel.');
       return this.write(
         h.before.kind,
         h.before as unknown as Record<string, unknown>,
@@ -1589,6 +1816,7 @@ export class Domain {
     projectIds: string[] = [],
     durationMinutes: number = DEFAULT_SESSION_DURATION_MINUTES,
     canCompleteTasks = false,
+    scopes: string[] = [GENERAL_SCOPE],
   ) {
     const s = this.require();
     if (s.mcpProfile === 'corporativo')
@@ -1610,6 +1838,7 @@ export class Domain {
     )
       throw Error('Selecciona proyectos existentes para esta sesión.');
     if (scope === 'selected' && projectIds.length) throw Error('Alcance no permitido.');
+    if (scope === 'projects') this.validateGrantScopes(scopes);
     if (typeof canCompleteTasks !== 'boolean' || (canCompleteTasks && scope !== 'projects'))
       throw Error('Permiso de cierre de tareas inválido.');
     if (
@@ -1635,6 +1864,7 @@ export class Domain {
       provider,
       shareIds: ids,
       projectIds,
+      ...(scope === 'projects' ? { scopes: [...scopes] } : {}),
       canCompleteTasks,
       scope,
       expiresAt: new Date(Date.now() + durationMinutes * 60000).toISOString(),
@@ -1670,7 +1900,22 @@ export class Domain {
   revokeGrant(id: string) {
     this.grants.delete(id);
   }
-  updateGrantProjects(id: string, projectIds: string[]) {
+  private validateGrantScopes(scopes: unknown): asserts scopes is string[] {
+    const records = this.require().records;
+    if (
+      !Array.isArray(scopes) ||
+      !scopes.length ||
+      scopes.length > 101 ||
+      new Set(scopes).size !== scopes.length ||
+      scopes.some(
+        (scope) =>
+          typeof scope !== 'string' ||
+          (scope !== GENERAL_SCOPE && findSubproject(records, scope)?.status !== 'Activo'),
+      )
+    )
+      throw Error('Selecciona «General» o subproyectos activos para esta sesión.');
+  }
+  updateGrantProjects(id: string, projectIds: string[], scopes?: string[]) {
     const s = this.require();
     if (
       this.activeProjectId &&
@@ -1699,8 +1944,10 @@ export class Domain {
       )
     )
       throw Error('Selecciona proyectos existentes para esta sesión.');
+    if (scopes !== undefined) this.validateGrantScopes(scopes);
     grant.projectIds = [...projectIds];
-    return { id: grant.id, projectIds: grant.projectIds };
+    if (scopes !== undefined) grant.scopes = [...scopes];
+    return { id: grant.id, projectIds: grant.projectIds, scopes: grantScopes(grant) };
   }
   authorize(token: string) {
     const state = this.require();
@@ -1717,20 +1964,24 @@ export class Domain {
       throw Error('Sesión revocada, caducada o no autorizada.');
     return g;
   }
+  /** Records an MCP project session may see; every MCP query starts from this list. */
+  grantRecords(g: Grant) {
+    const records = this.require().records;
+    return records.filter((record) => grantSees(g, record, records));
+  }
   visible(g: Grant) {
     if (g.scope === 'projects') {
-      const records = this.require().records.filter(
-        (r) =>
-          (r.kind === 'project' && g.projectIds.includes(r.id)) ||
-          (r.kind !== 'project' && g.projectIds.includes(r.project)),
-      );
+      const records = this.grantRecords(g);
       const visibleIds = new Set(records.map((r) => r.id));
       return records.map((r): Share => ({
         id: r.id,
         recordId: r.id,
         provider: g.provider,
         title: r.title,
-        excerpt: JSON.stringify(this.projectContext(r, visibleIds)),
+        excerpt: JSON.stringify({
+          ...this.projectContext(r, visibleIds),
+          ...(r.subprojectId ? { subprojectId: r.subprojectId } : {}),
+        }),
         recordVersion: r.version,
         approvedAt: g.expiresAt,
       }));
@@ -1750,6 +2001,8 @@ export class Domain {
           specifications: r.specifications,
           competency: r.competency,
         };
+      case 'subproject':
+        return { project: r.project, description: r.description, status: r.status };
       case 'objective':
         return {
           project: r.project,
@@ -1858,6 +2111,7 @@ export class Domain {
             'decision',
             'meeting',
             'project',
+            'subproject',
             'objective',
           ])
           .optional(),
@@ -1960,6 +2214,7 @@ export class Domain {
               this.require().records.some((r) => r.id === share.recordId && r.kind === 'project'),
             )
             .map((share) => ({ id: share.recordId, title: share.title }));
+    const records = this.require().records;
     return {
       connected: true,
       provider: g.provider,
@@ -1967,6 +2222,15 @@ export class Domain {
       expiresAt: g.expiresAt,
       canCompleteTasks: g.canCompleteTasks === true,
       projects,
+      ...(g.scope === 'projects'
+        ? {
+            scopes: effectiveGrantScopes(g, records).map((scope) =>
+              scope === GENERAL_SCOPE
+                ? { id: GENERAL_SCOPE, title: 'General del proyecto' }
+                : { id: scope, title: findSubproject(records, scope)!.title },
+            ),
+          }
+        : {}),
     };
   }
   filterRecords(g: Grant, input: unknown) {
@@ -1983,10 +2247,12 @@ export class Domain {
             'decision',
             'meeting',
             'project',
+            'subproject',
             'objective',
           ])
           .optional(),
         projectId: short.optional(),
+        subprojectId: short.optional(),
         from: z.string().refine(validDay, 'Fecha inválida').optional(),
         to: z.string().refine(validDay, 'Fecha inválida').optional(),
         state: z.enum(['Por hacer', 'En curso', 'En revisión', 'Completada']).optional(),
@@ -1998,12 +2264,14 @@ export class Domain {
       .parse(input);
     if (q.projectId && !g.projectIds.includes(q.projectId)) throw Error('Proyecto no autorizado.');
     if (q.from && q.to && q.from > q.to) throw Error('Rango de fechas inválido.');
-    const rows = this.require()
-      .records.filter((r) =>
-        r.kind === 'project' ? g.projectIds.includes(r.id) : g.projectIds.includes(r.project),
-      )
+    const rows = this.grantRecords(g)
       .filter((r) => !q.kind || r.kind === q.kind)
       .filter((r) => !q.projectId || r.id === q.projectId || r.project === q.projectId)
+      .filter(
+        (r) =>
+          !q.subprojectId ||
+          (q.subprojectId === GENERAL_SCOPE ? !r.subprojectId : r.subprojectId === q.subprojectId),
+      )
       .filter((r) => !q.state || (r.kind === 'task' && r.state === q.state))
       .filter((r) => !q.priority || (r.kind === 'task' && r.priority === q.priority))
       .filter((r) => {
@@ -2023,6 +2291,7 @@ export class Domain {
         version: r.version,
         title: r.title,
         projectId: r.kind === 'project' ? r.id : r.project,
+        ...(r.subprojectId ? { subprojectId: r.subprojectId } : {}),
         ...(r.kind === 'task' ? { due: r.due, state: r.state, priority: r.priority } : {}),
         ...('date' in r ? { date: r.date } : {}),
       }));
@@ -2038,14 +2307,22 @@ export class Domain {
     if (!g.projectIds.includes(projectId)) throw Error('Proyecto no autorizado.');
     const project = this.require().records.find((r) => r.id === projectId && r.kind === 'project');
     if (!project) throw Error('Proyecto no disponible.');
-    const records = this.require().records.filter(
+    const records = this.grantRecords(g).filter(
       (record) =>
         record.project === projectId && (record.kind !== 'task' || !record.recurrence?.canceledAt),
     );
     const counts = Object.fromEntries(
-      ['task', 'entry', 'incident', 'idea', 'practice', 'decision', 'meeting', 'objective'].map(
-        (kind) => [kind, records.filter((r) => r.kind === kind).length],
-      ),
+      [
+        'task',
+        'entry',
+        'incident',
+        'idea',
+        'practice',
+        'decision',
+        'meeting',
+        'objective',
+        'subproject',
+      ].map((kind) => [kind, records.filter((r) => r.kind === kind).length]),
     );
     const tasks = records.filter((r): r is Task => r.kind === 'task');
     return {
@@ -2074,10 +2351,9 @@ export class Domain {
       .parse(input);
     if (q.projectId && !g.projectIds.includes(q.projectId)) throw Error('Proyecto no autorizado.');
     const state = this.require();
-    const tasks = state.records.filter((record): record is Task => record.kind === 'task');
-    const practices = state.records.filter(
-      (record): record is Practice => record.kind === 'practice',
-    );
+    const visible = this.grantRecords(g);
+    const tasks = visible.filter((record): record is Task => record.kind === 'task');
+    const practices = visible.filter((record): record is Practice => record.kind === 'practice');
     const counts = Object.fromEntries(
       TASK_QUALITY_CATEGORIES.map((category) => [category, 0]),
     ) as Record<(typeof TASK_QUALITY_CATEGORIES)[number], number>;
@@ -2113,9 +2389,7 @@ export class Domain {
       })
       .strict()
       .parse(input);
-    const records = this.require().records.filter((r) =>
-      r.kind === 'project' ? g.projectIds.includes(r.id) : g.projectIds.includes(r.project),
-    );
+    const records = this.grantRecords(g);
     if (!records.some((r) => r.id === q.recordId)) throw Error('Registro no autorizado.');
     const idsFor = (r: RecordItem) => {
       switch (r.kind) {
@@ -2168,7 +2442,8 @@ export class Domain {
       !associated ||
       practice.status === 'Borrador' ||
       practice.status === 'Retirada' ||
-      (practice.project && practice.project !== task.project)
+      (practice.project && practice.project !== task.project) ||
+      !practiceReaches(practice, task)
     )
       throw Error('Criterio no asociado o inactivo.');
     if (associated.practiceVersion !== practice.version)
@@ -2199,6 +2474,13 @@ export class Domain {
             : target?.project;
       if (typeof projectId !== 'string' || !g.projectIds.includes(projectId))
         throw Error('El proyecto no está autorizado en esta sesión.');
+      if (d.operation === 'create') {
+        if (d.patch.subprojectId !== undefined && typeof d.patch.subprojectId !== 'string')
+          throw Error('Indica el subproyecto de destino con su identificador.');
+        const destination = scopeOf(d.patch as { subprojectId?: string }) || GENERAL_SCOPE;
+        if (!effectiveGrantScopes(g, s.records).includes(destination))
+          throw Error('El ámbito de destino no está autorizado en esta sesión.');
+      }
     }
     const duplicate = s.proposals.find(
       (proposal) =>
@@ -2305,6 +2587,7 @@ export class Domain {
         (k) =>
           forbidden.includes(k) ||
           (k === 'project' && d.operation !== 'create') ||
+          (k === 'subprojectId' && d.operation !== 'create') ||
           (k === 'dependencyIds' && d.kind !== 'task'),
       )
     )
@@ -2352,9 +2635,13 @@ export class Domain {
     let entryMentionIds: EntryMentionIds | undefined;
     if (d.kind === 'entry') {
       const projectId = d.operation === 'create' ? d.patch.project : target?.project;
+      const origin = d.operation === 'create' ? (d.patch as { subprojectId?: string }) : target;
       const visibleIds = new Set(shares.map((share) => share.recordId));
       const records = s.records.filter(
-        (record) => record.project === projectId && visibleIds.has(record.id),
+        (record) =>
+          record.project === projectId &&
+          visibleIds.has(record.id) &&
+          sameScope(record, origin ?? {}),
       );
       const resolved = resolveEntryMentions(d.patch, records);
       patch = resolved.entry;
@@ -2478,6 +2765,8 @@ export class Domain {
         .filter((share) => g.shareIds.includes(share.id) && share.provider === g.provider)
         .map((share) => share.recordId),
     );
+    const scopes = effectiveGrantScopes(g, state.records);
+    const general = g.scope === 'projects' && scopes.includes(GENERAL_SCOPE);
     const statuses = state.proposals
       .filter(
         (p) =>
@@ -2485,7 +2774,9 @@ export class Domain {
           (g.scope === 'projects'
             ? !!p.projectId &&
               g.projectIds.includes(p.projectId) &&
-              (!p.targetId || visibleIds.has(p.targetId))
+              (p.targetId
+                ? visibleIds.has(p.targetId)
+                : scopes.includes(scopeOf(p.patch as { subprojectId?: string }) || GENERAL_SCOPE))
             : !p.targetId || visibleIds.has(p.targetId) || grantedIds.has(p.targetId)),
       )
       .slice(0, 20)
@@ -2497,15 +2788,13 @@ export class Domain {
           (p) =>
             p.provider === g.provider &&
             g.scope === 'projects' &&
-            g.projectIds.includes(p.request.projectId),
+            g.projectIds.includes(p.request.projectId) &&
+            (p.request.taskId ? visibleIds.has(p.request.taskId) : general),
         )
         .map((p) => ({ id: p.id, status: p.status, createdAt: p.createdAt })),
       ...(state.asvs?.revisionProposals ?? [])
         .filter(
-          (p) =>
-            p.provider === g.provider &&
-            g.scope === 'projects' &&
-            g.projectIds.includes(p.request.projectId),
+          (p) => p.provider === g.provider && general && g.projectIds.includes(p.request.projectId),
         )
         .map((p) => ({ id: p.id, status: p.status, createdAt: p.createdAt })),
     ]
@@ -2527,7 +2816,7 @@ export class Domain {
       .parse(input);
     const s = this.require();
     const task = s.records.find((r): r is Task => r.kind === 'task' && r.id === taskId);
-    if (!task || !g.projectIds.includes(task.project) || task.state === 'Completada')
+    if (!task || !grantSees(g, task, s.records) || task.state === 'Completada')
       throw Error('Tarea no autorizada o ya completada.');
     if (new Set(checkIds).size !== checkIds.length) throw Error('Hay una verificación repetida.');
     const proposals = [closureId, ...checkIds].map((id) => s.proposals.find((p) => p.id === id));

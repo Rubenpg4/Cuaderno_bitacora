@@ -5,6 +5,7 @@ import { asvsCatalog } from '../../shared/asvsCatalog.js';
 import type { AsvsProposal } from '../../shared/asvsTracking.js';
 import type { GrantInfo, Snapshot, Task } from '../../shared/model.js';
 import { sameProposalValue } from '../../shared/proposalReview.js';
+import { GENERAL_SCOPE, effectiveGrantScopes, grantSees } from '../../shared/subprojects.js';
 import { linkedAsvsTasks } from './links.js';
 import { asvsReviewInput } from './requests.js';
 import { assessmentStatus, asvsOverview, asvsRecordFingerprint, reviewAsvs } from './tracking.js';
@@ -61,6 +62,9 @@ export function taskAsvsContext(
   if (grant.scope !== 'projects' || !grant.projectIds.includes(projectId))
     return { available: false, reason: 'ASVS requiere una sesión de proyecto autorizada.' };
   if (Date.parse(grant.expiresAt) <= Date.now()) throw Error('Sesión MCP caducada.');
+  const scopedTask = taskId ? state.records.find((r) => r.id === taskId) : undefined;
+  if (scopedTask && !grantSees(grant, scopedTask, state.records))
+    return { available: false, reason: 'La tarea no está en un ámbito autorizado.' };
   const selected = state.asvs?.config;
   const config =
     selected?.projectId === projectId
@@ -90,7 +94,7 @@ export function taskAsvsCriteria(state: Snapshot, grant: GrantInfo, input: unkno
   const request = z.object({ taskId: z.string().uuid(), offset, limit }).strict().parse(input);
   const task = state.records.find((r): r is Task => r.kind === 'task' && r.id === request.taskId);
   if (!task) throw Error('Tarea no autorizada.');
-  authorizeAsvs(state, grant, task.project);
+  authorizeAsvs(state, grant, task.project, task);
   const links = task.asvsLinks ?? [];
   const items = links.slice(request.offset, request.offset + request.limit).map((link) => {
     const assessment = state.asvs?.taskVerifications?.find(
@@ -119,7 +123,9 @@ export function taskAsvsCriteria(state: Snapshot, grant: GrantInfo, input: unkno
 
 export function proposeTaskAsvs(state: Snapshot, grant: GrantInfo, input: unknown) {
   const { rationale, ...review } = asvsTaskProposeInput.parse(input);
-  authorizeAsvs(state, grant, review.projectId);
+  const task = state.records.find((r): r is Task => r.kind === 'task' && r.id === review.taskId);
+  if (!task) throw Error('Tarea no autorizada.');
+  authorizeAsvs(state, grant, review.projectId, task);
   const requirement = requirementFor(state, review.reqId);
   review.reqId = requirement.reqId;
   if (!review.note.trim() || !review.method.trim() || !review.responsible.trim())
@@ -169,10 +175,17 @@ export function proposeTaskAsvs(state: Snapshot, grant: GrantInfo, input: unknow
   return { id: proposal.id, status: proposal.status };
 }
 
-function authorizeAsvs(state: Snapshot, grant: GrantInfo, projectId: string) {
+/** Project-level ASVS needs «General»; task-level ASVS needs the task's own scope. */
+function authorizeAsvs(state: Snapshot, grant: GrantInfo, projectId: string, task?: Task) {
   if (Date.parse(grant.expiresAt) <= Date.now()) throw Error('Sesión MCP caducada.');
   if (grant.scope !== 'projects' || !grant.projectIds.includes(projectId))
     throw Error('ASVS requiere una sesión de proyecto autorizada.');
+  if (
+    task
+      ? !grantSees(grant, task, state.records)
+      : !effectiveGrantScopes(grant, state.records).includes(GENERAL_SCOPE)
+  )
+    throw Error('ASVS del proyecto requiere el ámbito «General» en esta sesión.');
   const roots = state.records.filter((r) => r.kind === 'project');
   if (roots.length !== 1 || roots[0].id !== projectId) throw Error('Cuaderno ASVS no autorizado.');
 }
@@ -271,7 +284,9 @@ export function readAsvs(state: Snapshot, grant: GrantInfo, input: unknown) {
   const requirement = requirements[request.offset];
   if (!requirement) return { items: [], nextOffset: null };
   const assessment = state.asvs?.assessments.find((a) => a.reqId === requirement.reqId);
-  const tasks = linkedAsvsTasks(state, requirement.reqId);
+  const tasks = linkedAsvsTasks(state, requirement.reqId).filter((task) =>
+    grantSees(grant, task, state.records),
+  );
   const proposals = (state.asvs?.proposals ?? []).filter(
     (p) =>
       p.status === 'pending' &&

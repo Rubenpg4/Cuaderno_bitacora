@@ -68,5 +68,6 @@ export const kindNames: Record<Kind, string> = {
   decision: 'decisión de arquitectura',
   meeting: 'reunión',
   project: 'proyecto',
+  subproject: 'subproyecto',
   objective: 'objetivo',
 };

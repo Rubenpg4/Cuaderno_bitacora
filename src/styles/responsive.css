@@ -94,6 +94,15 @@
   .breadcrumb {
     font-size: 11px;
     gap: 5px;
+    min-width: 0;
+  }
+  /* The full path stays in the DOM and in the title for assistive technologies. */
+  .breadcrumb-scope {
+    max-width: 34vw;
+  }
+  .project-list {
+    max-height: none;
+    overflow: visible;
   }
   .search input {
     width: 105px;

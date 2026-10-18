@@ -323,3 +323,14 @@
 .export-preview {
   font-size: 13px;
 }
+.scope-grants {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 10px 0;
+  padding: 8px 12px;
+}
+.scope-grants legend {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 4px;
+}

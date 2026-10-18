@@ -326,6 +326,12 @@
 .task-list-state-mark.done {
   background: #68a88e;
 }
+.task-list-scope {
+  display: block;
+  margin: 2px 0 0 16px;
+  color: var(--muted);
+  font-size: 11px;
+}
 .task-list-blocked {
   display: inline-block;
   margin: 3px 0 0 16px;

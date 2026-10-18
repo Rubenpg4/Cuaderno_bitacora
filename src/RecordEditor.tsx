@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import {
   Save,
   Plus,
@@ -49,6 +49,7 @@ import { MentionEditor } from './EntryMentions';
 import { entryMentionFields, linksFromEntryText } from './entryLinks';
 import { useDraft } from './useDraft';
 import ObjectiveLinks from './ObjectiveLinks';
+import { findSubproject, referenceableFrom, scopePath, subprojectsOf } from '../shared/subprojects';
 const TaskAsvsFields = lazy(() => import('./TaskAsvsFields'));
 const labels: Record<string, string> = {
   title: 'Título',
@@ -93,7 +94,7 @@ const deleteLabels: Partial<Record<Kind, string>> = {
 export default function RecordEditor({
   kind,
   record,
-  snapshot,
+  snapshot: fullSnapshot,
   onSaved,
   onRefresh,
   onDelete,
@@ -104,6 +105,8 @@ export default function RecordEditor({
   followUp,
   focusEvidence,
   onCreateFollowUp,
+  chooseScope = false,
+  onManageSubprojects,
 }: {
   kind: Kind;
   record?: RecordItem;
@@ -118,13 +121,17 @@ export default function RecordEditor({
   followUp?: { meetingId: string; agreementId: string; meetingVersion: number };
   focusEvidence?: boolean;
   onCreateFollowUp?: (meeting: Meeting, agreement: AgreementItem) => void;
+  /** Lets a new record choose its destination when «Todo el proyecto» is selected. */
+  chooseScope?: boolean;
+  onManageSubprojects?: () => void;
 }) {
+  const initialScope = typeof initial.subprojectId === 'string' ? initial.subprojectId : '';
   const draftKey = record
     ? `record:${record.id}`
     : capture
       ? `new:capture:${capture.id}`
-      : `new:${kind}`;
-  const restoredDraft = snapshot.drafts?.[draftKey];
+      : `new:${kind}${initialScope && !chooseScope ? `:${initialScope}` : ''}`;
+  const restoredDraft = fullSnapshot.drafts?.[draftKey];
   const outdatedDraft =
     record &&
     restoredDraft &&
@@ -139,6 +146,36 @@ export default function RecordEditor({
     outdatedDraft ? undefined : restoredDraft,
   );
   useEffect(() => registerFlush?.(flush), [registerFlush]);
+  const scopeId = typeof data.subprojectId === 'string' ? data.subprojectId : '';
+  // Pickers and mentions only offer records the service accepts from this scope.
+  const snapshot = useMemo<Snapshot>(
+    () => ({
+      ...fullSnapshot,
+      records: fullSnapshot.records.filter((item) =>
+        referenceableFrom(item, { subprojectId: scopeId || undefined }),
+      ),
+    }),
+    [fullSnapshot, scopeId],
+  );
+  const subprojects = subprojectsOf(fullSnapshot.records);
+  const scoped = kind !== 'project' && kind !== 'subproject';
+  const owner = findSubproject(fullSnapshot.records, scopeId);
+  function changeScope(next: string) {
+    // References to the previous scope would be rejected by the service.
+    setData((current) => {
+      const { subprojectId: _previous, ...rest } = current;
+      return {
+        ...rest,
+        ...(next ? { subprojectId: next } : {}),
+        ...(Array.isArray(current.dependencyIds) ? { dependencyIds: [] } : {}),
+        ...(Array.isArray(current.checks) ? { checks: [] } : {}),
+        ...(Array.isArray(current.taskIds) ? { taskIds: [] } : {}),
+        ...(Array.isArray(current.linkedIds) ? { linkedIds: [] } : {}),
+        ...(Array.isArray(current.sourceIds) ? { sourceIds: [] } : {}),
+        ...(Array.isArray(current.links) ? { links: [] } : {}),
+      };
+    });
+  }
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -365,6 +402,35 @@ export default function RecordEditor({
               Descartar borrador anterior
             </Button>
           </div>
+        </Notice>
+      )}
+      {scoped &&
+        subprojects.length > 0 &&
+        (chooseScope && !record ? (
+          <Field
+            label="Destino"
+            hint="Elige dónde se guardará. Después no se podrá trasladar a otro ámbito."
+          >
+            <select value={scopeId} onChange={(event) => changeScope(event.target.value)}>
+              <option value="">{scopePath(fullSnapshot.records, {})}</option>
+              {subprojects
+                .filter((child) => child.status === 'Activo')
+                .map((child) => (
+                  <option key={child.id} value={child.id}>
+                    {scopePath(fullSnapshot.records, { subprojectId: child.id })}
+                  </option>
+                ))}
+            </select>
+          </Field>
+        ) : (
+          <p className="scope-context">
+            Ámbito: <strong>{scopePath(fullSnapshot.records, { subprojectId: scopeId })}</strong>
+          </p>
+        ))}
+      {owner?.status === 'Archivado' && (
+        <Notice>
+          Pertenece a «{owner.title}», que está archivado. Puedes consultarlo, pero no guardar
+          cambios hasta restaurar el subproyecto.
         </Notice>
       )}
       {record &&
@@ -965,6 +1031,26 @@ export default function RecordEditor({
               Registra una validación que ya haya ocurrido. La aplicación no la certifica.
             </p>
           </section>
+          {record && onManageSubprojects && (
+            <section className="form-section">
+              <h3>Subproyectos</h3>
+              <p className="muted">
+                {subprojects.length
+                  ? `${subprojects.filter((child) => child.status === 'Activo').length} activos y ${subprojects.filter((child) => child.status === 'Archivado').length} archivados. Se gestionan aparte de esta ficha.`
+                  : 'Organiza el trabajo del cuaderno en subproyectos sin crear otro cuaderno.'}
+              </p>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  void flush()
+                    .then(onManageSubprojects)
+                    .catch((cause) => setError((cause as Error).message))
+                }
+              >
+                Gestionar subproyectos
+              </Button>
+            </section>
+          )}
         </>
       )}
       {kind === 'objective' && (

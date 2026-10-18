@@ -8,6 +8,7 @@ import {
   CHECK_STATES,
   PRACTICE_STATES,
   PRIORITIES,
+  SUBPROJECT_STATES,
   validDay,
 } from '../../shared/model.js';
 
@@ -15,6 +16,8 @@ export const text = z.string().max(16000);
 export const short = z.string().max(240);
 const day = z.string().refine((v) => !v || validDay(v), 'Fecha inválida');
 const fields = { title: short.min(1), project: short };
+// Work records may belong to a subproject; project and subproject records may not.
+const scoped = { ...fields, subprojectId: short.optional() };
 const checkSchema = z
   .object({
     practiceId: short,
@@ -32,7 +35,7 @@ const checkSchema = z
 export const schemas = {
   task: z
     .object({
-      ...fields,
+      ...scoped,
       kind: z.literal('task'),
       attachments: z.array(attachmentInputSchema).max(MAX_ATTACHMENTS).optional(),
       phase: z.enum(PHASES),
@@ -63,7 +66,7 @@ export const schemas = {
     .strict(),
   entry: z
     .object({
-      ...fields,
+      ...scoped,
       kind: z.literal('entry'),
       daily: z.boolean().optional(),
       date: day.refine(Boolean),
@@ -82,7 +85,7 @@ export const schemas = {
     .strict(),
   incident: z
     .object({
-      ...fields,
+      ...scoped,
       kind: z.literal('incident'),
       attachments: z.array(attachmentInputSchema).max(MAX_ATTACHMENTS).optional(),
       date: day.refine(Boolean),
@@ -93,7 +96,7 @@ export const schemas = {
     .strict(),
   idea: z
     .object({
-      ...fields,
+      ...scoped,
       kind: z.literal('idea'),
       attachments: z.array(attachmentInputSchema).max(MAX_ATTACHMENTS).optional(),
       date: day.refine(Boolean),
@@ -102,7 +105,7 @@ export const schemas = {
     .strict(),
   practice: z
     .object({
-      ...fields,
+      ...scoped,
       kind: z.literal('practice'),
       category: z.enum(CATEGORIES),
       explanation: text,
@@ -117,7 +120,7 @@ export const schemas = {
     .strict(),
   decision: z
     .object({
-      ...fields,
+      ...scoped,
       kind: z.literal('decision'),
       attachments: z.array(attachmentInputSchema).max(MAX_ATTACHMENTS).optional(),
       date: day.refine(Boolean),
@@ -131,7 +134,7 @@ export const schemas = {
     .strict(),
   meeting: z
     .object({
-      ...fields,
+      ...scoped,
       kind: z.literal('meeting'),
       attachments: z.array(attachmentInputSchema).max(MAX_ATTACHMENTS).optional(),
       from: z.string().datetime(),
@@ -167,9 +170,19 @@ export const schemas = {
       validationReference: text,
     })
     .strict(),
-  objective: z
+  subproject: z
     .object({
       ...fields,
+      kind: z.literal('subproject'),
+      title: short.trim().min(1),
+      description: text.default(''),
+      status: z.enum(SUBPROJECT_STATES),
+      archivedAt: z.string().datetime().optional(),
+    })
+    .strict(),
+  objective: z
+    .object({
+      ...scoped,
       kind: z.literal('objective'),
       description: text,
       links: z

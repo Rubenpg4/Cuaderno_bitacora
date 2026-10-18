@@ -11,6 +11,7 @@
   position: fixed;
   width: 218px;
   height: 100dvh;
+  overflow-y: auto;
   z-index: 30;
   padding: 28px 15px 16px;
 }
@@ -112,6 +113,8 @@ nav button.active svg {
 .project-list {
   overflow: auto;
   max-height: 26vh;
+  /* The subproject tree must not collapse; a short sidebar scrolls as a whole. */
+  flex-shrink: 0;
 }
 .project-list > button,
 .project-nav > button:first-child {
@@ -147,6 +150,68 @@ nav button.active svg {
   border-radius: 2px;
   background: #7d9cc6;
   flex-shrink: 0;
+}
+.scope-tree {
+  list-style: none;
+  margin: 0 0 2px;
+  padding: 0 0 0 16px;
+  border-left: 1px solid var(--line);
+  margin-left: 12px;
+}
+.scope-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: #68798d;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  text-align: left;
+  min-width: 0;
+}
+.scope-item:hover {
+  background: #e9eff6;
+}
+.scope-item.selected {
+  color: var(--blue);
+  background: #e6eefb;
+  font-weight: 600;
+}
+.scope-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scope-count {
+  font-size: 11px;
+  color: #8a98a9;
+  font-variant-numeric: tabular-nums;
+}
+.scope-manage {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  color: #7a8a9c;
+  font-size: 12px;
+  padding: 6px 9px 6px 29px;
+}
+.scope-manage:hover {
+  color: var(--blue);
+}
+.scope-archived > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #8a98a9;
+  padding: 6px 9px 6px 29px;
 }
 .sidebar-bottom {
   margin-top: auto;
@@ -219,6 +284,13 @@ nav button.active svg {
   font-weight: 500;
   color: #50657d;
 }
+.breadcrumb-scope {
+  min-width: 0;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .top-actions {
   display: flex;
   align-items: center;
@@ -266,6 +338,9 @@ nav button.active svg {
   font-size: 12px;
   margin-bottom: 9px;
   text-transform: capitalize;
+}
+.page-scope {
+  text-transform: none;
 }
 .page-heading h1 {
   font-size: 28px;

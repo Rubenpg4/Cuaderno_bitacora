@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { asvsCatalog } from '../../shared/asvsCatalog.js';
 import { compareAsvsCatalogs } from '../../shared/asvsCoverage.js';
 import type { GrantInfo, Snapshot } from '../../shared/model.js';
+import { GENERAL_SCOPE, effectiveGrantScopes } from '../../shared/subprojects.js';
 import type { AsvsCatalogMapping, AsvsRevisionProposal } from '../../shared/asvsTracking.js';
 import {
   appendAsvsHistory,
@@ -48,6 +49,8 @@ export function authorizeAsvsProject(state: Snapshot, grant: GrantInfo, projectI
   if (Date.parse(grant.expiresAt) <= Date.now()) throw Error('Sesión MCP caducada.');
   if (grant.scope !== 'projects' || !grant.projectIds.includes(projectId))
     throw Error('ASVS requiere una sesión de proyecto autorizada.');
+  if (!effectiveGrantScopes(grant, state.records).includes(GENERAL_SCOPE))
+    throw Error('ASVS del proyecto requiere el ámbito «General» en esta sesión.');
   assertAsvsProject(state, projectId);
 }
 

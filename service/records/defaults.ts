@@ -90,6 +90,8 @@ export function blank(kind: Kind): Record<string, unknown> {
         validationDate: '',
         validationReference: '',
       };
+    case 'subproject':
+      return { ...base, description: '', status: 'Activo' };
     case 'objective':
       return {
         ...base,
@@ -110,6 +112,7 @@ export function initialState(): Snapshot {
   return {
     mcpProfile: 'personal',
     mcpProfileVersion: 1,
+    subprojectModel: 1,
     drafts: {},
     captures: [],
     records: [

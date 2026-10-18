@@ -13,9 +13,11 @@ import { Button, Field, Notice } from './ui';
 import { MentionEditor } from './EntryMentions';
 import { entryMentionFields, linksFromEntryText } from './entryLinks';
 import { useDraft } from './useDraft';
+import { referenceableFrom } from '../shared/subprojects';
 export default function DailyComposer({
   day,
   project,
+  subprojectId,
   snapshot,
   refresh,
   registerFlush,
@@ -23,23 +25,28 @@ export default function DailyComposer({
 }: {
   day: string;
   project: string;
+  /** Destination of the daily entry; empty means «General». */
+  subprojectId?: string;
   snapshot: Snapshot;
   refresh: () => Promise<void>;
   registerFlush: (fn: () => Promise<void>) => () => void;
   openRecord: (record: RecordItem) => void;
 }) {
-  const existing = snapshot.records
+  // Links and completed tasks can only come from the entry's own scope.
+  const records = snapshot.records.filter((record) => referenceableFrom(record, { subprojectId }));
+  const existing = records
     .filter(
       (record): record is Entry =>
         record.kind === 'entry' &&
         record.date === day &&
         record.project === project &&
+        (record.subprojectId || '') === (subprojectId || '') &&
         (record.daily === true ||
           (record.daily === undefined && record.title === `Avances del ${day}`)),
     )
     .sort((first, second) => second.updatedAt.localeCompare(first.updatedAt))[0];
-  const draftKey = `daily:${day}:${project || 'none'}`;
-  const dayCompletedTasks = snapshot.records.filter(
+  const draftKey = `daily:${day}:${project || 'none'}${subprojectId ? `:${subprojectId}` : ''}`;
+  const dayCompletedTasks = records.filter(
     (record): record is Task =>
       record.kind === 'task' &&
       isTaskCompletedOnDay(record, day) &&
@@ -53,7 +60,7 @@ export default function DailyComposer({
     status: draftStatus,
   } = useDraft(
     draftKey,
-    existing || { ...blank('entry'), date: day, project },
+    existing || { ...blank('entry'), date: day, project, ...(subprojectId && { subprojectId }) },
     snapshot.drafts?.[draftKey],
   );
   const [saved, setSaved] = useState<Entry | undefined>(
@@ -90,8 +97,8 @@ export default function DailyComposer({
     setData((d) => {
       const updated = { ...d, [key]: value };
       if (entryMentionFields.includes(key as (typeof entryMentionFields)[number])) {
-        const textLinks = linksFromEntryText(updated, snapshot.records);
-        const autoTaskIds = snapshot.records
+        const textLinks = linksFromEntryText(updated, records);
+        const autoTaskIds = records
           .filter(
             (r): r is Task =>
               r.kind === 'task' &&
@@ -115,7 +122,7 @@ export default function DailyComposer({
       <MentionEditor
         value={data[key] || ''}
         onChange={(value) => change(key, value)}
-        records={snapshot.records}
+        records={records}
         onOpen={(record) => {
           void (async () => {
             if (dirtyRef.current) await persist();
@@ -143,7 +150,7 @@ export default function DailyComposer({
     }
     pending.current = (async () => {
       try {
-        const autoTaskIds = snapshot.records
+        const autoTaskIds = records
           .filter(
             (r): r is Task =>
               r.kind === 'task' &&
@@ -295,7 +302,13 @@ export default function DailyComposer({
             variant="ghost"
             disabled={dirty}
             onClick={() => {
-              reset({ ...blank('entry'), date: day, project, daily: false });
+              reset({
+                ...blank('entry'),
+                date: day,
+                project,
+                ...(subprojectId && { subprojectId }),
+                daily: false,
+              });
               savedRef.current = undefined;
               extraEntry.current = true;
               setSaved(undefined);

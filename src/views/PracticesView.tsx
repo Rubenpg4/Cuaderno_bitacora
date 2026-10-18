@@ -9,7 +9,7 @@ interface PracticesViewProps {
   records: RecordItem[];
   category: string;
   setCategory: (category: string) => void;
-  projectName: (id: string) => string;
+  projectName: (id: string, subprojectId?: string) => string;
   openRecord: (practice: Practice) => void;
   hasDraftNew?: boolean;
   onOpenNewDraft?: () => void;
@@ -154,8 +154,10 @@ export default function PracticesView({
               <div className="practice-scope">
                 <Layers size={13} className="practice-scope-icon" />
                 <span>
-                  {practice.project ? projectName(practice.project) : 'Todos los proyectos'} ·{' '}
-                  {practice.phases.length ? practice.phases.join(', ') : 'Todas las fases'}
+                  {practice.project
+                    ? projectName(practice.project, practice.subprojectId)
+                    : 'Todos los proyectos'}{' '}
+                  · {practice.phases.length ? practice.phases.join(', ') : 'Todas las fases'}
                 </span>
               </div>
               <div className="row spread practice-card-footer">

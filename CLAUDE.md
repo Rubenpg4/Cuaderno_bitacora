@@ -23,7 +23,7 @@ Usa las reglas comunes de `AGENTS.md` y abre solo el documento relacionado con l
 - [Tareas recurrentes](docs/recurrencia-tareas.md): Reglas, datos y verificación de las series de tareas recurrentes.
 - [Señales de seguimiento en la revisión semanal](docs/revision-semanal-senales.md): Contrato de la comparación semanal y de señales para acuerdos, resultados y tareas estancadas.
 - [Seguridad y privacidad](docs/seguridad.md): Invariantes de privacidad, vault, API local y permisos de asistentes.
-- [Subproyectos (diseño)](docs/subproyectos.md): Diseño de subproyectos dentro de un cuaderno: modelo, gestión, navegación y límites de acceso.
+- [Subproyectos](docs/subproyectos.md): Subproyectos dentro de un cuaderno: modelo, gestión, navegación, permisos MCP, migración y verificación.
 - [Trazabilidad de objetivos y evidencias](docs/trazabilidad-objetivos.md): Contrato del MVP para relacionar objetivos, trabajo, resultados, evidencias y validación dentro de un cuaderno.
 - [Verificación ASVS por cuaderno (diseño)](docs/verificacion-asvs.md): Diseño de verificación ASVS por cuaderno: catálogo, evaluaciones, evidencias, tareas, permisos y migración.
 <!-- docs:index:end -->

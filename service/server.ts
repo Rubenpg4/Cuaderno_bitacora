@@ -332,6 +332,16 @@ export async function startServer(
             send(res, 200, saved);
             break;
           }
+          case '/api/subproject-save':
+            send(res, 200, domain.saveSubproject(d.data, d.id, d.expectedVersion));
+            break;
+          case '/api/subproject-status':
+            send(res, 200, domain.setSubprojectStatus(d.id, d.expectedVersion, d.status));
+            break;
+          case '/api/subproject-delete':
+            if (d.confirm !== 'ELIMINAR') throw Error('Confirma la eliminación del subproyecto.');
+            send(res, 200, domain.deleteSubproject(d.id, d.expectedVersion));
+            break;
           case '/api/finish-weekly-review':
             send(res, 200, domain.finishWeeklyReview(d.expectedVersion));
             break;
@@ -444,6 +454,7 @@ export async function startServer(
               d.projectIds,
               durationMinutes,
               d.canCompleteTasks,
+              d.scopes,
             );
             if (fileGrantProviders.includes(d.provider as Provider)) {
               try {
@@ -487,7 +498,7 @@ export async function startServer(
             send(res, 200, { ok: true });
             break;
           case '/api/update-grant-projects':
-            send(res, 200, domain.updateGrantProjects(d.id, d.projectIds));
+            send(res, 200, domain.updateGrantProjects(d.id, d.projectIds, d.scopes));
             break;
           case '/api/review': {
             const reviewed = Array.isArray(d.ids)

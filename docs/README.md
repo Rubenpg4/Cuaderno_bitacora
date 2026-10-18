@@ -20,7 +20,7 @@ Este índice se actualiza con `pnpm run docs:sync`. Cada documento mantiene una 
 - [Tareas recurrentes](recurrencia-tareas.md): Reglas, datos y verificación de las series de tareas recurrentes.
 - [Señales de seguimiento en la revisión semanal](revision-semanal-senales.md): Contrato de la comparación semanal y de señales para acuerdos, resultados y tareas estancadas.
 - [Seguridad y privacidad](seguridad.md): Invariantes de privacidad, vault, API local y permisos de asistentes.
-- [Subproyectos (diseño)](subproyectos.md): Diseño de subproyectos dentro de un cuaderno: modelo, gestión, navegación y límites de acceso.
+- [Subproyectos](subproyectos.md): Subproyectos dentro de un cuaderno: modelo, gestión, navegación, permisos MCP, migración y verificación.
 - [Trazabilidad de objetivos y evidencias](trazabilidad-objetivos.md): Contrato del MVP para relacionar objetivos, trabajo, resultados, evidencias y validación dentro de un cuaderno.
 - [Verificación ASVS por cuaderno (diseño)](verificacion-asvs.md): Diseño de verificación ASVS por cuaderno: catálogo, evaluaciones, evidencias, tareas, permisos y migración.
 <!-- docs:index:end -->

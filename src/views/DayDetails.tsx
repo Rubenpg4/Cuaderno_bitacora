@@ -32,7 +32,7 @@ interface DayDetailsProps {
   day: string;
   records: RecordItem[];
   allRecords: RecordItem[];
-  projectName: (id: string) => string;
+  projectName: (id: string, subprojectId?: string) => string;
   openRecord: (record: RecordItem) => void;
   today?: string;
 }
@@ -400,7 +400,7 @@ export default function DayDetails({
                           {renderCardBadges(record, currentDay)}
                         </span>
                         <span className="day-detail-preview">
-                          {projectName(record.project)} ·{' '}
+                          {projectName(record.project, record.subprojectId)} ·{' '}
                           {recordPreview(record, day, allRecords, currentDay)}
                         </span>
                       </span>

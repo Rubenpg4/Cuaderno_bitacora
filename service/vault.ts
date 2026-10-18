@@ -80,6 +80,27 @@ function migrateMcpProfile(state: Snapshot) {
     throw Error('Perfil MCP del cuaderno no válido.');
   return changed;
 }
+/**
+ * Introduces subproject scopes. Old vaults keep every record in «General»; empty scope values
+ * are normalized and reviewed MCP excerpts are revoked so no permit gains implicit access.
+ */
+export function migrateSubprojects(state: Snapshot) {
+  if (state.subprojectModel === 1) return false;
+  const clean = (item: { subprojectId?: unknown } | null | undefined) => {
+    if (item && 'subprojectId' in item && !item.subprojectId) delete item.subprojectId;
+  };
+  for (const record of state.records) clean(record);
+  for (const entry of state.history) {
+    clean(entry.before);
+    clean(entry.after);
+  }
+  for (const draft of Object.values(state.drafts ?? {})) clean(draft);
+  for (const proposal of state.proposals) clean(proposal.patch);
+  for (const series of state.taskSeries ?? []) clean(series);
+  state.shares = [];
+  state.subprojectModel = 1;
+  return true;
+}
 export class Vault {
   private db?: Database;
   private key?: Buffer;
@@ -123,7 +144,9 @@ export class Vault {
       const decisionsChanged = assignLegacyDecisionDates(state);
       const dependenciesChanged = assignLegacyTaskDependencies(state);
       const solutionsChanged = assignLegacyTaskSolutions(state);
+      const subprojectsChanged = migrateSubprojects(state);
       if (
+        subprojectsChanged ||
         profileChanged ||
         datesChanged ||
         decisionsChanged ||
@@ -286,6 +309,7 @@ export class Vault {
         assignLegacyDecisionDates(state);
         assignLegacyTaskDependencies(state);
         assignLegacyTaskSolutions(state);
+        migrateSubprojects(state);
         validateAsvsState(state);
         return state;
       } finally {
