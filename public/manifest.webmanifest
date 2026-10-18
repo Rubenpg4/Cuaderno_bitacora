@@ -1,0 +1,15 @@
+{
+  "name": "Bitácora · Tu trabajo, con perspectiva",
+  "short_name": "Bitácora",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "background_color": "#172f4d",
+  "theme_color": "#172f4d",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/favicon.ico", "sizes": "16x16 24x24 32x32 48x48 64x64 256x256", "type": "image/x-icon" }
+  ]
+}

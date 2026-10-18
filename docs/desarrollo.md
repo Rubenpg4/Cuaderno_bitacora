@@ -9,6 +9,7 @@ El proyecto usa pnpm 11.25.0 (fijado en `package.json`) y `pnpm-lock.yaml`, Node
 | --- | --- | --- |
 | Instalar dependencias | `pnpm install --frozen-lockfile` | Usa el lockfile sin modificarlo. |
 | Desarrollo web con servicio | `pnpm run dev` | Genera el conector MCP, inicia el servicio y luego Vite en `127.0.0.1:1420`. |
+| Acceso directo de desarrollo | `powershell -ExecutionPolicy Bypass -File scripts/crear-acceso-directo.ps1` | Crea `Bitácora` en el escritorio. Ver [acceso directo local](#acceso-directo-local). |
 | Compilación | `pnpm run build` | Verifica docs, catálogo ASVS, formato y tipos; genera frontend y servicio. |
 | Regenerar catálogo ASVS | `pnpm run asvs:generate` | Importa el CSV público local con huella fijada, sin red ni acceso al vault. |
 | Traducir catálogo ASVS | `pnpm run asvs:translate` | Usa DeepL y `DEEPL_API_KEY` para generar español desde textos públicos; requiere red solo para generar. |
@@ -25,6 +26,18 @@ El proyecto usa pnpm 11.25.0 (fijado en `package.json`) y `pnpm-lock.yaml`, Node
 | Regenerar índices | `pnpm run docs:sync` | Actualiza los bloques de índice. |
 
 El servidor guarda los datos fuera del repositorio en `BITACORA_DATA_DIR` si está definido y, en caso contrario, bajo el directorio de datos local `Bitacora`. El índice `workspaces.json` solo contiene ID y título; cada vault cifrado se guarda en `workspaces/<id>/`. Una instalación anterior conserva el vault raíz como copia de recuperación tras migrar. En pruebas usa un directorio aislado. No abras datos reales para verificar una modificación.
+
+## Acceso directo local
+
+`scripts/crear-acceso-directo.ps1` crea `Bitácora` en el escritorio con el icono `public/favicon.ico`. El acceso directo ejecuta `scripts/lanzador.ps1`, que:
+
+- Usa la versión compilada (`dist/` y `dist-service/server.cjs`). Si faltan o son anteriores a `src`, `service`, `shared`, `public` o la configuración, ejecuta solo `vite build` y `scripts/build-service.mjs`; la verificación completa sigue siendo `pnpm run build`.
+- Arranca el servicio oculto con `BITACORA_PARENT_PID` apuntando al lanzador, lee `{port, token}` de su salida y abre `http://127.0.0.1:<port>/#session=<token>` en una ventana `--app` de Brave con perfil propio (`%LOCALAPPDATA%\Bitacora\brave-perfil`).
+- Espera a que se cierre la última ventana y termina; el servicio detecta la salida del lanzador en unos 2 s y se cierra de forma ordenada (bloquea el vault y borra `service.lock` y `connection.json`). Si el lanzador muere a la fuerza, ocurre lo mismo.
+- Si ya hay un servicio activo, trae al frente la ventana existente en lugar de abrir otra, porque el token no se guarda en disco. Si el servicio pertenece a otra aplicación, avisa y no arranca otro.
+- Con `-Dev` arranca `pnpm dev` y abre `127.0.0.1:1420`; al cerrar la ventana detiene el árbol de procesos.
+
+La interfaz no registra service worker y el manifiesto usa `display: browser`, de modo que Brave no ofrece instalarla como PWA independiente: una instalación así se abriría sin servicio ni token. El nombre y el icono de la ventana salen de `public/manifest.webmanifest` y `public/favicon.ico`.
 
 ## Antes de terminar un cambio
 
