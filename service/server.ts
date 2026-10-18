@@ -10,6 +10,14 @@ import { Domain } from './domain.js';
 import { Workspaces } from './workspaces.js';
 import { exportDocument } from './export.js';
 import { asvsReportExport } from './asvs/report.js';
+import {
+  CLAUDE_IDENTITY_HEADER,
+  CORPORATE_POLICY_FILE,
+  readClaudeAuthStatus,
+  verifyCorporateClaude,
+  type ClaudeAuthStatusReader,
+  type ClaudeIdentity,
+} from './claudeIdentity.js';
 import type { Kind, McpProfile, Provider } from '../shared/model.js';
 export function defaultDataDir() {
   return (
@@ -41,6 +49,7 @@ export async function startServer(
     idleMs?: number;
     token?: string;
     exclusive?: boolean;
+    claudeAuthStatus?: ClaudeAuthStatusReader;
   } = {},
 ) {
   const dir = options.dir || defaultDataDir(),
@@ -79,6 +88,28 @@ export async function startServer(
     }
   }
   clearFileGrant();
+  // La identidad de Claude Code se vuelve a consultar como mucho cada minuto.
+  let verifiedClaude: { identity: ClaudeIdentity; at: number } | undefined;
+  const corporateClaude = async (fresh = false) => {
+    if (!fresh && verifiedClaude && Date.now() - verifiedClaude.at < 60000)
+      return verifiedClaude.identity;
+    verifiedClaude = undefined;
+    const identity = await verifyCorporateClaude(
+      dir,
+      options.claudeAuthStatus ?? readClaudeAuthStatus,
+    );
+    verifiedClaude = { identity, at: Date.now() };
+    return identity;
+  };
+  const isCorporate = () => domain.unlocked && domain.state?.mcpProfile === 'corporativo';
+  const corporateOrgId = async (fresh = false) =>
+    isCorporate() ? (await corporateClaude(fresh)).orgId : undefined;
+  /** El conector informa de la organización de su propio Claude Code; debe coincidir. */
+  const mcpOrgId = async (req: IncomingMessage) => {
+    if (!isCorporate()) return undefined;
+    const orgId = await corporateOrgId().catch(() => undefined);
+    return orgId && req.headers[CLAUDE_IDENTITY_HEADER] === orgId ? orgId : undefined;
+  };
   const token = options.token || randomBytes(32).toString('base64url');
   let port = 0;
   let lifecycleBusy = false;
@@ -129,7 +160,7 @@ export async function startServer(
           }
           let grant;
           try {
-            grant = domain.authorize(bearer);
+            grant = domain.authorize(bearer, await mcpOrgId(req));
           } catch {
             send(res, 401, { error: 'Sesión MCP revocada, caducada o no autorizada.' });
             return;
@@ -138,7 +169,7 @@ export async function startServer(
           const d = await body(req);
           if (lifecycleBusy) throw Error('Operación de cuaderno en curso.');
           try {
-            grant = domain.authorize(bearer);
+            grant = domain.authorize(bearer, await mcpOrgId(req));
           } catch {
             send(res, 401, { error: 'Sesión MCP revocada, caducada o no autorizada.' });
             return;
@@ -439,7 +470,21 @@ export async function startServer(
           case '/api/mcp-profile': {
             const profile = domain.setMcpProfile(d.profile);
             clearFileGrant();
+            verifiedClaude = undefined;
             send(res, 200, { profile });
+            break;
+          }
+          case '/api/claude-identity': {
+            try {
+              const identity = await corporateClaude(true);
+              send(res, 200, { verified: true, ...identity });
+            } catch (error) {
+              send(res, 200, {
+                verified: false,
+                error: error instanceof Error ? error.message : 'Verificación no disponible.',
+                policyPath: join(dir, CORPORATE_POLICY_FILE),
+              });
+            }
             break;
           }
           case '/api/grant': {
@@ -455,6 +500,7 @@ export async function startServer(
               durationMinutes,
               d.canCompleteTasks,
               d.scopes,
+              await corporateOrgId(true),
             );
             if (fileGrantProviders.includes(d.provider as Provider)) {
               try {
@@ -489,7 +535,7 @@ export async function startServer(
           case '/api/renew-grant': {
             const durationMinutes =
               d.durationMinutes === undefined ? undefined : Number(d.durationMinutes);
-            send(res, 200, domain.renewGrant(d.id, durationMinutes));
+            send(res, 200, domain.renewGrant(d.id, durationMinutes, await corporateOrgId(true)));
             break;
           }
           case '/api/revoke-grant':
@@ -498,7 +544,11 @@ export async function startServer(
             send(res, 200, { ok: true });
             break;
           case '/api/update-grant-projects':
-            send(res, 200, domain.updateGrantProjects(d.id, d.projectIds, d.scopes));
+            send(
+              res,
+              200,
+              domain.updateGrantProjects(d.id, d.projectIds, d.scopes, await corporateOrgId(true)),
+            );
             break;
           case '/api/review': {
             const reviewed = Array.isArray(d.ids)

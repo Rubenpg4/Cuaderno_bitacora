@@ -428,13 +428,25 @@ describe('permisos MCP por ámbito', () => {
     expect(domain.proposalStatus(session)).toHaveLength(1);
   });
 
-  it('mantiene el bloqueo corporativo para todos los subproyectos', () => {
+  it('exige la verificación corporativa también en subproyectos', () => {
     const api = child('API');
     domain.setMcpProfile('corporativo');
     domain.settings({ companyAuthorized: true, universityStructure: '' });
     expect(() => domain.grant('claude', [], 'projects', [projectId], 60, false, [api.id])).toThrow(
       'corporativo',
     );
+    const verified = domain.grant(
+      'claude',
+      [],
+      'projects',
+      [projectId],
+      60,
+      false,
+      [api.id],
+      'org-empresa',
+    );
+    expect(domain.authorize(verified.token, 'org-empresa').orgId).toBe('org-empresa');
+    expect(() => domain.authorize(verified.token, 'otra-org')).toThrow();
   });
 
   it('comparte el predicado de visibilidad con la interfaz', () => {

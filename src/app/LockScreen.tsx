@@ -149,7 +149,7 @@ export default function LockScreen({
               </select>
               <small>
                 {workspaceProfile === 'corporativo'
-                  ? 'El acceso MCP permanecerá bloqueado hasta poder verificar la cuenta corporativa de Claude.'
+                  ? 'Solo Claude Code con sesión en una organización permitida por la política corporativa local podrá conectarse.'
                   : 'Permite elegir Claude, Codex o Antigravity con las autorizaciones actuales.'}
               </small>
             </Field>

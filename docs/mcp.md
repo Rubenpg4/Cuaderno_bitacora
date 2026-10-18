@@ -4,8 +4,9 @@
 
 Cada cuaderno permite elegir un perfil MCP [personal o corporativo](perfiles-mcp.md) al crearlo y
 cambiarlo en «Ajustes y copias». El personal conserva Claude, Codex y Antigravity. El corporativo
-deniega el acceso MCP hasta poder verificar la cuenta corporativa de Claude; cambiar de perfil
-revoca permisos, extractos y propuestas pendientes.
+admite solo Claude Code tras comprobar en el equipo que su sesión pertenece a una organización
+Team o Enterprise de la política local (`corporate-policy.json`); es una verificación de buena fe,
+no una prueba firmada. Cambiar de perfil revoca permisos, extractos y propuestas pendientes.
 
 ## Dónde interviene
 
