@@ -2,6 +2,7 @@
 name = "bitacora"
 version = "0.1.0"
 description = "Diario privado de prácticas y criterios de calidad"
+license = "GPL-3.0-or-later"
 edition = "2021"
 
 [build-dependencies]

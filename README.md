@@ -14,6 +14,8 @@ pnpm run dev
 
 Requisitos y pasos completos en [docs/instalacion-windows.md](docs/instalacion-windows.md). El resto de la documentación está en [docs/README.md](docs/README.md).
 
-## Licencia del catálogo ASVS
+## Licencia y seguridad
 
-El catálogo de `resources/asvs/` procede de OWASP ASVS 5.0.0; consulta [resources/asvs/LICENSE.md](resources/asvs/LICENSE.md).
+El código se distribuye bajo [GPL-3.0-or-later](LICENSE). El catálogo de `resources/asvs/` procede de OWASP ASVS 5.0.0 y conserva su licencia CC BY-SA 4.0: consulta [resources/asvs/LICENSE.md](resources/asvs/LICENSE.md).
+
+Para informar de una vulnerabilidad, consulta [SECURITY.md](SECURITY.md); no publiques datos reales en issues.
