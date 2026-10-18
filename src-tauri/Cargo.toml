@@ -1,0 +1,21 @@
+[package]
+name = "bitacora"
+version = "0.1.0"
+description = "Diario privado de prácticas y criterios de calidad"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rfd = "0.15"
+base64 = "0.22"
+tauri-plugin-global-shortcut = "2.3.2"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-service/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/binaries/
+src-tauri/resources/service/
+test-results/
+pnpm-lock.yaml

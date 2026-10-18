@@ -1,0 +1,89 @@
+.lock-screen {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  min-height: 100dvh;
+  background: #fff;
+}
+.lock-story {
+  background: #eaf1fa;
+  padding: 50px 65px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 50px;
+}
+.lock-story .brand {
+  padding: 0;
+}
+.lock-story h1 {
+  font-size: 43px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -1px;
+  margin: 30px 0 20px;
+}
+.lock-story > div > p {
+  color: #71859e;
+  max-width: 365px;
+  font-size: 17px;
+  line-height: 1.65;
+}
+.lock-foot {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #7790ae;
+  font-size: 12px;
+}
+.lock-illustration {
+  width: 135px;
+  height: 150px;
+  background: #fff;
+  border: 1px solid #cfdded;
+  border-radius: 4px 13px 13px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transform: rotate(-6deg);
+  box-shadow: 8px 8px 0 #dbe6f4;
+  color: #7898c3;
+}
+.lock-illustration:before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid #dbe5f3;
+}
+.unlock-card {
+  max-width: 450px;
+  margin: auto;
+  padding: 40px;
+  width: 100%;
+}
+.unlock-card h2 {
+  font-size: 30px;
+  margin: 18px 0 13px;
+  letter-spacing: -0.5px;
+}
+.unlock-card > p {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+.unlock-card form > .button {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+}
+.unlock-card form + .row {
+  margin-top: 16px;
+}
+.unlock-card .privacy-note {
+  font-size: 12px;
+  margin-top: 24px;
+  line-height: 1.65;
+  color: #93a1af;
+}

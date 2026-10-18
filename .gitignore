@@ -1,0 +1,31 @@
+# Dependencias, cachés y toolchains locales
+node_modules/
+.npm-cache/
+.pnpm-store/
+.toolchain/
+node-compile-cache/
+playwright-transform-cache/
+
+# Compilados y artefactos generados
+dist/
+dist-service/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/resources/
+src-tauri/binaries/
+
+# Resultados de pruebas y temporales
+test-results/
+playwright-report/
+.test-data/
+.tmp/
+*.log
+
+# Datos privados: vaults, copias, conexiones MCP y secretos
+code-backups/
+.env*
+*.vault
+*.backup
+connection.json
+workspaces.json
+.claude/settings.local.json

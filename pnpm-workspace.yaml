@@ -1,0 +1,17 @@
+# Solo el paquete raiz pertenece a este workspace.
+minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true
+# Version heredada durante la migracion, aun dentro de la espera de 24 horas.
+minimumReleaseAgeExclude:
+  - prettier@3.9.9
+trustPolicy: no-downgrade
+# Versiones heredadas sin la evidencia de confianza de publicaciones anteriores.
+trustPolicyExclude:
+  - undici-types@6.21.0
+  - semver@6.3.1
+blockExoticSubdeps: true
+strictDepBuilds: true
+verifyDepsBeforeRun: error
+allowBuilds:
+  'esbuild@0.25.12 || 0.28.2': true
+  fsevents: false

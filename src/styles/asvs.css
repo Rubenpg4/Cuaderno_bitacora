@@ -1,0 +1,251 @@
+.asvs-view {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  color: var(--ink);
+}
+.asvs-report,
+.asvs-report fieldset {
+  grid-template-columns: minmax(0, 1fr);
+}
+.asvs-report > section {
+  min-width: 0;
+}
+.asvs-report fieldset {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+}
+.asvs-report legend {
+  color: var(--ink);
+}
+.asvs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.asvs-actions .button {
+  min-width: 0;
+  white-space: normal;
+}
+.asvs-report-options {
+  display: grid;
+  gap: 10px;
+  max-height: 260px;
+  overflow: auto;
+  padding: 8px;
+}
+.asvs-report label {
+  overflow-wrap: anywhere;
+}
+.asvs-report-preview {
+  max-height: 440px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 16px;
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
+.asvs-config {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.asvs-config h2 {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.asvs-config p,
+.asvs-results,
+.asvs-attribution {
+  max-width: 78ch;
+}
+.asvs-view .field > small {
+  color: var(--ink);
+}
+.asvs-fields,
+.asvs-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.asvs-filters {
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+}
+.asvs-summary {
+  display: grid;
+  gap: 6px;
+  border-left: 4px solid var(--blue);
+  padding: 12px 18px;
+  background: var(--paper);
+}
+.asvs-table-scroll {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.asvs-coverage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.asvs-coverage-table th,
+.asvs-coverage-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.asvs-gap {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  overflow-wrap: anywhere;
+}
+.asvs-tree > details {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+.asvs-tree summary {
+  cursor: pointer;
+  padding: 14px 18px;
+}
+.asvs-tree summary strong {
+  margin-left: 8px;
+}
+.asvs-tree summary > span {
+  margin-left: 16px;
+  font-size: 14px;
+}
+.asvs-tree details details {
+  border-top: 1px solid var(--line);
+  margin-left: 20px;
+}
+.asvs-requirement {
+  border-top: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  margin: 0 18px 16px;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.asvs-requirement .button {
+  min-width: 0;
+  white-space: normal;
+}
+.asvs-requirement-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.asvs-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.asvs-state[data-state='fulfilled'] {
+  color: var(--green);
+}
+.asvs-state[data-state='excluded'],
+.asvs-stale {
+  color: var(--amber);
+}
+.asvs-partial {
+  border-left: 3px solid var(--blue);
+  padding-left: 12px;
+}
+.asvs-description {
+  white-space: pre-wrap;
+  max-width: 78ch;
+}
+.asvs-requirement .asvs-original {
+  margin-left: 0;
+}
+.asvs-original .asvs-description {
+  padding: 0 18px 14px;
+}
+.asvs-review {
+  display: grid;
+  gap: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+.asvs-review fieldset {
+  border: 1px solid var(--line);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.asvs-review input:not([type='checkbox']),
+.asvs-review select,
+.asvs-review textarea,
+.asvs-view > .asvs-filters input,
+.asvs-view select {
+  width: 100%;
+}
+.asvs-evidence-input {
+  display: grid;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+}
+.asvs-approval {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.asvs-history {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+.asvs-history li {
+  margin: 12px 0;
+}
+.asvs-attribution a {
+  color: var(--blue);
+}
+@media (max-width: 900px) {
+  .asvs-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .asvs-fields,
+  .asvs-filters {
+    grid-template-columns: 1fr;
+  }
+  .asvs-config {
+    padding: 16px;
+  }
+  .asvs-tree details details {
+    margin-left: 6px;
+  }
+  .asvs-tree summary {
+    padding: 12px;
+  }
+  .asvs-tree summary > span {
+    display: block;
+    margin-left: 20px;
+  }
+  .asvs-requirement {
+    margin: 0 6px 12px;
+    padding: 12px;
+  }
+  .asvs-requirement .row {
+    flex-wrap: wrap;
+  }
+}

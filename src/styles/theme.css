@@ -1,0 +1,656 @@
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 5px;
+  border: 1px solid #dce5f0;
+  border-radius: 999px;
+  background: #f7faff;
+  color: #526b8a;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    background 0.18s,
+    border-color 0.18s;
+}
+.theme-toggle:hover {
+  background: #eaf1fd;
+  border-color: #aac3e7;
+}
+.theme-toggle-icon {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #fbf3e4;
+  color: #9c7a3c;
+}
+.lock-theme-toggle {
+  position: absolute;
+  top: 23px;
+  right: 27px;
+  z-index: 1;
+}
+
+:root[data-theme='dark'] {
+  --ink: #e9f0fa;
+  --muted: #a7b8ce;
+  --line: #32445b;
+  --blue: #8db6ff;
+  --paper: #1d2a3b;
+  --green: #89c7b0;
+  --amber: #dfb37c;
+  --red: #e58d99;
+  color: var(--ink);
+  background: #111b2a;
+}
+
+:root[data-theme='dark'] .sidebar,
+:root[data-theme='dark'] .week-strip,
+:root[data-theme='dark'] .months-calendar,
+:root[data-theme='dark'] .task-list,
+:root[data-theme='dark'] .task-row,
+:root[data-theme='dark'] .daily-composer,
+:root[data-theme='dark'] .task-card,
+:root[data-theme='dark'] .board-day-group > summary,
+:root[data-theme='dark'] .journal-card,
+:root[data-theme='dark'] .report-intro,
+:root[data-theme='dark'] .meeting-card,
+:root[data-theme='dark'] .memory-project,
+:root[data-theme='dark'] .modal,
+:root[data-theme='dark'] .lock-screen,
+:root[data-theme='dark'] .button.secondary,
+:root[data-theme='dark'] .button.danger,
+:root[data-theme='dark'] .board-calendar-toggle {
+  background: var(--paper);
+}
+:root[data-theme='dark'] .topbar {
+  background: #1b2839e8;
+}
+:root[data-theme='dark'] .lock-story {
+  background: #192b42;
+}
+:root[data-theme='dark'] .kanban-column,
+:root[data-theme='dark'] .workspace-chip,
+:root[data-theme='dark'] .task-filters,
+:root[data-theme='dark'] .decision-preview,
+:root[data-theme='dark'] .check-editor,
+:root[data-theme='dark'] .authorization,
+:root[data-theme='dark'] .config,
+:root[data-theme='dark'] .internal-preview,
+:root[data-theme='dark'] .prompt-example,
+:root[data-theme='dark'] .empty,
+:root[data-theme='dark'] .month-days button {
+  background: #243348;
+}
+:root[data-theme='dark'] input,
+:root[data-theme='dark'] select,
+:root[data-theme='dark'] textarea,
+:root[data-theme='dark'] .task-filter-fields select,
+:root[data-theme='dark'] .task-filter-fields input,
+:root[data-theme='dark'] .daily-composer textarea,
+:root[data-theme='dark'] .entry-composer textarea {
+  background: #172436;
+  border-color: #43566f;
+  color: var(--ink);
+}
+:root[data-theme='dark'] select {
+  color-scheme: dark;
+}
+:root[data-theme='dark'] select option {
+  background: #172436;
+  color: #e9f0fa;
+}
+:root[data-theme='dark'] .search input {
+  background: transparent;
+  border: 0;
+}
+:root[data-theme='dark'] input::placeholder,
+:root[data-theme='dark'] textarea::placeholder {
+  color: #879ab1;
+}
+:root[data-theme='dark'] .theme-toggle {
+  background: #28384d;
+  border-color: #465c75;
+  color: #d7e7fa;
+}
+:root[data-theme='dark'] .theme-toggle:hover {
+  background: #344962;
+  border-color: #7596bf;
+}
+:root[data-theme='dark'] .theme-toggle-icon {
+  background: #344c74;
+  color: #c8d9ff;
+}
+:root[data-theme='dark'] .button {
+  color: #10213a;
+}
+:root[data-theme='dark'] .button:hover:not(:disabled) {
+  background: #b3ceff;
+}
+:root[data-theme='dark'] .button.secondary,
+:root[data-theme='dark'] .button.danger {
+  border-color: #52667e;
+  color: var(--ink);
+}
+:root[data-theme='dark'] .button.secondary:hover:not(:disabled),
+:root[data-theme='dark'] .button.danger:hover:not(:disabled),
+:root[data-theme='dark'] .icon-button:hover,
+:root[data-theme='dark'] .sidebar-bottom > button:hover,
+:root[data-theme='dark'] nav button:hover,
+:root[data-theme='dark'] .task-row:hover,
+:root[data-theme='dark'] .task-row.selected {
+  background: #2e4057;
+}
+:root[data-theme='dark'] .button.ghost {
+  background: transparent;
+  color: var(--blue);
+}
+:root[data-theme='dark'] .button.ghost:hover:not(:disabled) {
+  background: #283f62;
+}
+:root[data-theme='dark'] .badge {
+  background: #304052;
+  border-color: #4a5a6c;
+  color: #cfdae9;
+}
+:root[data-theme='dark'] .badge.blue,
+:root[data-theme='dark'] nav button.active,
+:root[data-theme='dark'] .week-strip > button.active,
+:root[data-theme='dark'] .month-days button.active,
+:root[data-theme='dark'] .month-days button:hover {
+  background: #243f63;
+  border-color: #5279a9;
+  color: #a9caff;
+}
+:root[data-theme='dark'] .badge.green {
+  background: #1a362d;
+  border-color: #295547;
+  color: #a0d9c4;
+}
+:root[data-theme='dark'] .badge.amber {
+  background: #382c1c;
+  border-color: #57442a;
+  color: #edc79c;
+}
+:root[data-theme='dark'] .state-icon > span {
+  border-color: #4a5a6c;
+}
+:root[data-theme='dark'] .state-icon.review {
+  color: #e5a75c;
+}
+:root[data-theme='dark'] .state-icon.review > span {
+  border-color: rgba(229, 167, 92, 0.45);
+  background: #382c1c;
+}
+:root[data-theme='dark'] .badge.red {
+  background: #371c22;
+  border-color: #562831;
+  color: #f2a6b2;
+}
+:root[data-theme='dark'] .incident-card.unresolved {
+  background: linear-gradient(135deg, #28191f 0%, #1e2837 100%);
+  border-color: #51252d;
+  border-left-color: #df848d;
+}
+:root[data-theme='dark'] .incident-card.unresolved:hover {
+  border-color: #70323e;
+  border-left-color: #e89fa6;
+  box-shadow: 0 4px 14px rgba(223, 132, 141, 0.15);
+}
+:root[data-theme='dark'] .incident-card.resolved {
+  background: linear-gradient(135deg, #162820 0%, #1e2837 100%);
+  border-color: #224939;
+  border-left-color: #6cb18f;
+}
+:root[data-theme='dark'] .incident-card.resolved:hover {
+  border-color: #2d604b;
+  border-left-color: #85cca8;
+  box-shadow: 0 4px 14px rgba(108, 177, 143, 0.15);
+}
+:root[data-theme='dark'] .incident-col-badge.unresolved {
+  background: #371c22;
+  color: #f2a6b2;
+}
+:root[data-theme='dark'] .incident-col-badge.resolved {
+  background: #1a362d;
+  color: #a0d9c4;
+}
+:root[data-theme='dark'] .board-stat-chip.tasks {
+  background: #24354b;
+  border-color: #384c66;
+  color: #a8c2df;
+}
+:root[data-theme='dark'] .board-stat-chip.tasks b {
+  color: #e2eefb;
+}
+:root[data-theme='dark'] .board-stat-chip.unresolved {
+  background: #371c22;
+  border-color: #562831;
+  color: #f2a6b2;
+}
+:root[data-theme='dark'] .board-stat-chip.unresolved b {
+  color: #fbd3db;
+}
+:root[data-theme='dark'] .board-stat-chip.resolved {
+  background: #1a362d;
+  border-color: #295547;
+  color: #a0d9c4;
+}
+:root[data-theme='dark'] .board-stat-chip.resolved b {
+  color: #ccf3e4;
+}
+:root[data-theme='dark'] .incident-toolbar-count .unresolved-count {
+  color: #df848d;
+}
+:root[data-theme='dark'] .incident-toolbar-count .resolved-count {
+  color: #6cb18f;
+}
+:root[data-theme='dark'] .incident-solution-preview {
+  color: #a0d9c4;
+  background: rgba(108, 177, 143, 0.12);
+}
+:root[data-theme='dark'] .month-incident.unresolved {
+  background: #321a20;
+  color: #f0b5be;
+  border-left-color: #df848d;
+}
+:root[data-theme='dark'] .month-incident.resolved {
+  background: #162d22;
+  color: #b3e4cf;
+  border-left-color: #6cb18f;
+}
+:root[data-theme='dark'] .calendar-note-count.incident.unresolved {
+  background: #321a20;
+  color: #f0b5be;
+}
+:root[data-theme='dark'] .calendar-note-count.incident.resolved,
+:root[data-theme='dark'] .month-task.completed {
+  background: #162d22;
+  color: #b3e4cf;
+}
+:root[data-theme='dark'] .week-note-summary.decision,
+:root[data-theme='dark'] .month-note.decision,
+:root[data-theme='dark'] .calendar-note-count.decision {
+  background: #302747;
+  color: #d2c2f5;
+}
+:root[data-theme='dark'] .week-note-summary.idea,
+:root[data-theme='dark'] .month-note.idea,
+:root[data-theme='dark'] .calendar-note-count.idea {
+  background: #3d301b;
+  color: #f2d18e;
+}
+:root[data-theme='dark'] .entry-mini.unresolved {
+  border-left-color: #df848d;
+}
+:root[data-theme='dark'] .entry-mini.unresolved > svg:first-child {
+  color: #df848d;
+}
+:root[data-theme='dark'] .entry-mini.resolved {
+  border-left-color: #6cb18f;
+}
+:root[data-theme='dark'] .entry-mini.resolved > svg:first-child {
+  color: #6cb18f;
+}
+:root[data-theme='dark'] .week-strip > button.active strong,
+:root[data-theme='dark'] nav button.active svg,
+:root[data-theme='dark'] .project-list > button.selected,
+:root[data-theme='dark'] .project-nav > button.selected {
+  color: var(--blue);
+}
+:root[data-theme='dark'] .week-strip .week-task-summary,
+:root[data-theme='dark'] .month-task:not(.completed),
+:root[data-theme='dark'] .calendar-note-count.task,
+:root[data-theme='dark'] .kanban-column h2 > b,
+:root[data-theme='dark'] .board-day-count,
+:root[data-theme='dark'] .task-deadline,
+:root[data-theme='dark'] .avatar,
+:root[data-theme='dark'] .report-icon,
+:root[data-theme='dark'] .metric-icon.blue {
+  background: #2b4566;
+  color: #bdd5ff;
+}
+:root[data-theme='dark'] .metric-icon.green {
+  background: #1d372e;
+  color: #9bd4c1;
+}
+:root[data-theme='dark'] .metric-icon.amber,
+:root[data-theme='dark'] .task-deadline.soon {
+  background: #3a2d1d;
+  color: #e5c194;
+}
+:root[data-theme='dark'] .task-deadline.urgent,
+:root[data-theme='dark'] .task-deadline.overdue,
+:root[data-theme='dark'] .board-overdue-notice,
+:root[data-theme='dark'] .notice.error,
+:root[data-theme='dark'] .diff del {
+  background: #3a2127;
+  color: #f0b2bd;
+}
+:root[data-theme='dark'] .board-overdue-notice {
+  border-color: #6a3943;
+}
+:root[data-theme='dark'] .task-overdue-action {
+  color: #f0b2bd;
+}
+:root[data-theme='dark'] .notice,
+:root[data-theme='dark'] .meeting-callout {
+  background: #17273d;
+  border-color: #2c4669;
+  color: #c8def8;
+}
+:root[data-theme='dark'] .proposal-notice {
+  background: #20334a;
+  border-color: #4d6985;
+  color: #edf5ff;
+  box-shadow: 0 16px 40px #050e1b99;
+}
+:root[data-theme='dark'] .proposal-notice-icon {
+  background: #345575;
+  color: #c6e4ff;
+}
+:root[data-theme='dark'] .proposal-notice-open {
+  color: #c6e4ff;
+}
+:root[data-theme='dark'] .proposal-notice-dismiss {
+  color: #d3e3f4;
+}
+:root[data-theme='dark'] .proposal-notice-open:focus-visible,
+:root[data-theme='dark'] .proposal-notice-dismiss:focus-visible {
+  outline-color: #c6e4ff;
+}
+:root[data-theme='dark'] .proposal-notice-open:hover,
+:root[data-theme='dark'] .proposal-notice-dismiss:hover {
+  background: #304b68;
+}
+:root[data-theme='dark'] .diff ins {
+  background: #1b382f;
+  color: #aee0cb;
+}
+:root[data-theme='dark'] .lock-illustration {
+  background: #273c57;
+  border-color: #526c8f;
+  box-shadow: 8px 8px 0 #15263b;
+  color: #aec8ed;
+}
+:root[data-theme='dark'] .lock-illustration:before {
+  border-color: #526c8f;
+}
+:root[data-theme='dark'] .task-card:hover,
+:root[data-theme='dark'] .task-card.selected,
+:root[data-theme='dark'] .journal-card:hover,
+:root[data-theme='dark'] .practice-card:hover {
+  border-color: #7da7de;
+}
+:root[data-theme='dark'] .task-row,
+:root[data-theme='dark'] .task-card-footer,
+:root[data-theme='dark'] .practice-card > .row:last-child {
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .practice-card.is-draft {
+  border-style: dashed;
+  border-color: #8c6a2e;
+  background: rgba(142, 101, 48, 0.08);
+}
+:root[data-theme='dark'] .practice-card.is-draft:hover {
+  border-color: #b78a3a;
+}
+:root[data-theme='dark'] .field > label,
+:root[data-theme='dark'] .breadcrumb strong,
+:root[data-theme='dark'] .week-strip > button > strong,
+:root[data-theme='dark'] .month-days button,
+:root[data-theme='dark'] .task-card-date,
+:root[data-theme='dark'] .task-card p,
+:root[data-theme='dark'] .card-project,
+:root[data-theme='dark'] .journal-card > p,
+:root[data-theme='dark'] .project-list > button,
+:root[data-theme='dark'] .project-nav > button:first-child,
+:root[data-theme='dark'] nav button,
+:root[data-theme='dark'] .sidebar-bottom > button {
+  color: #b4c5da;
+}
+:root[data-theme='dark'] .breadcrumb,
+:root[data-theme='dark'] .projects-heading,
+:root[data-theme='dark'] .week-strip > button,
+:root[data-theme='dark'] .month-days .weekday,
+:root[data-theme='dark'] .daily-metrics > div,
+:root[data-theme='dark'] .task-row-text small,
+:root[data-theme='dark'] .page-context,
+:root[data-theme='dark'] .search,
+:root[data-theme='dark'] .journal-meta,
+:root[data-theme='dark'] .practice-scope,
+:root[data-theme='dark'] .lock-story > div > p,
+:root[data-theme='dark'] .lock-foot,
+:root[data-theme='dark'] .unlock-card .privacy-note {
+  color: #9eb2ca;
+}
+:root[data-theme='dark'] .search kbd,
+:root[data-theme='dark'] .board-calendar-toggle,
+:root[data-theme='dark'] .task-card,
+:root[data-theme='dark'] .empty,
+:root[data-theme='dark'] .config,
+:root[data-theme='dark'] .internal-preview,
+:root[data-theme='dark'] .check-editor {
+  border-color: var(--line);
+}
+:root[data-theme='dark'] .board-calendar-toggle {
+  color: var(--blue);
+}
+:root[data-theme='dark'] .task-filters-heading .task-filters-toggle {
+  background: #172436;
+  border-color: #4d719b;
+  color: var(--ink);
+}
+:root[data-theme='dark'] .task-filters-date-scope select {
+  border-color: #4d719b;
+}
+:root[data-theme='dark'] .task-filters-date-scope select:hover {
+  border-color: var(--blue);
+}
+:root[data-theme='dark'] .task-filters-heading .task-filters-clear {
+  color: var(--blue);
+}
+:root[data-theme='dark'] .task-filters-clear:hover {
+  background: #304d6f;
+}
+:root[data-theme='dark'] .task-filter-option {
+  background: #172436;
+  color: var(--ink);
+}
+:root[data-theme='dark'] .task-filter-option[aria-pressed='true'] {
+  background: #315c94;
+  border-color: #8db6ff;
+  color: white;
+}
+:root[data-theme='dark'] .task-filter-count {
+  background: #315c94;
+}
+:root[data-theme='dark'] .task-filter-tag-search input {
+  background: #172436;
+  border-color: #43566f;
+  color: var(--ink);
+}
+:root[data-theme='dark'] .empty-mark {
+  background: #314761;
+  color: #bcd1ef;
+}
+:root[data-theme='dark'] .task-row-action:hover,
+:root[data-theme='dark'] .board-calendar-toggle:hover {
+  background: #304d6f;
+}
+:root[data-theme='dark'] .task-row-action.danger:hover {
+  background: #4c3039;
+  color: #ffc1be;
+}
+:root[data-theme='dark'] .kanban-column.drop-target,
+:root[data-theme='dark'] .month-days button.drop-target,
+:root[data-theme='dark'] .week-strip > button.accepts-task:hover {
+  background: #2b4566;
+  border-color: #7da7de;
+  color: #c4dbff;
+}
+:root[data-theme='dark'] .modal-backdrop {
+  background: #070e19b8;
+}
+:root[data-theme='dark'] .day-section-summary {
+  background: #243348;
+}
+:root[data-theme='dark'] .day-details-section.decision .day-section-summary,
+:root[data-theme='dark'] .day-details-section.decision .day-detail-card {
+  color: #bda6ee;
+}
+:root[data-theme='dark'] .skip-link {
+  background: var(--paper);
+  color: var(--ink);
+}
+:root[data-theme='dark'] .daily-completed-tasks {
+  background: #15251e;
+  border-color: #274538;
+}
+:root[data-theme='dark'] .daily-tasks-header {
+  color: #7dd3a8;
+}
+:root[data-theme='dark'] .daily-task-chip {
+  background: #1c3027;
+  border-color: #2d5241;
+  color: #c7ead9;
+}
+:root[data-theme='dark'] .daily-task-chip:hover {
+  background: #233e32;
+  border-color: #3b6b55;
+}
+:root[data-theme='dark'] .chip-due-tag {
+  background: #284439;
+  color: #8cc4a8;
+}
+:root[data-theme='dark'] .upcoming-tasks-section {
+  border-top-color: #2a3749;
+}
+:root[data-theme='dark'] .upcoming-tasks-heading h3 {
+  color: #e2e8f0;
+}
+:root[data-theme='dark'] .upcoming-tasks-count,
+:root[data-theme='dark'] .upcoming-tasks-desc,
+:root[data-theme='dark'] .upcoming-empty-note {
+  color: #94a3b8;
+}
+:root[data-theme='dark'] .upcoming-date-chip {
+  background: #1e293b;
+  color: #93c5fd;
+  border-color: #3b82f6;
+}
+:root[data-theme='dark'] .overdue-date-chip {
+  background: #442b20;
+  color: #fdba74;
+  border-color: #9a4a28;
+}
+
+/* Practice Status Segmented Tabs in Dark Theme */
+:root[data-theme='dark'] .practice-status-tabs {
+  background: #141f2e;
+  border-color: #24364c;
+}
+:root[data-theme='dark'] .practice-status-tabs button {
+  border: 1px solid transparent;
+  color: #8da4be;
+  background: transparent;
+}
+:root[data-theme='dark'] .practice-status-tabs button:hover:not(.active) {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+:root[data-theme='dark'] .practice-status-tabs button.active {
+  background: #22374e;
+  color: #ffffff;
+  border-color: #3b5373;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme='dark'] .practice-status-tabs .tab-pill-count {
+  background: #1a2738;
+  color: #8fa5bf;
+}
+:root[data-theme='dark'] .practice-status-tabs button.active .tab-pill-count {
+  background: #182e4a;
+  color: #8db6ff;
+}
+
+/* Category Filter Tabs in Dark Theme */
+:root[data-theme='dark'] .category-tabs button {
+  background: #152232;
+  border-color: #26384e;
+  color: #94a3b8;
+}
+:root[data-theme='dark'] .category-tabs button:hover:not(.active) {
+  background: #1c2b3e;
+  border-color: #3b526f;
+  color: #e2e8f0;
+}
+:root[data-theme='dark'] .category-tabs button.active {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.4);
+}
+:root[data-theme='dark'] .category-tabs button.active .category-dot {
+  box-shadow: 0 0 0 1.5px #ffffff;
+}
+
+/* Practice Cards in Dark Theme */
+:root[data-theme='dark'] .practice-card {
+  background: #172436;
+  border-color: #25374d;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+:root[data-theme='dark'] .practice-card:hover {
+  background: #1b2a3e;
+  border-color: #4a729e;
+  box-shadow:
+    0 10px 25px -4px rgba(0, 0, 0, 0.4),
+    0 0 12px rgba(141, 182, 255, 0.08);
+}
+:root[data-theme='dark'] .practice-card.is-draft {
+  border: 1px solid rgba(223, 179, 124, 0.32);
+  background: linear-gradient(180deg, rgba(56, 44, 28, 0.38) 0%, rgba(23, 36, 54, 0.95) 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+:root[data-theme='dark'] .practice-card.is-draft:hover {
+  border-color: rgba(223, 179, 124, 0.7);
+  box-shadow:
+    0 10px 25px -4px rgba(0, 0, 0, 0.4),
+    0 0 14px rgba(223, 179, 124, 0.12);
+}
+:root[data-theme='dark'] .practice-scope {
+  color: #9ab3ce;
+  background: rgba(43, 64, 90, 0.4);
+}
+:root[data-theme='dark'] .practice-card-footer {
+  border-top-color: #22344a;
+}
+:root[data-theme='dark'] .practice-mandatory-pill {
+  background: rgba(223, 179, 124, 0.14);
+  color: #f3c28b;
+  border-color: rgba(223, 179, 124, 0.3);
+}
+:root[data-theme='dark'] .empty-practices-box {
+  background: #131e2c;
+  border-color: #233448;
+}
+:root[data-theme='dark'] .empty-practices-icon {
+  color: #5d7592;
+}
+
+@media (max-width: 720px) {
+  .theme-toggle {
+    padding-right: 5px;
+  }
+  .top-actions .theme-toggle-label {
+    display: none;
+  }
+  .lock-theme-toggle {
+    top: 20px;
+    right: 20px;
+  }
+}

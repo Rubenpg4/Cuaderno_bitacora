@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.exe binary
+/resources/asvs/5.0.0.en.csv -text
+/shared/catalogs/asvs-5.0.0.en.json text eol=lf

@@ -1,0 +1,104 @@
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #183c38;
+  color: #f0fff8;
+  border-radius: 8px;
+  padding: 13px 23px;
+  box-shadow: 0 4px 20px #163c3330;
+  font-size: 13px;
+  z-index: 100;
+}
+.proposal-notice {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  width: min(580px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 16px 18px;
+  border: 1px solid #b7d0e5;
+  border-radius: 16px;
+  background: #f7fbff;
+  color: #193b59;
+  box-shadow: 0 16px 40px #142d4440;
+}
+.proposal-notice-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #dceefa;
+  color: #28658e;
+}
+.proposal-notice-content {
+  min-width: 0;
+}
+.proposal-notice-content strong,
+.proposal-notice-content span {
+  display: block;
+}
+.proposal-notice-content strong {
+  font-size: 13px;
+}
+.proposal-notice-content span {
+  margin-top: 3px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.proposal-notice-open {
+  grid-column: 2 / 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  margin-top: 3px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: #185784;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.proposal-notice-dismiss {
+  grid-column: 3;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #31536d;
+  cursor: pointer;
+}
+.proposal-notice-open:focus-visible,
+.proposal-notice-dismiss:focus-visible {
+  outline: 2px solid #185784;
+  outline-offset: 2px;
+}
+.proposal-notice-open:hover,
+.proposal-notice-dismiss:hover {
+  background: #e1f0fa;
+}
+@media (max-width: 600px) {
+  .proposal-notice {
+    top: 12px;
+    padding: 14px;
+  }
+}

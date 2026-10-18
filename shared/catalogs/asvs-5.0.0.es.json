@@ -1,0 +1,2425 @@
+{
+  "formatVersion": 1,
+  "catalogVersion": "5.0.0",
+  "sourceSha256": "98c8fe911b9edb403af8ee05d3ce8201ecac2659e313b053890a62847cdcf680",
+  "language": "es",
+  "provider": "DeepL",
+  "requirements": [
+    {
+      "reqId": "V1.1.1",
+      "sourceContentSha256": "2f3cb3e0c96ed7aa5c02111b165a8fceec2b804b61c2e2b992f5ff2c0eec582c",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Arquitectura de codificación y saneamiento",
+      "description": "Compruebe que la entrada se decodifique o se elimine el escape para obtener una forma canónica únicamente una vez, que solo se decodifique cuando se esperen datos codificados en dicha forma y que esto se realice antes de seguir procesando la entrada; por ejemplo, que no se lleve a cabo tras la validación o la depuración de la entrada."
+    },
+    {
+      "reqId": "V1.1.2",
+      "sourceContentSha256": "2cedc6fb459d378e0d7a22348e89583f251781abeb10259d64345af4803c034d",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Arquitectura de codificación y saneamiento",
+      "description": "Verifique que la aplicación realice la codificación y el escape de la salida, ya sea como paso final antes de que la utilice el intérprete al que va destinada, ya sea por parte del propio intérprete."
+    },
+    {
+      "reqId": "V1.2.1",
+      "sourceContentSha256": "954133f65234769ce9b69e65ada774aa4f6f068e5e74cff38de43893ae422aa3",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Prevención de inyecciones",
+      "description": "Verifique que la codificación de salida de una respuesta HTTP, un documento HTML o un documento XML sea adecuada para el contexto requerido, como por ejemplo la codificación de los caracteres pertinentes para los elementos HTML, los atributos HTML, los comentarios HTML, el CSS o los campos de encabezado HTTP, con el fin de evitar que se altere el mensaje o la estructura del documento."
+    },
+    {
+      "reqId": "V1.2.2",
+      "sourceContentSha256": "e383d296d31001061eefe3cf7053d01dea25d667d9ffa19843932f1629543741",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Prevención de inyecciones",
+      "description": "Compruebe que, al generar direcciones URL de forma dinámica, los datos no fiables se codifiquen según su contexto (por ejemplo, codificación URL o codificación base64url para los parámetros de consulta o de ruta). Asegúrese de que solo se permitan protocolos URL seguros (por ejemplo, no permita javascript: ni data:)."
+    },
+    {
+      "reqId": "V1.2.3",
+      "sourceContentSha256": "4ac0de6e0036bb3d110a863007322627558927134610f2bbcf0d6cc72d9d11fa",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Prevención de inyecciones",
+      "description": "Compruebe que se utilice la codificación o el escape de salida al generar dinámicamente contenido JavaScript (incluido JSON), con el fin de evitar que se altere la estructura del mensaje o del documento (para evitar la inyección de JavaScript y JSON)."
+    },
+    {
+      "reqId": "V1.2.4",
+      "sourceContentSha256": "0f0b7d6381a456a72b611f032d059825fb70d4dfbe7e26c215aba45576f8e1c8",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Prevención de inyecciones",
+      "description": "Compruebe que la selección de datos o las consultas a bases de datos (p. ej., SQL, HQL, NoSQL, Cypher) utilicen consultas parametrizadas, ORM, marcos de entidades o estén protegidas de otro modo contra la inyección SQL y otros ataques de inyección en bases de datos. Esto también es relevante a la hora de escribir procedimientos almacenados."
+    },
+    {
+      "reqId": "V1.2.5",
+      "sourceContentSha256": "9e3ca49e3f214f4ecce2167857bfd121879af5404bed833b5dc306ef88715047",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Prevención de inyecciones",
+      "description": "Verifique que la aplicación ofrece protección contra la inyección de comandos en el sistema operativo y que las llamadas al sistema operativo utilicen consultas parametrizadas al sistema operativo o utilicen la codificación contextual de la salida de la línea de comandos."
+    },
+    {
+      "reqId": "V1.2.6",
+      "sourceContentSha256": "c630b3c0c8c327afd04234919d6ef146525067a72a93c07b283fcf7864553089",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Prevención de inyecciones",
+      "description": "Compruebe que la aplicación ofrece protección frente a vulnerabilidades de inyección LDAP, o que se han implementado controles de seguridad específicos para prevenir la inyección LDAP."
+    },
+    {
+      "reqId": "V1.2.7",
+      "sourceContentSha256": "5083287b5d15133231f4dd804264b63132add31624ffa3a22f0835fa230137be",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Prevención de inyecciones",
+      "description": "Compruebe que la aplicación está protegida contra ataques de inyección XPath mediante la parametrización de consultas o el uso de consultas precompiladas."
+    },
+    {
+      "reqId": "V1.2.8",
+      "sourceContentSha256": "98cf17d715c53cd77cd514370020943bfbae3257c24c6d78bfb46e73f8582e8b",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Prevención de inyecciones",
+      "description": "Compruebe que los procesadores de LaTeX estén configurados de forma segura (por ejemplo, sin utilizar el indicador «--shell-escape») y que se utilice una lista de comandos permitidos para evitar ataques de inyección de LaTeX."
+    },
+    {
+      "reqId": "V1.2.9",
+      "sourceContentSha256": "f39ae99c8102bc7c34b85c147662b07c3edb5766f11295e5a522b76ec4118d80",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Prevención de inyecciones",
+      "description": "Compruebe que la aplicación escape los caracteres especiales en las expresiones regulares (normalmente utilizando una barra invertida) para evitar que se malinterpreten como metacaracteres."
+    },
+    {
+      "reqId": "V1.2.10",
+      "sourceContentSha256": "afab817de0d3d72353b65010dfd8f715823fa304d1a58ee5e9cc1820f28b5fbb",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Prevención de inyecciones",
+      "description": "Compruebe que la aplicación esté protegida contra la inyección de CSV y de fórmulas. La aplicación debe seguir las reglas de escape definidas en el RFC 4180, en las secciones 2.6 y 2.7, al exportar contenido CSV. Además, al exportar a CSV u otros formatos de hoja de cálculo (como XLS, XLSX u ODF), los caracteres especiales (incluidos «=», «+», «-», «@», «\\t» (tabulación) y «\\0» (carácter nulo)) deben escaparse con una comilla simple si aparecen como primer carácter en el valor de un campo."
+    },
+    {
+      "reqId": "V1.3.1",
+      "sourceContentSha256": "926d36c625754eacd21f780d73f96d93cf6762120d42678a55ed6a7c5c74e156",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Saneamiento",
+      "description": "Compruebe que todas las entradas HTML no fiables procedentes de editores WYSIWYG o similares se depuren utilizando una biblioteca de depuración de HTML reconocida y segura o una función del marco de trabajo."
+    },
+    {
+      "reqId": "V1.3.2",
+      "sourceContentSha256": "7a452e11d9d069c7751b3d95b1f08cf7fc62335fe49f14854ab0039837d7d9fd",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Saneamiento",
+      "description": "Compruebe que la aplicación evita el uso de eval() u otras funciones de ejecución dinámica de código, como el lenguaje de expresiones de Spring (SpEL). Cuando no exista alternativa, cualquier entrada del usuario que se incluya deberá ser depurada antes de su ejecución."
+    },
+    {
+      "reqId": "V1.3.3",
+      "sourceContentSha256": "d73484103c2f046ca454ab8fdf50a553768a46865e31efad08a683b307eeb66b",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Saneamiento",
+      "description": "Verifique que los datos que se transmiten a un contexto potencialmente peligroso se limpien previamente para aplicar medidas de seguridad, como permitir únicamente caracteres que sean seguros para dicho contexto y recortar las entradas que sean demasiado largas."
+    },
+    {
+      "reqId": "V1.3.4",
+      "sourceContentSha256": "db5fdddfc1b6c54726dfa7ecca607917bb9c7d737ff877e811a886effa1c0187",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Saneamiento",
+      "description": "Compruebe que el contenido programable en formato SVG (Scalable Vector Graphics) proporcionado por el usuario se valide o se depure de modo que contenga únicamente etiquetas y atributos (como los gráficos de dibujo) que sean seguros para la aplicación; por ejemplo, que no contengan scripts ni «foreignObject»."
+    },
+    {
+      "reqId": "V1.3.5",
+      "sourceContentSha256": "407fc20c2276369502a040b2d5c80c6df771b3311246af6dd36a4b2f411cbda8",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Saneamiento",
+      "description": "Compruebe que la aplicación depure o desactive el contenido proporcionado por el usuario que permita la ejecución de scripts o que utilice un lenguaje de plantillas de expresiones, como Markdown, hojas de estilo CSS o XSL, BBCode o similares."
+    },
+    {
+      "reqId": "V1.3.6",
+      "sourceContentSha256": "6256a9c84baeee0f43d7713a51b50b6f8067c29cf81e225bc468d998f3285a82",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Saneamiento",
+      "description": "Compruebe que la aplicación ofrece protección frente a ataques de falsificación de solicitudes del lado del servidor (SSRF), validando los datos no fiables con respecto a una lista de protocolos, dominios, rutas y puertos permitidos, y depurando los caracteres potencialmente peligrosos antes de utilizar los datos para llamar a otro servicio."
+    },
+    {
+      "reqId": "V1.3.7",
+      "sourceContentSha256": "093abc954ea5b68c3210a3bdfe1a65d8ccd414e47be58c8617aa7cf8b697267c",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Saneamiento",
+      "description": "Compruebe que la aplicación proteja contra los ataques de inyección de plantillas, impidiendo que estas se generen a partir de entradas no fiables. Cuando no exista alternativa, cualquier entrada no fiable que se incluya dinámicamente durante la creación de la plantilla deberá ser depurada o validada rigurosamente."
+    },
+    {
+      "reqId": "V1.3.8",
+      "sourceContentSha256": "ae8ce782c1e2fad9bed25ca641cfae9af3e8bee1385b386308d2ebd2174ac53e",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Saneamiento",
+      "description": "Compruebe que la aplicación depure adecuadamente las entradas no fiables antes de utilizarlas en consultas de la Interfaz de Nombres y Directorios de Java (JNDI) y que JNDI esté configurada de forma segura para evitar ataques de inyección JNDI."
+    },
+    {
+      "reqId": "V1.3.9",
+      "sourceContentSha256": "65aaa09cc66ec47cbddaa7295b249ff9f18474ee4b5f15fb69f0e537da6821e8",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Saneamiento",
+      "description": "Verifique que la aplicación depure el contenido antes de enviarlo a memcache para evitar ataques de inyección."
+    },
+    {
+      "reqId": "V1.3.10",
+      "sourceContentSha256": "f1b9345b209a44a7e5420ed715c3152c65fa8b2ecfb501955a72d8f3293d8016",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Saneamiento",
+      "description": "Compruebe que las cadenas de formato que, al utilizarse, puedan dar lugar a resultados inesperados o maliciosos, se purifiquen antes de su procesamiento."
+    },
+    {
+      "reqId": "V1.3.11",
+      "sourceContentSha256": "fe53b2e5ea4b160072ef56325156c6ad16329ebe89ee43fcdfcce254b6711ab0",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Saneamiento",
+      "description": "Compruebe que la aplicación depure los datos introducidos por el usuario antes de enviarlos a los sistemas de correo electrónico para protegerse contra la inyección SMTP o IMAP."
+    },
+    {
+      "reqId": "V1.3.12",
+      "sourceContentSha256": "96f05606d200e2b44866a2ead2e23b76db040c5d1f0d4b2ab05d0de8e99b95e2",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Saneamiento",
+      "description": "Verifique que las expresiones regulares no contengan elementos que provoquen retroceso exponencial y asegúrese de que las entradas no fiables se depuren para mitigar los ataques ReDoS o Runaway Regex."
+    },
+    {
+      "reqId": "V1.4.1",
+      "sourceContentSha256": "8329b2c76f9970249254537dc87d19e889a96786bfb6ce32a17c9f327d85d0ed",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Memoria, cadenas de caracteres y código no gestionado",
+      "description": "Compruebe que la aplicación utilice cadenas seguras para la memoria, copias de memoria más seguras y aritmética de punteros para detectar o prevenir desbordamientos de pila, de búfer o de montón."
+    },
+    {
+      "reqId": "V1.4.2",
+      "sourceContentSha256": "7dab798b53de4f4e68211ee3d21d6c0e3fb19d13d5ec9ccef9c4a83a762a185b",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Memoria, cadenas de caracteres y código no gestionado",
+      "description": "Compruebe que se utilicen técnicas de validación de signo, rango y entrada para evitar desbordamientos de enteros."
+    },
+    {
+      "reqId": "V1.4.3",
+      "sourceContentSha256": "4cdfd9655fc86b0f472db1aa2cedb2d70ddd7b5bff489366a54cafed9378c7b4",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Memoria, cadenas de caracteres y código no gestionado",
+      "description": "Verifique que la memoria y los recursos asignados dinámicamente se liberen, y que las referencias o punteros a la memoria liberada se eliminen o se establezcan en nulo para evitar punteros colgantes y vulnerabilidades de «uso tras liberación»."
+    },
+    {
+      "reqId": "V1.5.1",
+      "sourceContentSha256": "54bfae2a003fe895c2bc7f1d561404ad803db3d698872563a831b9556fc7ba63",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Deserialización segura",
+      "description": "Compruebe que la aplicación configure los analizadores XML para que utilicen una configuración restrictiva y que las funciones inseguras, como la resolución de entidades externas, estén desactivadas para evitar ataques de entidades externas XML (XXE)."
+    },
+    {
+      "reqId": "V1.5.2",
+      "sourceContentSha256": "5457a15c70fb9ea74aed66c95e06c6f0a03b7332c75e7e0e6a8fb0bdc378277f",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Deserialización segura",
+      "description": "Compruebe que la deserialización de datos no fiables garantice un manejo seguro de las entradas, por ejemplo, mediante el uso de una lista de tipos de objetos permitidos o la restricción de los tipos de objetos definidos por el cliente, con el fin de prevenir ataques de deserialización. Los mecanismos de deserialización que se definan explícitamente como inseguros no deben utilizarse con entradas no fiables."
+    },
+    {
+      "reqId": "V1.5.3",
+      "sourceContentSha256": "53f7f4f84985abc37301d0067d2d2a0a9c7e52acf2ab2973ed52044394230cd7",
+      "chapterName": "Codificación y saneamiento",
+      "sectionName": "Deserialización segura",
+      "description": "Compruebe que los distintos analizadores sintácticos utilizados en la aplicación para un mismo tipo de datos (por ejemplo, analizadores JSON, XML o de URL) realicen el análisis de forma coherente y utilicen el mismo mecanismo de codificación de caracteres, a fin de evitar problemas tales como vulnerabilidades de interoperabilidad JSON o que se aproveche un comportamiento diferente en el análisis de URI o archivos en ataques de inclusión remota de archivos (RFI) o de falsificación de solicitudes del lado del servidor (SSRF)."
+    },
+    {
+      "reqId": "V2.1.1",
+      "sourceContentSha256": "e625fcb89902bee91223645de54d964334fa45e7884fb68b591f55a854e7734d",
+      "chapterName": "Validación y lógica de negocio",
+      "sectionName": "Documentación de validación y lógica de negocio",
+      "description": "Compruebe que la documentación de la aplicación defina normas de validación de entradas que establezcan cómo comprobar la validez de los elementos de datos con respecto a una estructura esperada. Puede tratarse de formatos de datos habituales, como números de tarjetas de crédito, direcciones de correo electrónico o números de teléfono, o bien de un formato de datos interno."
+    },
+    {
+      "reqId": "V2.1.2",
+      "sourceContentSha256": "e879f62d1563927a5d1cbbe80c367e8b3b821ea0b72230ea22116a14634ea4a2",
+      "chapterName": "Validación y lógica de negocio",
+      "sectionName": "Documentación de validación y lógica de negocio",
+      "description": "Compruebe que la documentación de la aplicación defina cómo validar la coherencia lógica y contextual de los elementos de datos combinados, como, por ejemplo, comprobar que el barrio y el código postal coincidan."
+    },
+    {
+      "reqId": "V2.1.3",
+      "sourceContentSha256": "45a61bbf0eaa7ba4800ef86a9266e0a6cf1b6e9b0adf57af48df564451eda587",
+      "chapterName": "Validación y lógica de negocio",
+      "sectionName": "Documentación de validación y lógica de negocio",
+      "description": "Verifique que se hayan documentado las expectativas relativas a los límites y las validaciones de la lógica de negocio, tanto a nivel de usuario como de forma global en toda la aplicación."
+    },
+    {
+      "reqId": "V2.2.1",
+      "sourceContentSha256": "74bf593025a6fd740cfe2819776c72dee57d40a946f71a20dd17e0560669723f",
+      "chapterName": "Validación y lógica de negocio",
+      "sectionName": "Validación de entradas",
+      "description": "Verifique que los datos de entrada se validen para garantizar el cumplimiento de las expectativas empresariales o funcionales relativas a dichos datos. Para ello, debe utilizarse una validación positiva frente a una lista de valores, patrones y rangos permitidos, o bien basarse en la comparación de los datos de entrada con una estructura esperada y unos límites lógicos, de acuerdo con reglas predefinidas. En el caso de «L1», esto puede centrarse en los datos de entrada que se utilizan para tomar decisiones empresariales o de seguridad específicas. En el caso de «L2» y niveles superiores, esto debe aplicarse a todos los datos de entrada."
+    },
+    {
+      "reqId": "V2.2.2",
+      "sourceContentSha256": "dc714300d32a44cbcaa6285c3de762356ac9d83c408ccaf1a4ba750416773d6c",
+      "chapterName": "Validación y lógica de negocio",
+      "sectionName": "Validación de entradas",
+      "description": "Compruebe que la aplicación esté diseñada para aplicar la validación de entradas en una capa de servicio de confianza. Aunque la validación del lado del cliente mejora la usabilidad y debe fomentarse, no debe considerarse un control de seguridad en sí mismo."
+    },
+    {
+      "reqId": "V2.2.3",
+      "sourceContentSha256": "0a34cee2ad940d4870056bb1e1f69fef3db5855d9c7022b5e2649a8f7eae9171",
+      "chapterName": "Validación y lógica de negocio",
+      "sectionName": "Validación de entradas",
+      "description": "Compruebe que la aplicación garantiza que las combinaciones de elementos de datos relacionados sean razonables de acuerdo con las reglas predefinidas."
+    },
+    {
+      "reqId": "V2.3.1",
+      "sourceContentSha256": "59d2f8640864ecdc1c3c858c2e9c7e8718dd61432dd4af4fc84a7459fa0adddd",
+      "chapterName": "Validación y lógica de negocio",
+      "sectionName": "Seguridad de la lógica de negocio",
+      "description": "Compruebe que la aplicación solo procese los flujos de lógica de negocio para un mismo usuario en el orden secuencial previsto y sin omitir pasos."
+    },
+    {
+      "reqId": "V2.3.2",
+      "sourceContentSha256": "33d34a345ac13fa9cb65901cafce50e24368d1ad59befff7361fb59f5907ea1e",
+      "chapterName": "Validación y lógica de negocio",
+      "sectionName": "Seguridad de la lógica de negocio",
+      "description": "Compruebe que los límites de la lógica de negocio se hayan implementado de acuerdo con la documentación de la aplicación, a fin de evitar que se aprovechen los fallos de dicha lógica."
+    },
+    {
+      "reqId": "V2.3.3",
+      "sourceContentSha256": "34df630291e7a382ce0d43e1cd6a8ca6bac72de6b2b8a203a5a5505f0f84c14f",
+      "chapterName": "Validación y lógica de negocio",
+      "sectionName": "Seguridad de la lógica de negocio",
+      "description": "Verifique que las transacciones se utilicen a nivel de lógica de negocio de tal forma que, o bien una operación de lógica de negocio se complete con éxito en su totalidad, o bien se revierta al estado correcto anterior."
+    },
+    {
+      "reqId": "V2.3.4",
+      "sourceContentSha256": "66dd9ad93bb596c7613829382cfcbf23940bac4d98f684934ed6740d37f0eb0f",
+      "chapterName": "Validación y lógica de negocio",
+      "sectionName": "Seguridad de la lógica de negocio",
+      "description": "Verifique que se utilicen mecanismos de bloqueo a nivel de la lógica de negocio para garantizar que los recursos de cantidad limitada (como las entradas de teatro o las franjas horarias de entrega) no puedan ser reservados dos veces mediante la manipulación de la lógica de la aplicación."
+    },
+    {
+      "reqId": "V2.3.5",
+      "sourceContentSha256": "daf6578c6887fa9dc704b6ce2f51f4f8d181f0405b4bb69be61c0abf62d90cdd",
+      "chapterName": "Validación y lógica de negocio",
+      "sectionName": "Seguridad de la lógica de negocio",
+      "description": "Verifique que los flujos de lógica empresarial de alto valor requieran la aprobación de varios usuarios para evitar acciones no autorizadas o accidentales. Esto podría incluir, entre otros, transferencias monetarias de gran cuantía, aprobaciones de contratos, acceso a información clasificada o anulaciones de medidas de seguridad en el ámbito de la fabricación."
+    },
+    {
+      "reqId": "V2.4.1",
+      "sourceContentSha256": "fbaf88c25d1eb15b67dad7524f06967330130395573489cc84b32cbaf4c89499",
+      "chapterName": "Validación y lógica de negocio",
+      "sectionName": "Antiautomatización",
+      "description": "Verifique que se hayan implementado controles contra la automatización para proteger frente a un número excesivo de llamadas a funciones de la aplicación que podrían dar lugar a la filtración de datos, la generación de datos basura, el agotamiento de cuotas, el incumplimiento de los límites de frecuencia, la denegación de servicio o el uso excesivo de recursos costosos."
+    },
+    {
+      "reqId": "V2.4.2",
+      "sourceContentSha256": "4b123cb1cdaec13b689803de91be11dd8c280e68d323204926df3bddf8661b74",
+      "chapterName": "Validación y lógica de negocio",
+      "sectionName": "Antiautomatización",
+      "description": "Verifique que los flujos de la lógica de negocio requieran tiempos de respuesta humanos realistas, evitando el envío excesivamente rápido de transacciones."
+    },
+    {
+      "reqId": "V3.1.1",
+      "sourceContentSha256": "94a54ceb289003188c30bc97bd293958199f31ef20d883faadbfd5e169c16b1e",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Documentación sobre seguridad de la interfaz web",
+      "description": "Compruebe que la documentación de la aplicación especifique las características de seguridad que deben admitir los navegadores que utilicen la aplicación (como HTTPS, HTTP Strict Transport Security (HSTS), Content Security Policy (CSP) y otros mecanismos de seguridad HTTP pertinentes). Asimismo, debe definir cómo debe comportarse la aplicación cuando algunas de estas características no estén disponibles (por ejemplo, advirtiendo al usuario o bloqueando el acceso)."
+    },
+    {
+      "reqId": "V3.2.1",
+      "sourceContentSha256": "a6831462d1fb666e34c9dce0e21968e62a45b84a16a830c192cbc2a1371a154f",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Interpretación involuntaria del contenido",
+      "description": "Compruebe que se hayan implementado controles de seguridad para impedir que los navegadores muestren contenido o funcionalidades en respuestas HTTP en un contexto incorrecto (por ejemplo, cuando se solicita directamente una API, un archivo subido por el usuario u otro recurso). Entre los posibles controles podrían figurar: no servir el contenido a menos que los campos de encabezado de la solicitud HTTP (como Sec-Fetch-\\*) indiquen que se trata del contexto correcto, utilizar la directiva «sandbox» del campo de encabezado Content-Security-Policy o emplear el tipo de disposición de archivos adjuntos en el campo de encabezado Content-Disposition."
+    },
+    {
+      "reqId": "V3.2.2",
+      "sourceContentSha256": "96ec6853700be69b2908c7130bd9e5e6147618c0b0850b4c14ac0e5c8a02bc3b",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Interpretación involuntaria del contenido",
+      "description": "Compruebe que el contenido destinado a mostrarse como texto, en lugar de representarse como HTML, se gestione mediante funciones de representación seguras (como createTextNode o textContent) para evitar la ejecución involuntaria de contenido como HTML o JavaScript."
+    },
+    {
+      "reqId": "V3.2.3",
+      "sourceContentSha256": "1d8d099b093760e70dd42c92d0e7c74bcb23da8027e675b26926cf1e0ccac644",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Interpretación involuntaria del contenido",
+      "description": "Compruebe que la aplicación evita la alteración del DOM al utilizar JavaScript del lado del cliente mediante el empleo de declaraciones explícitas de variables, la realización de comprobaciones estrictas de tipos, evitando el almacenamiento de variables globales en el objeto documento y la implementación del aislamiento de espacios de nombres."
+    },
+    {
+      "reqId": "V3.3.1",
+      "sourceContentSha256": "b3bc14bd482cf62ef182a40690c8d691dd671e46d29ec6f58f7b46a8b750f597",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Configuración de cookies",
+      "description": "Compruebe que las cookies tengan establecido el atributo «Secure» y que, si no se utiliza el prefijo «\\__Host-» en el nombre de la cookie, se utilice el prefijo «__Secure-» en el nombre de la misma."
+    },
+    {
+      "reqId": "V3.3.2",
+      "sourceContentSha256": "9fa53bcb935b496fc2f360cf4223f3ca7c451de6a3230287bca9e14a63396c4e",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Configuración de cookies",
+      "description": "Compruebe que el valor del atributo «SameSite» de cada cookie se haya configurado de acuerdo con la finalidad de la misma, con el fin de limitar la exposición a ataques de manipulación de la interfaz de usuario y a ataques de falsificación de solicitudes basados en el navegador, conocidos comúnmente como «falsificación de solicitudes entre sitios» (CSRF)."
+    },
+    {
+      "reqId": "V3.3.3",
+      "sourceContentSha256": "2593074717618bf7c116fb2ca6a4d35533296cc5927fc9684c10eb836d9c0cdc",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Configuración de cookies",
+      "description": "Compruebe que las cookies tengan el prefijo «__Host-» en el nombre de la cookie, salvo que estén diseñadas explícitamente para ser compartidas con otros hosts."
+    },
+    {
+      "reqId": "V3.3.4",
+      "sourceContentSha256": "8241db89e1bbfffa3f3b3feb6906d14c37db40cd0abf7809eab3550d5561c95d",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Configuración de cookies",
+      "description": "Compruebe que, si no está previsto que el valor de una cookie sea accesible para los scripts del lado del cliente (como un token de sesión), la cookie debe tener el atributo «HttpOnly» activado y ese mismo valor (p. ej., el token de sesión) solo debe transferirse al cliente a través del campo de encabezado «Set-Cookie»."
+    },
+    {
+      "reqId": "V3.3.5",
+      "sourceContentSha256": "85fe17a47fb12c99ae4eeeded88e0085d61c13da15ded3bcadf62db0208ac555",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Configuración de cookies",
+      "description": "Compruebe que, cuando la aplicación escriba una cookie, la suma de la longitud del nombre y del valor de la misma no supere los 4096 s de bytes. El navegador no almacenará las cookies excesivamente grandes y, por lo tanto, no las enviará con las solicitudes, lo que impedirá al usuario utilizar las funcionalidades de la aplicación que dependan de dicha cookie."
+    },
+    {
+      "reqId": "V3.4.1",
+      "sourceContentSha256": "9b3c2b170b3e08bb689abe421cc51097d4c28f6231d696e34f4dc01c8bd6e9df",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Encabezados de los mecanismos de seguridad del navegador",
+      "description": "Compruebe que se incluya un campo de encabezado «Strict-Transport-Security» en todas las respuestas para aplicar una política de seguridad de transporte estricto de HTTP (HSTS). Debe definirse una antigüedad máxima de al menos un año según la norma «1», y para «L2» y versiones posteriores, la política debe aplicarse también a todos los subdominios."
+    },
+    {
+      "reqId": "V3.4.2",
+      "sourceContentSha256": "152b91fa718d7cbd8a164c8ae74e1bb0e43698898f0edaeb93e06abd5b44e341",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Encabezados de los mecanismos de seguridad del navegador",
+      "description": "Compruebe que el campo de encabezado «Access-Control-Allow-Origin» de Cross-Origin Resource Sharing (CORS) sea un valor fijo establecido por la aplicación o, si se utiliza el valor del campo de encabezado de solicitud HTTP «Origin», que se valide con respecto a una lista de orígenes de confianza. Cuando sea necesario utilizar «Access-Control-Allow-Origin: *», compruebe que la respuesta no incluya ninguna información sensible."
+    },
+    {
+      "reqId": "V3.4.3",
+      "sourceContentSha256": "4a691bf9f4d457ac00e893a019d7308d7b4d6c5e5cdb0841c815e7c19e5666f9",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Encabezados de los mecanismos de seguridad del navegador",
+      "description": "Verifique que las respuestas HTTP incluyan un campo de encabezado de respuesta «Content-Security-Policy» que defina directivas para garantizar que el navegador solo cargue y ejecute contenidos o recursos de confianza, con el fin de limitar la ejecución de código JavaScript malicioso. Como mínimo, debe utilizarse una política global que incluya las directivas «object-src 'none'» y «base-uri 'none'» y que defina una lista de permitidos o utilice nonces o hash. En el caso de una aplicación de tipo «L3», debe definirse una política por respuesta con nonces o hash."
+    },
+    {
+      "reqId": "V3.4.4",
+      "sourceContentSha256": "f1066077cc107765b3c484c73fbf06a96c5e27c804554c66e989e628b8b56ab7",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Encabezados de los mecanismos de seguridad del navegador",
+      "description": "Compruebe que todas las respuestas HTTP contengan un campo de encabezado «X-Content-Type-Options: nosniff». Esto indica a los navegadores que no utilicen el análisis de contenido ni la inferencia del tipo MIME para la respuesta en cuestión, y que exijan que el valor del campo de encabezado Content-Type de la respuesta coincida con el recurso de destino. Por ejemplo, la respuesta a una solicitud de un estilo solo se acepta si el campo «Content-Type» de la respuesta es «text/css». Esto también permite que el navegador utilice la funcionalidad de bloqueo de lectura entre orígenes (CORB)."
+    },
+    {
+      "reqId": "V3.4.5",
+      "sourceContentSha256": "c1c5b5a7db4cb4bf5e3ebba5414ba86713589d4549c567329420c9c637e46d8c",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Encabezados de los mecanismos de seguridad del navegador",
+      "description": "Compruebe que la aplicación establezca una política de referencia (referrer policy) para evitar la filtración de datos técnicamente sensibles a servicios de terceros a través del campo de encabezado de solicitud HTTP «Referer». Esto puede realizarse utilizando el campo de encabezado de respuesta HTTP «Referrer-Policy» o mediante los atributos de los elementos HTML. Los datos sensibles podrían incluir la ruta y los datos de consulta en la URL y, en el caso de aplicaciones internas no públicas, también el nombre de host."
+    },
+    {
+      "reqId": "V3.4.6",
+      "sourceContentSha256": "e4ff8fd114768bc5d76f5d1f2d1e22e30c9cb2300c699c62ccfaf03457ab779d",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Encabezados de los mecanismos de seguridad del navegador",
+      "description": "Compruebe que la aplicación web utilice la directiva «frame-ancestors» del campo de encabezado «Content-Security-Policy» en cada respuesta HTTP para garantizar que no pueda ser incrustada de forma predeterminada y que la incrustación de recursos específicos solo se permita cuando sea necesario. Tenga en cuenta que el campo de encabezado «X-Frame-Options», aunque es compatible con los navegadores, ha quedado obsoleto y no se debe confiar en él."
+    },
+    {
+      "reqId": "V3.4.7",
+      "sourceContentSha256": "846be05fd2344f185879fad4b6ee8b93a9fa5ad06358cc04e2cb14d3eff2ccb7",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Encabezados de los mecanismos de seguridad del navegador",
+      "description": "Compruebe que el campo de encabezado «Content-Security-Policy» especifique una ubicación para notificar las infracciones."
+    },
+    {
+      "reqId": "V3.4.8",
+      "sourceContentSha256": "8c315a00953b8a4ef0359d80b2147394fff09841cf6a71a8e53a58e174843404",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Encabezados de los mecanismos de seguridad del navegador",
+      "description": "Compruebe que todas las respuestas HTTP que inician la visualización de un documento (como las respuestas con Content-Type text/html) incluyan el campo de encabezado Cross‑Origin‑Opener‑Policy con la directiva same-origin o la directiva same-origin-allow-popups, según sea necesario. De este modo se evitan los ataques que abusan del acceso compartido a los objetos Window, como el «tabnabbing» y el «frame counting»."
+    },
+    {
+      "reqId": "V3.5.1",
+      "sourceContentSha256": "95c057148867f95addf25ba59f25d08c42f3cce40650c0a31289514d7b54c1fd",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Separación de origen del navegador",
+      "description": "Compruebe que, si la aplicación no recurre al mecanismo de preflight de CORS para impedir que las solicitudes de origen cruzado no permitidas utilicen funcionalidades sensibles, dichas solicitudes se validen para garantizar que proceden de la propia aplicación. Esto puede realizarse mediante el uso y la validación de tokens antifalsificación o exigiendo campos de encabezado HTTP adicionales que no figuren en la lista de encabezados de solicitud seguros de CORS. El objetivo es protegerse contra los ataques de falsificación de solicitudes basados en el navegador, conocidos comúnmente como «falsificación de solicitudes entre sitios» (CSRF)."
+    },
+    {
+      "reqId": "V3.5.2",
+      "sourceContentSha256": "d512ca5dbddae497e10b1eda2d99de251ba65279f3678aaf39c50a98fdbcf619",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Separación de origen del navegador",
+      "description": "Compruebe que, si la aplicación se basa en el mecanismo de preflight de CORS para impedir el uso no autorizado entre orígenes de funcionalidades sensibles, no sea posible invocar dicha funcionalidad mediante una solicitud que no active una solicitud de preflight de CORS. Para ello, puede ser necesario comprobar los valores de los campos de encabezado de solicitud «Origin» y «Content-Type» o utilizar un campo de encabezado adicional que no figure en la lista de campos de encabezado seguros de CORS."
+    },
+    {
+      "reqId": "V3.5.3",
+      "sourceContentSha256": "0f5045ef4f1227bbcbc725b0c29b679cd23d49b809890c16139662b9fb5639fb",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Separación de origen del navegador",
+      "description": "Compruebe que las solicitudes HTTP dirigidas a funcionalidades sensibles utilicen métodos HTTP adecuados, como POST, PUT, PATCH o DELETE, y no métodos definidos por la especificación HTTP como «seguros», tales como HEAD, OPTIONS o GET. Como alternativa, puede utilizarse una validación estricta de los campos de encabezado de solicitud «Sec-Fetch-*» para garantizar que la solicitud no proceda de una llamada entre orígenes inadecuada, una solicitud de navegación o una carga de recursos (como una fuente de imagen) en los casos en que no se espere que esto ocurra."
+    },
+    {
+      "reqId": "V3.5.4",
+      "sourceContentSha256": "46cb36144763c74df0d2a883e43546fbc0160c681bb1525680d1a09a103e73c1",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Separación de origen del navegador",
+      "description": "Verifique que las distintas aplicaciones estén alojadas en nombres de host diferentes para aprovechar las restricciones que establece la política de mismo origen, incluyendo cómo los documentos o scripts cargados por un origen pueden interactuar con recursos de otro origen, así como las restricciones basadas en el nombre de host aplicadas a las cookies."
+    },
+    {
+      "reqId": "V3.5.5",
+      "sourceContentSha256": "f414ce327effa2d67f0c09cb01f2466a1f187ce9144ea043d442b39a6329b4be",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Separación de origen del navegador",
+      "description": "Compruebe que los mensajes recibidos por la interfaz postMessage se descarten si el origen del mensaje no es fiable o si la sintaxis del mensaje no es válida."
+    },
+    {
+      "reqId": "V3.5.6",
+      "sourceContentSha256": "da23d8d79d93939590c13c682530547686d3e5d6a7bab340b7e0689e55a804f4",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Separación de origen del navegador",
+      "description": "Compruebe que la funcionalidad JSONP no esté habilitada en ninguna parte de la aplicación para evitar ataques de inclusión de scripts entre sitios (XSSI)."
+    },
+    {
+      "reqId": "V3.5.7",
+      "sourceContentSha256": "afb89da8d62893cc1b06eac820b3e261038c558bd9e505ca032ee56c4f0dd3d9",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Separación de origen del navegador",
+      "description": "Compruebe que los datos que requieran autorización no se incluyan en las respuestas de recursos de scripts, como los archivos JavaScript, para evitar ataques de inclusión de scripts entre sitios (XSSI)."
+    },
+    {
+      "reqId": "V3.5.8",
+      "sourceContentSha256": "5f5d6be37f09896f48813f541899ec8ad881071d12243c9ba9ebbe1607f0946f",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Separación de origen del navegador",
+      "description": "Verifique que los recursos autenticados (como imágenes, vídeos, scripts y otros documentos) solo puedan cargarse o incrustarse en nombre del usuario cuando sea lo previsto. Esto puede lograrse mediante una validación estricta de los campos de encabezado de solicitud HTTP «Sec-Fetch-*» para garantizar que la solicitud no se haya originado en una llamada de origen cruzado inadecuada, o bien estableciendo un campo de encabezado de respuesta HTTP «Cross-Origin-Resource-Policy» restrictivo para indicar al navegador que bloquee el contenido devuelto."
+    },
+    {
+      "reqId": "V3.6.1",
+      "sourceContentSha256": "5b502ad4cade3c45c714700166dfa7cbdbb544440b06c121e7524b7630353bdf",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Integridad de los recursos externos",
+      "description": "Compruebe que los recursos del lado del cliente, como las bibliotecas de JavaScript, los archivos CSS o las fuentes web, solo se alojen externamente (por ejemplo, en una red de distribución de contenidos) si el recurso es estático y está versionado, y si se utiliza la Integridad de Subrecursos (SRI) para validar la integridad del recurso. Si esto no fuera posible, deberá existir una decisión de seguridad documentada que lo justifique para cada recurso."
+    },
+    {
+      "reqId": "V3.7.1",
+      "sourceContentSha256": "613c0fea6bdeee27923a9fa7c8d4aae794f53ffa8a7258cdd1c57330d6ecd5c8",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Otras consideraciones sobre la seguridad de los navegadores",
+      "description": "Compruebe que la aplicación utilice únicamente tecnologías del lado del cliente que sigan siendo compatibles y se consideren seguras. Entre los ejemplos de tecnologías que no cumplen este requisito se incluyen los complementos NSAPI, Flash, Shockwave, ActiveX, Silverlight, NACL o los applets de Java del lado del cliente."
+    },
+    {
+      "reqId": "V3.7.2",
+      "sourceContentSha256": "e7eee59c32e3864b1d70d55da4cd400fcbd0f62f863ae0b3cdbdc14947eac08b",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Otras consideraciones sobre la seguridad de los navegadores",
+      "description": "Compruebe que la aplicación solo redirija automáticamente al usuario a un nombre de host o dominio diferente (que no esté controlado por la aplicación) cuando el destino figure en una lista de permitidos."
+    },
+    {
+      "reqId": "V3.7.3",
+      "sourceContentSha256": "271a54e692497643082d80e160f28ac60fd22e9c78043bf1e22a0e5d631c59a2",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Otras consideraciones sobre la seguridad de los navegadores",
+      "description": "Compruebe que la aplicación muestre una notificación cuando se redirija al usuario a una URL ajena al control de la aplicación, con la opción de cancelar la navegación."
+    },
+    {
+      "reqId": "V3.7.4",
+      "sourceContentSha256": "d1c042f8e0caded20278c2d08587f888c14e534ae34d3ff838503547994f0f71",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Otras consideraciones sobre la seguridad de los navegadores",
+      "description": "Verifique que el dominio de nivel superior de la aplicación (p. ej., site.tld) se haya añadido a la lista pública de precarga para HTTP Strict Transport Security (HSTS). De este modo se garantiza que el uso de TLS para la aplicación esté integrado directamente en los principales navegadores, en lugar de depender únicamente del campo de encabezado de respuesta «Strict-Transport-Security»."
+    },
+    {
+      "reqId": "V3.7.5",
+      "sourceContentSha256": "9b3c336d54013584b5f6b31952faff1e98a5b49de6b2d2f40561502e6e06ac85",
+      "chapterName": "Seguridad de la interfaz web",
+      "sectionName": "Otras consideraciones sobre la seguridad de los navegadores",
+      "description": "Compruebe que la aplicación se comporte tal y como se ha documentado (por ejemplo, advirtiendo al usuario o bloqueando el acceso) si el navegador utilizado para acceder a la aplicación no es compatible con las funciones de seguridad previstas."
+    },
+    {
+      "reqId": "V4.1.1",
+      "sourceContentSha256": "6c21355e9723fe04aa9a69f1e26ba4619357d8875b7cc037d28467cd043a1f9b",
+      "chapterName": "API y servicios web",
+      "sectionName": "Seguridad genérica de los servicios web",
+      "description": "Verifique que todas las respuestas HTTP con cuerpo de mensaje contengan un campo de encabezado «Content-Type» que coincida con el contenido real de la respuesta, incluido el parámetro «charset» para especificar una codificación de caracteres segura (p. ej., UTF-8, ISO-8859-1) de acuerdo con los tipos de medio de la IANA, tales como «text/», «/+xml» y «/xml»."
+    },
+    {
+      "reqId": "V4.1.2",
+      "sourceContentSha256": "319cb0f83677f0f79290f38cb425b8fbcfba9642b20f13a098fab8ce762123ec",
+      "chapterName": "API y servicios web",
+      "sectionName": "Seguridad genérica de los servicios web",
+      "description": "Compruebe que únicamente los puntos finales orientados al usuario (destinados al acceso manual a través de un navegador web) redirijan automáticamente de HTTP a HTTPS, mientras que otros servicios o puntos finales no implementen redireccionamientos transparentes. El objetivo es evitar una situación en la que un cliente envíe por error solicitudes HTTP sin cifrar, pero, dado que dichas solicitudes se redirigen automáticamente a HTTPS, la fuga de datos confidenciales pase desapercibida."
+    },
+    {
+      "reqId": "V4.1.3",
+      "sourceContentSha256": "d2a0ca427fb7d2018a005313d8e5914d19a335c27cd1e803c824b6924dd34006",
+      "chapterName": "API y servicios web",
+      "sectionName": "Seguridad genérica de los servicios web",
+      "description": "Compruebe que ningún campo de encabezado HTTP utilizado por la aplicación y establecido por una capa intermediaria —como un equilibrador de carga, un proxy web o un servicio «backend-for-frontend»— pueda ser sobrescrito por el usuario final. Entre los ejemplos de encabezados se pueden incluir X-Real-IP, X-Forwarded-* o X-User-ID."
+    },
+    {
+      "reqId": "V4.1.4",
+      "sourceContentSha256": "2af4c87fb9070721b8dc357cba8e817bdaab6869c874ab8e36c9246de1d6ab5e",
+      "chapterName": "API y servicios web",
+      "sectionName": "Seguridad genérica de los servicios web",
+      "description": "Compruebe que solo se puedan utilizar los métodos HTTP que la aplicación o su API admitan explícitamente (incluido el método OPTIONS durante las solicitudes de preflight) y que se bloqueen los métodos no utilizados."
+    },
+    {
+      "reqId": "V4.1.5",
+      "sourceContentSha256": "e26781cd93ba5eb232210f48a28eac1cdb47c2953e08205f276226bf3cd2521e",
+      "chapterName": "API y servicios web",
+      "sectionName": "Seguridad genérica de los servicios web",
+      "description": "Verifique que se utilicen firmas digitales por mensaje para proporcionar una garantía adicional, además de las protecciones de transporte, para aquellas solicitudes o transacciones que sean altamente sensibles o que atraviesen varios sistemas."
+    },
+    {
+      "reqId": "V4.2.1",
+      "sourceContentSha256": "1b5677a2ed0a286e7bb99babee08fe1a00a6f6c96840d2e86ce8f5f3dd210940",
+      "chapterName": "API y servicios web",
+      "sectionName": "Validación de la estructura de los mensajes HTTP",
+      "description": "Compruebe que todos los componentes de la aplicación (incluidos los equilibradores de carga, los cortafuegos y los servidores de aplicaciones) determinen los límites de los mensajes HTTP entrantes utilizando el mecanismo adecuado para la versión de HTTP correspondiente, con el fin de evitar el contrabando de solicitudes HTTP. En HTTP/1.x, si está presente el campo de encabezado «Transfer-Encoding», se debe ignorar el encabezado «Content-Length», de conformidad con el RFC 2616. Cuando se utilice HTTP/2 o HTTP/3, si está presente el campo de encabezado «Content-Length», el receptor debe asegurarse de que sea coherente con la longitud de las tramas DATA."
+    },
+    {
+      "reqId": "V4.2.2",
+      "sourceContentSha256": "ca647838a21fb394b112e54a8276a46105b9f0275c0e2b18c349ff4f4e21c3d8",
+      "chapterName": "API y servicios web",
+      "sectionName": "Validación de la estructura de los mensajes HTTP",
+      "description": "Compruebe que, al generar mensajes HTTP, el campo de encabezado «Content-Length» no entre en conflicto con la longitud del contenido determinada por la estructura del protocolo HTTP, con el fin de evitar ataques de «request smuggling»."
+    },
+    {
+      "reqId": "V4.2.3",
+      "sourceContentSha256": "ca0c49404a52f702087a558560bef48e3bb61cf33b561959f3403a276484651c",
+      "chapterName": "API y servicios web",
+      "sectionName": "Validación de la estructura de los mensajes HTTP",
+      "description": "Compruebe que la aplicación no envíe ni acepte mensajes HTTP/2 o HTTP/3 con campos de encabezado específicos de la conexión, como «Transfer-Encoding», para evitar ataques de división de respuesta e inyección de encabezados."
+    },
+    {
+      "reqId": "V4.2.4",
+      "sourceContentSha256": "6c86e1d012401faecc12e15260944ba5b87f30d5e8d4281e36dd2beb3f35595d",
+      "chapterName": "API y servicios web",
+      "sectionName": "Validación de la estructura de los mensajes HTTP",
+      "description": "Compruebe que la aplicación solo acepte solicitudes HTTP/2 y HTTP/3 en las que los campos y valores de los encabezados no contengan secuencias CR (\\r), LF (\\n) ni CRLF (\\r\\n), con el fin de evitar ataques de inyección en los encabezados."
+    },
+    {
+      "reqId": "V4.2.5",
+      "sourceContentSha256": "121f7345ae911bf6ead4417cdc51c209dc42706d41ceed1f58a6c15ac584f4e3",
+      "chapterName": "API y servicios web",
+      "sectionName": "Validación de la estructura de los mensajes HTTP",
+      "description": "Compruebe que, si la aplicación (backend o frontend) genera y envía solicitudes, utilice mecanismos de validación, saneamiento u otros para evitar la creación de URI (como en el caso de las llamadas a la API) o campos de encabezado de solicitud HTTP (como «Authorization» o «Cookie») que sean demasiado largos para ser aceptados por el componente receptor. Esto podría provocar una denegación de servicio, como ocurre al enviar una solicitud excesivamente larga (por ejemplo, un campo de encabezado de cookie demasiado extenso), lo que da lugar a que el servidor responda siempre con un estado de error."
+    },
+    {
+      "reqId": "V4.3.1",
+      "sourceContentSha256": "df801b58cc17b71587cfed24d18ba763f25c82872e3de63b8062ad8088baad1a",
+      "chapterName": "API y servicios web",
+      "sectionName": "GraphQL",
+      "description": "Verifique que se utilice una lista de consultas permitidas, una limitación de profundidad, una limitación de volumen o un análisis del coste de las consultas para evitar ataques de denegación de servicio (DoS) en GraphQL o en la capa de datos como consecuencia de consultas anidadas que consuman muchos recursos."
+    },
+    {
+      "reqId": "V4.3.2",
+      "sourceContentSha256": "2cc0a635e8296d6f7e47a1b7892d29aa47ca62e52a41bf435859af16dd386d41",
+      "chapterName": "API y servicios web",
+      "sectionName": "GraphQL",
+      "description": "Compruebe que las consultas de introspección de GraphQL estén desactivadas en el entorno de producción, salvo que la API de GraphQL esté destinada a ser utilizada por terceros."
+    },
+    {
+      "reqId": "V4.4.1",
+      "sourceContentSha256": "ba8649f61a86e8c5e9fda2ca135c2a7ff80a352aff92efac472767555470c22b",
+      "chapterName": "API y servicios web",
+      "sectionName": "WebSocket",
+      "description": "Compruebe que se utilice WebSocket sobre TLS (WSS) para todas las conexiones WebSocket."
+    },
+    {
+      "reqId": "V4.4.2",
+      "sourceContentSha256": "383d77337c050ebb4b8245112feb2c48d4f2dec6880fa3518a5358cf81ddd41d",
+      "chapterName": "API y servicios web",
+      "sectionName": "WebSocket",
+      "description": "Verifique que, durante el establecimiento inicial de la conexión HTTP WebSocket, el campo de encabezado «Origin» se compruebe con una lista de orígenes permitidos para la aplicación."
+    },
+    {
+      "reqId": "V4.4.3",
+      "sourceContentSha256": "277620e5c4591183b8fb0e1229d15243b89191b204802f21333b6d0cc943da0d",
+      "chapterName": "API y servicios web",
+      "sectionName": "WebSocket",
+      "description": "Compruebe que, en caso de que no se pueda utilizar la gestión de sesiones estándar de la aplicación, se utilicen tokens específicos para este fin, que cumplan con los requisitos de seguridad pertinentes en materia de gestión de sesiones."
+    },
+    {
+      "reqId": "V4.4.4",
+      "sourceContentSha256": "bfb096bdc56f7483c8e26ac7c874f986568e013ac9fb7e83a6bb099e65ffc282",
+      "chapterName": "API y servicios web",
+      "sectionName": "WebSocket",
+      "description": "Verifique que los tokens dedicados a la gestión de sesiones de WebSocket se obtengan o validen inicialmente a través de la sesión HTTPS previamente autenticada al pasar de una sesión HTTPS existente a un canal WebSocket."
+    },
+    {
+      "reqId": "V5.1.1",
+      "sourceContentSha256": "45328afcdbfa316c98945ea0e859e9f9ab6e25026e6f22f2c8818d3a146e9c64",
+      "chapterName": "Gestión de archivos",
+      "sectionName": "Documentación sobre el manejo de archivos",
+      "description": "Compruebe que la documentación defina los tipos de archivo permitidos, las extensiones de archivo esperadas y el tamaño máximo (incluido el tamaño descomprimido) para cada función de carga de archivos. Además, asegúrese de que la documentación especifique cómo se garantiza la seguridad de los archivos para que los usuarios finales puedan descargarlos y procesarlos, por ejemplo, cómo se comporta la aplicación cuando se detecta un archivo malicioso."
+    },
+    {
+      "reqId": "V5.2.1",
+      "sourceContentSha256": "32bb1bfa8e27cb59633d4a9afb9badd7f79913ddbf77a524936ce35a3f4e825c",
+      "chapterName": "Gestión de archivos",
+      "sectionName": "Carga de archivos y contenido",
+      "description": "Compruebe que la aplicación solo acepte archivos de un tamaño que pueda procesar sin provocar una pérdida de rendimiento ni un ataque de denegación de servicio."
+    },
+    {
+      "reqId": "V5.2.2",
+      "sourceContentSha256": "c5f5c4c6b70979aaadee0802d812fe048909be55f1c81c8359c8438ce83c3d35",
+      "chapterName": "Gestión de archivos",
+      "sectionName": "Carga de archivos y contenido",
+      "description": "Verifique que, cuando la aplicación acepte un archivo, ya sea por sí solo o dentro de un archivo comprimido como un zip, compruebe si la extensión del archivo coincide con la esperada y valide que el contenido se corresponda con el tipo representado por dicha extensión. Esto incluye, entre otras cosas, la comprobación de los «bytes mágicos» iniciales, la reescritura de imágenes y el uso de bibliotecas especializadas para la validación del contenido de los archivos. En el caso de «L1», esto puede centrarse únicamente en los archivos que se utilizan para tomar decisiones específicas de negocio o de seguridad. En el caso de «L2» y niveles superiores, esto debe aplicarse a todos los archivos que se acepten."
+    },
+    {
+      "reqId": "V5.2.3",
+      "sourceContentSha256": "57ea5cb911c9570a90a1eafab18563357ccaa8b371458e90141bfefd76c17d26",
+      "chapterName": "Gestión de archivos",
+      "sectionName": "Carga de archivos y contenido",
+      "description": "Compruebe que la aplicación compruebe los archivos comprimidos (p. ej., zip, gz, docx, odt) en relación con el tamaño máximo permitido sin comprimir y con el número máximo de archivos antes de descomprimirlos."
+    },
+    {
+      "reqId": "V5.2.4",
+      "sourceContentSha256": "97e2ef2ec62cf8232545e317ddc639a2fdfa7835636d96da867121929314cf03",
+      "chapterName": "Gestión de archivos",
+      "sectionName": "Carga de archivos y contenido",
+      "description": "Compruebe que se apliquen un límite de tamaño de archivo y un número máximo de archivos por usuario, a fin de garantizar que un solo usuario no pueda saturar el espacio de almacenamiento con demasiados archivos o con archivos de tamaño excesivo."
+    },
+    {
+      "reqId": "V5.2.5",
+      "sourceContentSha256": "c234a64a930a522ffdd6a12d9e58ea769f7801705d84d6e3d549bc8d754d4a2f",
+      "chapterName": "Gestión de archivos",
+      "sectionName": "Carga de archivos y contenido",
+      "description": "Compruebe que la aplicación no permita la carga de archivos comprimidos que contengan enlaces simbólicos, salvo que ello sea específicamente necesario (en cuyo caso será necesario aplicar una lista de permitidos con los archivos a los que se puede establecer un enlace simbólico)."
+    },
+    {
+      "reqId": "V5.2.6",
+      "sourceContentSha256": "fe589a2d21ab2f5efebf9d514b39a511c03fbe5190575e81cd7574248d0471cc",
+      "chapterName": "Gestión de archivos",
+      "sectionName": "Carga de archivos y contenido",
+      "description": "Compruebe que la aplicación rechace las imágenes cargadas cuyo tamaño en píxeles supere el máximo permitido, con el fin de evitar ataques de inundación de píxeles."
+    },
+    {
+      "reqId": "V5.3.1",
+      "sourceContentSha256": "db63f04e004cb997ada2e6359499cf613950f243fb6c1e2bb112ec0731e5406b",
+      "chapterName": "Gestión de archivos",
+      "sectionName": "Almacenamiento de archivos",
+      "description": "Compruebe que los archivos cargados o generados a partir de entradas no fiables y almacenados en una carpeta pública no se ejecuten como código de programa del lado del servidor cuando se acceda a ellos directamente mediante una solicitud HTTP."
+    },
+    {
+      "reqId": "V5.3.2",
+      "sourceContentSha256": "6bd3144cdb4b41fa5e288d9eab8cc46e5772db9618b447a618be27d425a26635",
+      "chapterName": "Gestión de archivos",
+      "sectionName": "Almacenamiento de archivos",
+      "description": "Compruebe que, cuando la aplicación cree rutas de acceso para operaciones con archivos, utilice datos generados internamente o de confianza, en lugar de los nombres de archivo facilitados por el usuario; o bien, si es necesario utilizar los nombres de archivo o los metadatos de archivo facilitados por el usuario, se aplique una validación y un filtrado rigurosos. El objetivo es proteger contra ataques de traversal de ruta, inclusión de archivos locales o remotos (LFI, RFI) y falsificación de solicitudes del lado del servidor (SSRF)."
+    },
+    {
+      "reqId": "V5.3.3",
+      "sourceContentSha256": "54fb0662d0a425d7a49f2dfc7ee426470b402288b1e9ae0498f45b0e6a10c676",
+      "chapterName": "Gestión de archivos",
+      "sectionName": "Almacenamiento de archivos",
+      "description": "Verifique que el procesamiento de archivos del lado del servidor, como la descompresión de archivos, ignore la información de ruta facilitada por el usuario para evitar vulnerabilidades como el «zip slip»."
+    },
+    {
+      "reqId": "V5.4.1",
+      "sourceContentSha256": "9b5bf052156cded0ba399cb12efbd9d1c97b7f26a8ebe2b867f4f8738e281f4f",
+      "chapterName": "Gestión de archivos",
+      "sectionName": "Descarga de archivos",
+      "description": "Compruebe que la aplicación valide o ignore los nombres de archivo enviados por el usuario, incluidos los que figuren en un JSON, JSONP o parámetro de URL, y que especifique un nombre de archivo en el campo de encabezado «Content-Disposition» de la respuesta."
+    },
+    {
+      "reqId": "V5.4.2",
+      "sourceContentSha256": "7a7e86380bee410a474198911318dbe11c886d408d3ce2836d24c358c30ca25a",
+      "chapterName": "Gestión de archivos",
+      "sectionName": "Descarga de archivos",
+      "description": "Compruebe que los nombres de los archivos servidos (por ejemplo, en los campos de encabezado de las respuestas HTTP o en los archivos adjuntos de correo electrónico) estén codificados o depurados (por ejemplo, de acuerdo con el RFC 6266) para preservar la estructura del documento y evitar ataques de inyección."
+    },
+    {
+      "reqId": "V5.4.3",
+      "sourceContentSha256": "32991228a48816d62176e5ea8d34266506458e314b081c473a9920efeba9514f",
+      "chapterName": "Gestión de archivos",
+      "sectionName": "Descarga de archivos",
+      "description": "Compruebe que los archivos obtenidos de fuentes no fiables sean analizados por programas antivirus para evitar que se sirvan contenidos maliciosos conocidos."
+    },
+    {
+      "reqId": "V6.1.1",
+      "sourceContentSha256": "4868b8d47dbe1d8af5e9b4c258fa4dba02bab64d25c951368acb59c264ce6675",
+      "chapterName": "Autenticación",
+      "sectionName": "Documentación sobre autenticación",
+      "description": "Verifique que la documentación de la aplicación defina cómo se utilizan controles tales como la limitación de frecuencia, la protección contra la automatización y la respuesta adaptativa para defenderse de ataques como el «credential stuffing» y los ataques de fuerza bruta contra contraseñas. La documentación debe dejar claro cómo se configuran estos controles y cómo evitan el bloqueo malintencionado de cuentas."
+    },
+    {
+      "reqId": "V6.1.2",
+      "sourceContentSha256": "471e994a1d3ef960dd91d35a94259ef324bf4f6a19a7cd366aaad9444e03c909",
+      "chapterName": "Autenticación",
+      "sectionName": "Documentación sobre autenticación",
+      "description": "Verifique que se haya documentado una lista de términos específicos del contexto con el fin de evitar su uso en contraseñas. La lista podría incluir variaciones de nombres de organizaciones, nombres de productos, identificadores de sistemas, nombres en clave de proyectos, nombres de departamentos o funciones, y otros similares."
+    },
+    {
+      "reqId": "V6.1.3",
+      "sourceContentSha256": "90ccf966ca9c43da0ee821d727b0bbdc2b15aa199df6d9850cffa72065c92253",
+      "chapterName": "Autenticación",
+      "sectionName": "Documentación sobre autenticación",
+      "description": "Compruebe que, si la aplicación incluye varias vías de autenticación, todas ellas estén documentadas junto con los controles de seguridad y el nivel de solidez de la autenticación, que deben aplicarse de forma coherente en todas ellas."
+    },
+    {
+      "reqId": "V6.2.1",
+      "sourceContentSha256": "4abbab29d99074318afae10b4d0956c35221c478059f9173ced2c47ebec9a6cd",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad de las contraseñas",
+      "description": "Compruebe que las contraseñas establecidas por los usuarios tengan una longitud mínima de 8 caracteres, aunque se recomienda encarecidamente un mínimo de 15 caracteres."
+    },
+    {
+      "reqId": "V6.2.2",
+      "sourceContentSha256": "dc123916134fd4dd552ca9fe13df408e9c33feefd4d73239c6d9b7065a69888a",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad de las contraseñas",
+      "description": "Compruebe que los usuarios puedan cambiar su contraseña."
+    },
+    {
+      "reqId": "V6.2.3",
+      "sourceContentSha256": "9929c85161b466c88ca265fd4e7fed38e5b8bb67452540b88c42210002901819",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad de las contraseñas",
+      "description": "Compruebe que la función de cambio de contraseña requiera la contraseña actual y la nueva del usuario."
+    },
+    {
+      "reqId": "V6.2.4",
+      "sourceContentSha256": "75755d19ed2471dbc7c6c0b3cbfc34ef7f87d231b09accc54629c0056606a9bf",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad de las contraseñas",
+      "description": "Verifique que las contraseñas introducidas durante el registro de una cuenta o el cambio de contraseña se comparen con un conjunto disponible que incluya, como mínimo, las principales contraseñas de 3000 que se ajusten a la política de contraseñas de la aplicación, por ejemplo, la longitud mínima."
+    },
+    {
+      "reqId": "V6.2.5",
+      "sourceContentSha256": "8ecf793768c453f4f6e1532a7242687974f7a2319d4682f7760a7b95509414e5",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad de las contraseñas",
+      "description": "Compruebe que se puedan utilizar contraseñas de cualquier composición, sin reglas que limiten el tipo de caracteres permitidos. No debe exigirse un número mínimo de caracteres en mayúsculas o minúsculas, números o caracteres especiales."
+    },
+    {
+      "reqId": "V6.2.6",
+      "sourceContentSha256": "4cf5213f4b0331b3aba62ae65f76a89d9a447fd1036d20ca8eeeccdb2902078a",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad de las contraseñas",
+      "description": "Compruebe que los campos de introducción de contraseña utilicen el atributo «type=password» para enmascarar la entrada. Las aplicaciones pueden permitir al usuario ver temporalmente la contraseña enmascarada en su totalidad o el último carácter introducido de la misma."
+    },
+    {
+      "reqId": "V6.2.7",
+      "sourceContentSha256": "5eb6e14713244952089822b76333cab7e6a14e722fdd6499bca998aee42c7efd",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad de las contraseñas",
+      "description": "Compruebe que se permiten la función «pegar», los asistentes de contraseñas del navegador y los gestores de contraseñas externos."
+    },
+    {
+      "reqId": "V6.2.8",
+      "sourceContentSha256": "e3e54f9082bffea7536d151575a3a51f38732c5f8fea55bafe959c9f67c8f035",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad de las contraseñas",
+      "description": "Compruebe que la aplicación verifica la contraseña del usuario tal y como la ha recibido de este, sin modificaciones de ningún tipo, como el truncamiento o el cambio de mayúsculas y minúsculas."
+    },
+    {
+      "reqId": "V6.2.9",
+      "sourceContentSha256": "a802fbc4077d41eb44d6b7b254e720e2d3cf54a3c352da8482785e4839ec1f93",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad de las contraseñas",
+      "description": "Verifique que se permitan contraseñas de al menos 64 caracteres."
+    },
+    {
+      "reqId": "V6.2.10",
+      "sourceContentSha256": "9c21fe48b4ee25cbb7cfb66cac4a0a7e6fabbfca7f022260dcc0278b04e71907",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad de las contraseñas",
+      "description": "Verifique que la contraseña de un usuario siga siendo válida hasta que se detecte que ha sido comprometida o hasta que el usuario la cambie. La aplicación no debe exigir la rotación periódica de las credenciales."
+    },
+    {
+      "reqId": "V6.2.11",
+      "sourceContentSha256": "cb94f1bc97bf1b8a48378e36102185598ce47cca78dec6e79433e37b1d3a3af5",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad de las contraseñas",
+      "description": "Compruebe que se utilice la lista documentada de palabras específicas del contexto para evitar que se creen contraseñas fáciles de adivinar."
+    },
+    {
+      "reqId": "V6.2.12",
+      "sourceContentSha256": "1ce1772e4357d7921817910173f19dc04f7e440f611bfdcd3cc14e865bf807cc",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad de las contraseñas",
+      "description": "Verifique que las contraseñas introducidas durante el registro de una cuenta o los cambios de contraseña se comparen con una lista de contraseñas filtradas."
+    },
+    {
+      "reqId": "V6.3.1",
+      "sourceContentSha256": "6e41f845206aeec51815193fb0c2bcde81b10c0972dd40471339906c60210a79",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad general de la autenticación",
+      "description": "Verifique que los controles destinados a prevenir ataques como el «credential stuffing» y los ataques de fuerza bruta contra contraseñas se hayan implementado de acuerdo con la documentación de seguridad de la aplicación."
+    },
+    {
+      "reqId": "V6.3.2",
+      "sourceContentSha256": "0d6ef5bf412a890d2e79a7f285393a5fa13f18832e256c10cf9a496087d70bcc",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad general de la autenticación",
+      "description": "Compruebe que las cuentas de usuario predeterminadas (por ejemplo, «root», «admin» o «sa») no estén presentes en la aplicación o que estén desactivadas."
+    },
+    {
+      "reqId": "V6.3.3",
+      "sourceContentSha256": "6949f5b55b3d418ecc3bbc186e6a983be4d11e998498c87f1ad5ddf61e0d7d0c",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad general de la autenticación",
+      "description": "Verifique que, para acceder a la aplicación, se utilice un mecanismo de autenticación multifactorial o una combinación de mecanismos de autenticación de un solo factor. En el caso de «L3», uno de los factores debe ser un mecanismo de autenticación basado en hardware que ofrezca resistencia al compromiso y a la suplantación de identidad frente a ataques de phishing, al tiempo que verifique la intención de autenticarse exigiendo una acción iniciada por el usuario (como pulsar un botón en una llave de hardware FIDO o en un teléfono móvil). La flexibilización de cualquiera de las consideraciones de este requisito requiere una justificación debidamente documentada y un conjunto exhaustivo de controles de mitigación."
+    },
+    {
+      "reqId": "V6.3.4",
+      "sourceContentSha256": "2545a3218ea2b3dd0220533f4f0395a74eb80492b41c72ab50f5443832a032f3",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad general de la autenticación",
+      "description": "Compruebe que, si la aplicación incluye varias vías de autenticación, no existan vías no documentadas y que los controles de seguridad y el nivel de seguridad de la autenticación se apliquen de forma coherente."
+    },
+    {
+      "reqId": "V6.3.5",
+      "sourceContentSha256": "b6d5c2e1479c97ed5cba35a6bc8599c02060d54a1fc8dded04fbe024b63dea52",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad general de la autenticación",
+      "description": "Compruebe que se notifique a los usuarios los intentos de autenticación sospechosos (tanto los que hayan tenido éxito como los que no). Esto puede incluir intentos de autenticación desde una ubicación o un cliente inusuales, una autenticación parcialmente satisfactoria (solo uno de varios factores), un intento de autenticación tras un largo periodo de inactividad o una autenticación satisfactoria tras varios intentos fallidos."
+    },
+    {
+      "reqId": "V6.3.6",
+      "sourceContentSha256": "470b8ea80125c27a2ed8edc5fd12841eb5f99e0d20fb1fd45c74cef274819f76",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad general de la autenticación",
+      "description": "Compruebe que el correo electrónico no se utilice como mecanismo de autenticación, ya sea de un solo factor o multifactorial."
+    },
+    {
+      "reqId": "V6.3.7",
+      "sourceContentSha256": "45af99c959c6a52b9e09a768467cc3cf080221b22c4ce2d00188ea929061d2da",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad general de la autenticación",
+      "description": "Compruebe que se notifique a los usuarios tras cualquier actualización de los datos de autenticación, como el restablecimiento de credenciales o la modificación del nombre de usuario o la dirección de correo electrónico."
+    },
+    {
+      "reqId": "V6.3.8",
+      "sourceContentSha256": "89bf6133f82fdb9e84ad61b05d710a0bf455431dc8ae61703bac9ae7f4b36c86",
+      "chapterName": "Autenticación",
+      "sectionName": "Seguridad general de la autenticación",
+      "description": "Compruebe que no sea posible deducir la identidad de los usuarios válidos a partir de intentos fallidos de autenticación, por ejemplo, basándose en mensajes de error, códigos de respuesta HTTP o tiempos de respuesta diferentes. Las funciones de registro y de recuperación de contraseña también deben contar con esta protección."
+    },
+    {
+      "reqId": "V6.4.1",
+      "sourceContentSha256": "628744998b36bf10d6eff295cdcbb39a50149c5ac5ee87416e8ec47cc17c967d",
+      "chapterName": "Autenticación",
+      "sectionName": "Ciclo de vida y recuperación de los factores de autenticación",
+      "description": "Compruebe que las contraseñas iniciales o los códigos de activación generados por el sistema se generen de forma aleatoria y segura, cumplan la política de contraseñas vigente y caduquen tras un breve periodo de tiempo o tras su primer uso. No debe permitirse que estos datos secretos iniciales se conviertan en la contraseña a largo plazo."
+    },
+    {
+      "reqId": "V6.4.2",
+      "sourceContentSha256": "88ea567ba0b398d0d897228524dcb34e2316be102a12ed58149c52a5d656bd4c",
+      "chapterName": "Autenticación",
+      "sectionName": "Ciclo de vida y recuperación de los factores de autenticación",
+      "description": "Compruebe que no existan pistas para contraseñas ni autenticación basada en el conocimiento (las denominadas «preguntas secretas»)."
+    },
+    {
+      "reqId": "V6.4.3",
+      "sourceContentSha256": "486ddc005144fd4e317478e26101128e3d6115ab33250b7e15594d5c221da563",
+      "chapterName": "Autenticación",
+      "sectionName": "Ciclo de vida y recuperación de los factores de autenticación",
+      "description": "Compruebe que se haya implementado un proceso seguro para restablecer una contraseña olvidada, que no eluda ningún mecanismo de autenticación multifactorial habilitado."
+    },
+    {
+      "reqId": "V6.4.4",
+      "sourceContentSha256": "989dce05b16b2b43893f5a1211c8431be3c7244cd4dbb60d9f6feb5c324f0c7f",
+      "chapterName": "Autenticación",
+      "sectionName": "Ciclo de vida y recuperación de los factores de autenticación",
+      "description": "Verifique que, en caso de pérdida de un factor de autenticación multifactorial, la comprobación de la identidad se realice con el mismo nivel de rigor que durante el proceso de registro."
+    },
+    {
+      "reqId": "V6.4.5",
+      "sourceContentSha256": "7e423271cdc2453642f293e3daacae28bd839fec399c2d51826be57b3e7f34e0",
+      "chapterName": "Autenticación",
+      "sectionName": "Ciclo de vida y recuperación de los factores de autenticación",
+      "description": "Verifique que las instrucciones de renovación de los mecanismos de autenticación que caducan se envíen con tiempo suficiente para que puedan llevarse a cabo antes de que caduque el mecanismo de autenticación anterior, configurando recordatorios automáticos si es necesario."
+    },
+    {
+      "reqId": "V6.4.6",
+      "sourceContentSha256": "cdef5a181218f8c17b0701affb1d8c6b4077ad00754b79eaafdcd5fafd72f92f",
+      "chapterName": "Autenticación",
+      "sectionName": "Ciclo de vida y recuperación de los factores de autenticación",
+      "description": "Compruebe que los usuarios administrativos puedan iniciar el proceso de restablecimiento de la contraseña del usuario, pero que ello no les permita cambiar ni elegir la contraseña de dicho usuario. De este modo se evita que puedan conocer la contraseña del usuario."
+    },
+    {
+      "reqId": "V6.5.1",
+      "sourceContentSha256": "b5fae8d1828a47801d232725998a69a46e3a49fa5cf3c2390d4c10ae44c7d33e",
+      "chapterName": "Autenticación",
+      "sectionName": "Requisitos generales de autenticación multifactorial",
+      "description": "Verifique que los secretos de consulta, las solicitudes o códigos de autenticación fuera de banda y las contraseñas de un solo uso basadas en el tiempo (TOTP) solo puedan utilizarse con éxito una vez."
+    },
+    {
+      "reqId": "V6.5.2",
+      "sourceContentSha256": "e883bfe0db2c114eec5e0a37b2ffadc8385ec3f83b039821282e29f0ec71d5d0",
+      "chapterName": "Autenticación",
+      "sectionName": "Requisitos generales de autenticación multifactorial",
+      "description": "Verifique que, al almacenarse en el backend de la aplicación, los secretos de consulta con menos de 112 bits de entropía (19 caracteres alfanuméricos aleatorios o 34 dígitos aleatorios) se sometan a un algoritmo de hash aprobado para el almacenamiento de contraseñas que incorpore una «sal» aleatoria de 32 bits. Se puede utilizar una función hash estándar si el secreto tiene 112 bits de entropía o más."
+    },
+    {
+      "reqId": "V6.5.3",
+      "sourceContentSha256": "ff0a67a809bd7a595e296044931246f66731a78e40636b6651caedbe720554c5",
+      "chapterName": "Autenticación",
+      "sectionName": "Requisitos generales de autenticación multifactorial",
+      "description": "Verifique que los secretos de consulta, el código de autenticación fuera de banda y las semillas de contraseñas de un solo uso basadas en el tiempo se generen mediante un generador de números pseudoaleatorios criptográficamente seguro (CSPRNG) para evitar valores predecibles."
+    },
+    {
+      "reqId": "V6.5.4",
+      "sourceContentSha256": "e4d64396b32529c76a150a0f50059f28ed12b4f92131b19c745ea9590d65c4ef",
+      "chapterName": "Autenticación",
+      "sectionName": "Requisitos generales de autenticación multifactorial",
+      "description": "Verifique que los secretos de consulta y los códigos de autenticación fuera de banda tengan un mínimo de 20 bits de entropía (por lo general, 4 caracteres alfanuméricos aleatorios o 6 dígitos aleatorios son suficientes)."
+    },
+    {
+      "reqId": "V6.5.5",
+      "sourceContentSha256": "9dbf466714e4f4899a072f14d5866427fa9c1bb8cb23c1287dc92ba5b60412a4",
+      "chapterName": "Autenticación",
+      "sectionName": "Requisitos generales de autenticación multifactorial",
+      "description": "Verifique que las solicitudes de autenticación fuera de banda, los códigos o los tokens, así como las contraseñas de un solo uso basadas en el tiempo (TOTP), tengan una vigencia definida. Las solicitudes fuera de banda deben tener una vigencia máxima de 10 minutos y, en el caso de las TOTP, una vigencia máxima de 30 segundos."
+    },
+    {
+      "reqId": "V6.5.6",
+      "sourceContentSha256": "5e6c130000afc4fc818d6e697b0b8c4fcd3e414471a9865067db6632084431c4",
+      "chapterName": "Autenticación",
+      "sectionName": "Requisitos generales de autenticación multifactorial",
+      "description": "Compruebe que cualquier factor de autenticación (incluidos los dispositivos físicos) pueda revocarse en caso de robo u otra pérdida."
+    },
+    {
+      "reqId": "V6.5.7",
+      "sourceContentSha256": "10c4063a7f8950c8a7595c63e1b7c46af402786548dab3cf98818aa650cf01df",
+      "chapterName": "Autenticación",
+      "sectionName": "Requisitos generales de autenticación multifactorial",
+      "description": "Verifique que los mecanismos de autenticación biométrica solo se utilicen como factores secundarios, junto con algo que posea o algo que sepa."
+    },
+    {
+      "reqId": "V6.5.8",
+      "sourceContentSha256": "039b06269ff00f875d82799ad2f7aca23ed8c6641cd0cdfb13e8a329df1d1581",
+      "chapterName": "Autenticación",
+      "sectionName": "Requisitos generales de autenticación multifactorial",
+      "description": "Compruebe que las contraseñas de un solo uso basadas en el tiempo (TOTP) se verifiquen a partir de una fuente de tiempo procedente de un servicio de confianza y no a partir de una hora no fiable o facilitada por el cliente."
+    },
+    {
+      "reqId": "V6.6.1",
+      "sourceContentSha256": "a906cacab9d3132a67cc6df270a6f9e95317800ded3acc248522679d520b7868",
+      "chapterName": "Autenticación",
+      "sectionName": "Mecanismos de autenticación fuera de banda",
+      "description": "Verifíquese que los mecanismos de autenticación que utilizan la red telefónica pública conmutada (PSTN) para enviar contraseñas de un solo uso (OTP) por teléfono o SMS solo se ofrezcan cuando el número de teléfono haya sido validado previamente, que también se ofrezcan métodos alternativos más seguros (como las contraseñas de un solo uso basadas en el tiempo) y que el servicio facilite a los usuarios información sobre sus riesgos de seguridad. En el caso de las aplicaciones de tipo «L3», el teléfono y los SMS no deben estar disponibles como opciones."
+    },
+    {
+      "reqId": "V6.6.2",
+      "sourceContentSha256": "f158cf2f93afc2e324434f3eec1f3f5034598b6d795e005757f2f31ff8105772",
+      "chapterName": "Autenticación",
+      "sectionName": "Mecanismos de autenticación fuera de banda",
+      "description": "Compruebe que las solicitudes de autenticación fuera de banda, los códigos o los tokens estén vinculados a la solicitud de autenticación original para la que se generaron y que no puedan utilizarse para una solicitud anterior o posterior."
+    },
+    {
+      "reqId": "V6.6.3",
+      "sourceContentSha256": "f01f9bb0bf53d8845bf52bcb089c2f7945b84d9c3bace351a720570de8664a03",
+      "chapterName": "Autenticación",
+      "sectionName": "Mecanismos de autenticación fuera de banda",
+      "description": "Verifique que un mecanismo de autenticación fuera de banda basado en código esté protegido contra ataques de fuerza bruta mediante la limitación de la tasa de solicitudes. Considere también el uso de un código con al menos 64 s de bits de entropía."
+    },
+    {
+      "reqId": "V6.6.4",
+      "sourceContentSha256": "6bb7bc45bd75fdff8c4ff2090bbbc1e0a000dce9badfea69fc7ea032bd75d130",
+      "chapterName": "Autenticación",
+      "sectionName": "Mecanismos de autenticación fuera de banda",
+      "description": "Verifique que, cuando se utilicen notificaciones push para la autenticación multifactorial, se aplique una limitación de frecuencia para evitar ataques de «push bombing». La coincidencia de números también puede mitigar este riesgo."
+    },
+    {
+      "reqId": "V6.7.1",
+      "sourceContentSha256": "dd67b8afdabc01156fbce30a03cdf55e7d39860830dda94fd9181e164713ddbf",
+      "chapterName": "Autenticación",
+      "sectionName": "Mecanismo de autenticación criptográfica",
+      "description": "Compruebe que los certificados utilizados para verificar las afirmaciones de autenticación criptográfica se almacenen de forma que queden protegidos frente a cualquier modificación."
+    },
+    {
+      "reqId": "V6.7.2",
+      "sourceContentSha256": "bc136e17759326c1f9e562d948859e79890fc00f537a313161682e299c7ecaf5",
+      "chapterName": "Autenticación",
+      "sectionName": "Mecanismo de autenticación criptográfica",
+      "description": "Verifique que el nonce del desafío tenga una longitud mínima de 64 bits y que sea estadísticamente único o único a lo largo de la vida útil del dispositivo criptográfico."
+    },
+    {
+      "reqId": "V6.8.1",
+      "sourceContentSha256": "32d143714d5a974a609532c41d7959437290324663cdd0c8ff121c35b8fe3ee6",
+      "chapterName": "Autenticación",
+      "sectionName": "Autenticación mediante un proveedor de identidad",
+      "description": "Verifique que, si la aplicación admite varios proveedores de identidad (IdP), la identidad del usuario no pueda ser suplantada a través de otro proveedor de identidad admitido (por ejemplo, utilizando el mismo identificador de usuario). La medida de mitigación estándar consistiría en que la aplicación registrara e identificara al usuario mediante una combinación del ID del IdP (que actúa como espacio de nombres) y el ID del usuario en el IdP."
+    },
+    {
+      "reqId": "V6.8.2",
+      "sourceContentSha256": "425a1fd686d73cde90ec68ad6f800e68c20a009a71f31c60d6683ce2436fa1b5",
+      "chapterName": "Autenticación",
+      "sectionName": "Autenticación mediante un proveedor de identidad",
+      "description": "Compruebe que la presencia y la integridad de las firmas digitales en las aserciones de autenticación (por ejemplo, en JWT o en aserciones SAML) se validen siempre, rechazando cualquier aserción que no esté firmada o que presente firmas no válidas."
+    },
+    {
+      "reqId": "V6.8.3",
+      "sourceContentSha256": "8781264ca39c5cbbc77edc101ba9bdce2033c5f8aae20f78eb4a97cb9b6a6b5b",
+      "chapterName": "Autenticación",
+      "sectionName": "Autenticación mediante un proveedor de identidad",
+      "description": "Verifique que las aserciones SAML se procesen de forma única y se utilicen solo una vez dentro del período de validez para evitar ataques de repetición."
+    },
+    {
+      "reqId": "V6.8.4",
+      "sourceContentSha256": "4019c1be7b0ad4b27fc45d9cf5718ca49b60b187d3440476409e09d11709ae13",
+      "chapterName": "Autenticación",
+      "sectionName": "Autenticación mediante un proveedor de identidad",
+      "description": "Compruebe que, si una aplicación utiliza un proveedor de identidad (IdP) independiente y exige un nivel específico de solidez de la autenticación, métodos concretos o la vigencia de la autenticación para funciones específicas, la aplicación verifique estos aspectos utilizando la información facilitada por el IdP. Por ejemplo, si se utiliza OIDC, esto podría lograrse validando las reclamaciones del token de identidad, tales como «acr», «amr» y «auth_time» (si están presentes). Si el IdP no proporciona esta información, la aplicación debe disponer de un procedimiento alternativo documentado que asuma que se ha utilizado el mecanismo de autenticación de mínima solidez (por ejemplo, la autenticación de un solo factor mediante nombre de usuario y contraseña)."
+    },
+    {
+      "reqId": "V7.1.1",
+      "sourceContentSha256": "d1857c51ce3a8305aa7284ee5ef1adc7d75c6afeef5c4599ba785d1b5a360bb2",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Documentación sobre la gestión de sesiones",
+      "description": "Verifique que el tiempo de espera por inactividad de la sesión del usuario y la duración máxima absoluta de la sesión estén documentados, sean adecuados en combinación con otros controles, y que la documentación incluya una justificación de cualquier desviación respecto a los requisitos de reautenticación de la norma NIST SP 800-63B."
+    },
+    {
+      "reqId": "V7.1.2",
+      "sourceContentSha256": "c637cbb1004d40a78cea503134c4f64f4305cd07a04eb427360e3fd2da63cf8e",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Documentación sobre la gestión de sesiones",
+      "description": "Compruebe que la documentación defina cuántas sesiones simultáneas (paralelas) se permiten para una cuenta, así como los comportamientos previstos y las medidas que deben adoptarse cuando se alcance el número máximo de sesiones activas."
+    },
+    {
+      "reqId": "V7.1.3",
+      "sourceContentSha256": "45c7c47ecd7f1459895e79fe51c50a34085782fcbb0598329c837c23dbac691a",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Documentación sobre la gestión de sesiones",
+      "description": "Verifique que todos los sistemas que crean y gestionan sesiones de usuario como parte de un ecosistema de gestión de identidades federadas (como los sistemas de inicio de sesión único, SSO) estén documentados, junto con los controles para coordinar la duración de las sesiones, su finalización y cualquier otra condición que requiera una nueva autenticación."
+    },
+    {
+      "reqId": "V7.2.1",
+      "sourceContentSha256": "4cebc692c965a09bdce3961d81af1f1a7730b8937ddde5f07ddb734f4b2c2be5",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Seguridad fundamental de la gestión de sesiones",
+      "description": "Verifique que la aplicación realice todas las verificaciones de tokens de sesión mediante un servicio de backend de confianza."
+    },
+    {
+      "reqId": "V7.2.2",
+      "sourceContentSha256": "3a1afd7c5c2746a2c8ee0fa3341a4a173c496f7c92be90eccd9f1bc09d832803",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Seguridad fundamental de la gestión de sesiones",
+      "description": "Compruebe que la aplicación utilice tokens autocontenidos o de referencia generados dinámicamente para la gestión de sesiones, es decir, que no utilice claves y secretos estáticos de la API."
+    },
+    {
+      "reqId": "V7.2.3",
+      "sourceContentSha256": "000e3f66749d93d148888d7a950358abacd9a56222ae98de18a8ab25f3520a51",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Seguridad fundamental de la gestión de sesiones",
+      "description": "Verifique que, si se utilizan tokens de referencia para representar las sesiones de los usuarios, estos sean únicos y se generen mediante un generador de números pseudoaleatorios criptográficamente seguro (CSPRNG), y que posean al menos 128 bits de entropía."
+    },
+    {
+      "reqId": "V7.2.4",
+      "sourceContentSha256": "2fcc5b41464e737fa618229230ad55b0e6dfb1cc6a2638f15a5e5b01e071faf2",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Seguridad fundamental de la gestión de sesiones",
+      "description": "Compruebe que la aplicación genere un nuevo token de sesión al autenticar al usuario, incluida la reautenticación, y que anule el token de sesión actual."
+    },
+    {
+      "reqId": "V7.3.1",
+      "sourceContentSha256": "eb558e5281c1fa87c6d19bfdd7356b538e08506bf92b481b280146426a06725c",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Tiempo de espera de la sesión",
+      "description": "Compruebe que existe un tiempo de espera por inactividad tal que se imponga la reautenticación de acuerdo con el análisis de riesgos y las decisiones de seguridad documentadas."
+    },
+    {
+      "reqId": "V7.3.2",
+      "sourceContentSha256": "9d5849d70fe7a66863e1126665cb6043bb0a8dc40ef999fc2428c0325cf0b518",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Tiempo de espera de la sesión",
+      "description": "Compruebe que exista una duración máxima absoluta de la sesión, de modo que se imponga la reautenticación de acuerdo con el análisis de riesgos y las decisiones de seguridad documentadas."
+    },
+    {
+      "reqId": "V7.4.1",
+      "sourceContentSha256": "f673e92cbe1e28d714c46278b4cd9a5334818469a25450f10539371fa6cb45b7",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Finalización de la sesión",
+      "description": "Verifique que, cuando se active la finalización de la sesión (por ejemplo, al cerrar sesión o al caducar), la aplicación impida cualquier uso posterior de la sesión. En el caso de los tokens de referencia o las sesiones con estado, esto implica invalidar los datos de la sesión en el backend de la aplicación. Las aplicaciones que utilicen tokens autocontenidos necesitarán una solución, como mantener una lista de tokens cuyas sesiones han finalizado, rechazar los tokens generados antes de una fecha y hora específicas por usuario o rotar una clave de firma por usuario."
+    },
+    {
+      "reqId": "V7.4.2",
+      "sourceContentSha256": "dce1e2df27dc181880fc7518dc3aa5b14b1b3214e50987b26e05b149cb933749",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Finalización de la sesión",
+      "description": "Compruebe que la aplicación cierre todas las sesiones activas cuando se desactive o elimine una cuenta de usuario (por ejemplo, cuando un empleado abandone la empresa)."
+    },
+    {
+      "reqId": "V7.4.3",
+      "sourceContentSha256": "14df9916c9f2cb61baf91995593f7dee92f95acf921e4396277dde846570a152",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Finalización de la sesión",
+      "description": "Compruebe que la aplicación ofrezca la opción de cerrar todas las demás sesiones activas tras un cambio o la eliminación satisfactoria de cualquier factor de autenticación (incluido el cambio de contraseña mediante restablecimiento o recuperación y, en su caso, una actualización de la configuración de la autenticación multifactorial)."
+    },
+    {
+      "reqId": "V7.4.4",
+      "sourceContentSha256": "4c5a8a3db19602e8e70a545d8f1004ed8bdedfc0a94d3dfc8364935f0e5d8317",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Finalización de la sesión",
+      "description": "Compruebe que todas las páginas que requieran autenticación dispongan de un acceso fácil y visible a la función de cierre de sesión."
+    },
+    {
+      "reqId": "V7.4.5",
+      "sourceContentSha256": "501739ab72b0b65bbbfe3c4cb99009419504780b515393c65621ccceb2894b0e",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Finalización de la sesión",
+      "description": "Compruebe que los administradores de la aplicación puedan finalizar las sesiones activas de un usuario concreto o de todos los usuarios."
+    },
+    {
+      "reqId": "V7.5.1",
+      "sourceContentSha256": "bc27663b6e8a46a5d5bab79db4d727f87dc263614962efa4f44198e69a3e8c62",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Medidas de defensa contra el uso indebido de sesiones",
+      "description": "Compruebe que la aplicación exija una nueva autenticación completa antes de permitir modificaciones en los atributos confidenciales de la cuenta que puedan afectar a la autenticación, tales como la dirección de correo electrónico, el número de teléfono, la configuración de la autenticación multifactorial (MFA) u otra información utilizada en la recuperación de la cuenta."
+    },
+    {
+      "reqId": "V7.5.2",
+      "sourceContentSha256": "3dab41d64f94e5595e1fc270a95412397d924d63f539f26eda4bdeac6aee8b5f",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Medidas de defensa contra el uso indebido de sesiones",
+      "description": "Compruebe que los usuarios puedan visualizar y (tras haberse autenticado de nuevo con al menos un factor) cerrar cualquiera o todas las sesiones actualmente activas."
+    },
+    {
+      "reqId": "V7.5.3",
+      "sourceContentSha256": "5031ea4b3c988149378462e93735712e44e02b6d591a01e444d1eda3d0efdc12",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Medidas de defensa contra el uso indebido de sesiones",
+      "description": "Compruebe que la aplicación exija una autenticación adicional mediante al menos un factor o una verificación secundaria antes de realizar transacciones u operaciones de alta sensibilidad."
+    },
+    {
+      "reqId": "V7.6.1",
+      "sourceContentSha256": "13077493ad54e9cf220dbd1a20066b5ace52586f63a81b449086dc3cf8caf261",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Reautenticación federada",
+      "description": "Verifique que la duración y la finalización de la sesión entre las partes que confían (RP) y los proveedores de identidad (IdP) se comporten tal y como se ha documentado, exigiendo una nueva autenticación cuando sea necesario, por ejemplo, cuando se alcance el tiempo máximo entre eventos de autenticación del IdP."
+    },
+    {
+      "reqId": "V7.6.2",
+      "sourceContentSha256": "96a36d4fa395a378c345718bbeb6247dde6ce8cd9832f20fd7a1fb958bbd70f9",
+      "chapterName": "Gestión de sesiones",
+      "sectionName": "Reautenticación federada",
+      "description": "Verifique que la creación de una sesión requiera bien el consentimiento del usuario, bien una acción explícita, impidiendo así la creación de nuevas sesiones de la aplicación sin la interacción del usuario."
+    },
+    {
+      "reqId": "V8.1.1",
+      "sourceContentSha256": "b4b273f36755df3224c7010a2df7c95ff1f78326b4f352db998455893ed312f9",
+      "chapterName": "Autorización",
+      "sectionName": "Documentación sobre autorización",
+      "description": "Compruebe que la documentación de autorización defina normas para restringir el acceso a nivel de función y específico de los datos en función de los permisos de los usuarios y los atributos de los recursos."
+    },
+    {
+      "reqId": "V8.1.2",
+      "sourceContentSha256": "cfcf2ab081ae5d688aa278688ac0c4ba0f4b820c266c60b687ce4c9a3f381b59",
+      "chapterName": "Autorización",
+      "sectionName": "Documentación sobre autorización",
+      "description": "Compruebe que la documentación de autorización defina reglas para las restricciones de acceso a nivel de campo (tanto de lectura como de escritura) basadas en los permisos de los usuarios y los atributos de los recursos. Tenga en cuenta que estas reglas pueden depender de otros valores de atributos del objeto de datos en cuestión, como el estado o la situación."
+    },
+    {
+      "reqId": "V8.1.3",
+      "sourceContentSha256": "6466899c1f9775259b6cd41f1a2a42a7f108257f93767573c3eda5584d6ffdf9",
+      "chapterName": "Autorización",
+      "sectionName": "Documentación sobre autorización",
+      "description": "Compruebe que la documentación de la aplicación defina los atributos ambientales y contextuales (entre los que se incluyen, a título enunciativo, la hora del día, la ubicación del usuario, la dirección IP o el dispositivo) que se utilizan en la aplicación para tomar decisiones de seguridad, incluidas las relativas a la autenticación y la autorización."
+    },
+    {
+      "reqId": "V8.1.4",
+      "sourceContentSha256": "ed1eeb63ee2a9119ab47d0db0d57fc1cc945a42101b05e133caeebe800133445",
+      "chapterName": "Autorización",
+      "sectionName": "Documentación sobre autorización",
+      "description": "Verifique que la documentación sobre autenticación y autorización defina cómo se utilizan los factores ambientales y contextuales en la toma de decisiones, además de la autorización a nivel de función, específica de los datos y a nivel de campo. Esto debe incluir los atributos evaluados, los umbrales de riesgo y las medidas adoptadas (por ejemplo, permitir, solicitar verificación, denegar, autenticación reforzada)."
+    },
+    {
+      "reqId": "V8.2.1",
+      "sourceContentSha256": "1576244a66264ae34ee8d2921256bb571fa78076ec5714bc20860a8e0093bb96",
+      "chapterName": "Autorización",
+      "sectionName": "Diseño general de la autorización",
+      "description": "Compruebe que la aplicación garantiza que el acceso a nivel de función esté restringido a los usuarios que cuenten con permisos explícitos."
+    },
+    {
+      "reqId": "V8.2.2",
+      "sourceContentSha256": "fa94ebc00c22ec86bb2e8ab96fbe6b39ef8469e9337e94fce047eda36e68b3bd",
+      "chapterName": "Autorización",
+      "sectionName": "Diseño general de la autorización",
+      "description": "Verifique que la aplicación garantice que el acceso a datos específicos se restrinja a los usuarios que cuenten con permisos explícitos para elementos de datos concretos, con el fin de mitigar la referencia directa a objetos insegura (IDOR) y la autorización a nivel de objeto defectuosa (BOLA)."
+    },
+    {
+      "reqId": "V8.2.3",
+      "sourceContentSha256": "a304198838f47a755fdd922240b5f30e6dc114aeef8e907d6a3b122163b65f50",
+      "chapterName": "Autorización",
+      "sectionName": "Diseño general de la autorización",
+      "description": "Verifique que la aplicación garantice que el acceso a nivel de campo esté restringido a los usuarios que cuenten con permisos explícitos para campos específicos, con el fin de mitigar la autorización defectuosa a nivel de propiedad de objeto (BOPLA)."
+    },
+    {
+      "reqId": "V8.2.4",
+      "sourceContentSha256": "292f8b2b0c0f9541e077602eb126d92eb6e173a48666e454293656dcbb720887",
+      "chapterName": "Autorización",
+      "sectionName": "Diseño general de la autorización",
+      "description": "Verifique que se implementen controles de seguridad adaptativos basados en los atributos ambientales y contextuales del usuario (como la hora del día, la ubicación, la dirección IP o el dispositivo) para las decisiones de autenticación y autorización, tal y como se define en la documentación de la aplicación. Estos controles deben aplicarse cuando el usuario intente iniciar una nueva sesión y también durante una sesión ya existente."
+    },
+    {
+      "reqId": "V8.3.1",
+      "sourceContentSha256": "465a0bbc415e4e4c830169a946dfed2118a304a29abf9fd16f5eaf1cc12a0a71",
+      "chapterName": "Autorización",
+      "sectionName": "Autorización a nivel operativo",
+      "description": "Compruebe que la aplicación aplique las reglas de autorización en una capa de servicio de confianza y no dependa de controles que un usuario no de confianza pudiera manipular, como el JavaScript del lado del cliente."
+    },
+    {
+      "reqId": "V8.3.2",
+      "sourceContentSha256": "4b4a45f082062e7e9348bf8d4e3c0aa48fd0fc72068580bd160a031ce107d0ea",
+      "chapterName": "Autorización",
+      "sectionName": "Autorización a nivel operativo",
+      "description": "Verifique que los cambios en los valores sobre los que se toman las decisiones de autorización se apliquen de forma inmediata. Cuando los cambios no puedan aplicarse de forma inmediata (por ejemplo, al basarse en datos contenidos en tokens autocontenidos), deben existir controles de mitigación que alerten cuando un usuario realice una acción para la que ya no esté autorizado y que reviertan el cambio. Tenga en cuenta que esta alternativa no mitigaría la fuga de información."
+    },
+    {
+      "reqId": "V8.3.3",
+      "sourceContentSha256": "dfebd3f3f82fe7bb0cbdd405732b969651fbd619fb1c6b4c88b2f80105e632de",
+      "chapterName": "Autorización",
+      "sectionName": "Autorización a nivel operativo",
+      "description": "Verifique que el acceso a un objeto se base en los permisos del sujeto de origen (por ejemplo, el consumidor), y no en los permisos de ningún intermediario o servicio que actúe en su nombre. Por ejemplo, si un consumidor accede a un servicio web utilizando un token autocontenido para la autenticación y, a continuación, dicho servicio solicita datos a otro servicio, este último utilizará el token del consumidor —en lugar de un token de máquina a máquina procedente del primer servicio— para tomar decisiones sobre los permisos."
+    },
+    {
+      "reqId": "V8.4.1",
+      "sourceContentSha256": "b8b90e9ee3cf98a7c7a5f72d624506b5c39de3802bd571569479b1893bc195d7",
+      "chapterName": "Autorización",
+      "sectionName": "Otras consideraciones relativas a la autorización",
+      "description": "Compruebe que las aplicaciones multitenant utilicen controles entre tenants para garantizar que las operaciones de los usuarios nunca afecten a los tenants con los que no tengan permisos para interactuar."
+    },
+    {
+      "reqId": "V8.4.2",
+      "sourceContentSha256": "d07fb571ec6e7918e5027ee166a4874071990bec05de64bd18986e39d2251f13",
+      "chapterName": "Autorización",
+      "sectionName": "Otras consideraciones relativas a la autorización",
+      "description": "Verifique que el acceso a las interfaces administrativas incorpore múltiples capas de seguridad, incluida la verificación continua de la identidad del usuario, la evaluación del estado de seguridad de los dispositivos y el análisis contextual de riesgos, garantizando que la ubicación en la red o los terminales de confianza no sean los únicos factores para la autorización, aunque puedan reducir la probabilidad de un acceso no autorizado."
+    },
+    {
+      "reqId": "V9.1.1",
+      "sourceContentSha256": "b00742d0d2ef5e6ee5cfaa68c4503152a18c863362ee216d9763567bc4fbfafe",
+      "chapterName": "Tokens autocontenidos",
+      "sectionName": "Origen e integridad del token",
+      "description": "Verifique que los tokens autocontenidos se validen mediante su firma digital o MAC para protegerlos contra la manipulación antes de aceptar el contenido del token."
+    },
+    {
+      "reqId": "V9.1.2",
+      "sourceContentSha256": "0e552b434a164ca9163b31f8412ee7c4ebb38104b33ccef049e42f2c1ff6642a",
+      "chapterName": "Tokens autocontenidos",
+      "sectionName": "Origen e integridad del token",
+      "description": "Compruebe que, en un contexto determinado, solo puedan utilizarse los algoritmos incluidos en una lista de permitidos para crear y verificar tokens autocontenidos. La lista de permitidos debe incluir los algoritmos autorizados —idealmente, únicamente algoritmos simétricos o asimétricos— y no debe incluir el algoritmo «None». Si es necesario admitir tanto algoritmos simétricos como asimétricos, se requerirán controles adicionales para evitar la confusión de claves."
+    },
+    {
+      "reqId": "V9.1.3",
+      "sourceContentSha256": "026aa749a6e79895b74c0a2a05f3c7debcf9bb3239ab379f387f9ed7b6eafba3",
+      "chapterName": "Tokens autocontenidos",
+      "sectionName": "Origen e integridad del token",
+      "description": "Verifique que el material de clave utilizado para validar los tokens autocontenidos proceda de fuentes de confianza preconfiguradas por el emisor del token, impidiendo así que los atacantes especifiquen fuentes y claves no fiables. En el caso de los JWT y otras estructuras JWS, las cabeceras como «jku», «x5u» y «jwk» deben validarse comparándolas con una lista de fuentes de confianza."
+    },
+    {
+      "reqId": "V9.2.1",
+      "sourceContentSha256": "1e65be0f691269775d3aeec2ca320f864adfcc76c4d2fa9712f53938001abf4f",
+      "chapterName": "Tokens autocontenidos",
+      "sectionName": "Contenido del token",
+      "description": "Verifique que, si en los datos del token figura un periodo de validez, el token y su contenido solo se acepten si el momento de la verificación se encuentra dentro de dicho periodo de validez. Por ejemplo, en el caso de los JWT, deben verificarse las reclamaciones «nbf» y «exp»."
+    },
+    {
+      "reqId": "V9.2.2",
+      "sourceContentSha256": "a21aefaf121a6d452291a3630a029e82978c5620829f0aaec7bff3444588d22a",
+      "chapterName": "Tokens autocontenidos",
+      "sectionName": "Contenido del token",
+      "description": "Verifique que el servicio que recibe un token compruebe que este es del tipo correcto y que está destinado al fin previsto antes de aceptar su contenido. Por ejemplo, solo se pueden aceptar tokens de acceso para las decisiones de autorización y solo se pueden utilizar tokens de identificación para demostrar la autenticación del usuario."
+    },
+    {
+      "reqId": "V9.2.3",
+      "sourceContentSha256": "b805832c3fe0aa189a898306af87aa38d1fc4adceac151a5f6bc2a8f06fbebf7",
+      "chapterName": "Tokens autocontenidos",
+      "sectionName": "Contenido del token",
+      "description": "Compruebe que el servicio solo acepte tokens destinados a su uso con dicho servicio (público objetivo). En el caso de los JWT, esto puede lograrse validando la reclamación «aud» frente a una lista de permitidos definida en el servicio."
+    },
+    {
+      "reqId": "V9.2.4",
+      "sourceContentSha256": "24fd096cf2a16805a341e0533a8b2a4e604f7c02a15706081bb8ea6b2829433a",
+      "chapterName": "Tokens autocontenidos",
+      "sectionName": "Contenido del token",
+      "description": "Verifique que, si un emisor de tokens utiliza la misma clave privada para emitir tokens destinados a distintos destinatarios, los tokens emitidos contengan una restricción de destinatarios que identifique de forma única a los destinatarios previstos. De este modo se evitará que un token se reutilice con un destinatario no previsto. Si el identificador de destinatarios se asigna dinámicamente, el emisor de tokens deberá validar dichos destinatarios para asegurarse de que no den lugar a una suplantación de identidad de los mismos."
+    },
+    {
+      "reqId": "V10.1.1",
+      "sourceContentSha256": "0bc0fcafcfe91eb41abfd4abeabf5b52c5d954793daf78639ba78b8424ac820e",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Seguridad genérica de OAuth y OIDC",
+      "description": "Verifique que los tokens solo se envíen a los componentes que los necesiten estrictamente. Por ejemplo, cuando se utilice un patrón «backend-for-frontend» para aplicaciones JavaScript basadas en navegador, los tokens de acceso y de actualización solo deberán ser accesibles para el backend."
+    },
+    {
+      "reqId": "V10.1.2",
+      "sourceContentSha256": "d584cbbb73cad41a43697fd47a04ec815e705e1f5385b3c92a040c50760595ff",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Seguridad genérica de OAuth y OIDC",
+      "description": "Verifique que el cliente solo acepte valores procedentes del servidor de autorización (como el código de autorización o el token de identificación) si dichos valores son resultado de un flujo de autorización iniciado por la misma sesión y transacción del agente de usuario. Esto requiere que los secretos generados por el cliente, como la clave de prueba para el intercambio de códigos (PKCE) «code_verifier», «state» o el «nonce» de OIDC, no puedan adivinarse, sean específicos de la transacción y estén vinculados de forma segura tanto al cliente como a la sesión del agente de usuario en la que se inició la transacción."
+    },
+    {
+      "reqId": "V10.2.1",
+      "sourceContentSha256": "d5008f5ddb5860b8fea5e4f6d1ddf0c2a4f8ff61cb1f9941db2dbb77a74265b0",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Cliente OAuth",
+      "description": "Compruebe que, si se utiliza el flujo de código, el cliente OAuth cuente con protección frente a los ataques de falsificación de solicitudes basadas en el navegador, conocidos comúnmente como «falsificación de solicitudes entre sitios» (CSRF), que desencadenan solicitudes de tokens, ya sea mediante el uso de la funcionalidad «clave de prueba para el intercambio de código» (PKCE) o mediante la comprobación del parámetro «state» enviado en la solicitud de autorización."
+    },
+    {
+      "reqId": "V10.2.2",
+      "sourceContentSha256": "fb33554525b0141286d653008ca42f48c45f5fea4ffae37e31b75ccb1ca49038",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Cliente OAuth",
+      "description": "Compruebe que, si el cliente OAuth puede interactuar con más de un servidor de autorización, cuente con una protección contra los ataques de confusión. Por ejemplo, podría exigir que el servidor de autorización devuelva el valor del parámetro «iss» y lo valide tanto en la respuesta de autorización como en la respuesta del token."
+    },
+    {
+      "reqId": "V10.2.3",
+      "sourceContentSha256": "3e2b7d3854e69f4fc7caad96cc597449e505d22d0e19aa65356c95ece3243aa0",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Cliente OAuth",
+      "description": "Compruebe que el cliente OAuth solo solicite los ámbitos necesarios (u otros parámetros de autorización) en las solicitudes dirigidas al servidor de autorización."
+    },
+    {
+      "reqId": "V10.3.1",
+      "sourceContentSha256": "3b04a0d81c33ee3fe1c72debd86f1016800a71ec2d85725e80c2488f6418bbe2",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de recursos OAuth",
+      "description": "Verifique que el servidor de recursos solo acepte tokens de acceso destinados a su uso con ese servicio (público). El público puede estar incluido en un token de acceso estructurado (como la reclamación «aud» en JWT), o bien puede comprobarse mediante el punto final de introspección del token."
+    },
+    {
+      "reqId": "V10.3.2",
+      "sourceContentSha256": "3238929fef843c5e043136e0bb5870564f0087947ba8aff3fd28a31da3b8ee94",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de recursos OAuth",
+      "description": "Compruebe que el servidor de recursos aplique las decisiones de autorización basadas en las reclamaciones del token de acceso que definen la autorización delegada. Si están presentes reclamaciones como «sub», «scope» y «authorization_details», deben formar parte de la decisión."
+    },
+    {
+      "reqId": "V10.3.3",
+      "sourceContentSha256": "0550d12d22a540dbfbb15363b4f88dbef5273f653c629cbfc9df983e6ddf78c5",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de recursos OAuth",
+      "description": "Verifique que, si una decisión de control de acceso requiere identificar a un usuario único a partir de un token de acceso (JWT o respuesta de introspección de token relacionada), el servidor de recursos identifique al usuario a partir de reclamaciones que no puedan reasignarse a otros usuarios. Por lo general, esto implica utilizar una combinación de reclamaciones «iss» y «sub»."
+    },
+    {
+      "reqId": "V10.3.4",
+      "sourceContentSha256": "b4f3d9dd61e39bfe5a4ac57551294f5707dda16c81897a8609e20d26b18a824e",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de recursos OAuth",
+      "description": "Compruebe que, si el servidor de recursos exige un nivel específico de solidez, métodos o vigencia de la autenticación, este verifique que el token de acceso presentado cumple dichas restricciones. Por ejemplo, si están presentes, utilizando las reclamaciones «acr», «amr» y «auth_time» de OIDC, respectivamente."
+    },
+    {
+      "reqId": "V10.3.5",
+      "sourceContentSha256": "e5b6c4c37273dd6107c7590b3c612db987aa6455508e53922768b619ce739e16",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de recursos OAuth",
+      "description": "Verifique que el servidor de recursos impida el uso de tokens de acceso robados o la repetición de tokens de acceso (por parte de terceros no autorizados) exigiendo tokens de acceso restringidos al remitente, ya sea mediante TLS mutuo para OAuth 2 o mediante la demostración de prueba de posesión (DPoP) de OAuth 2."
+    },
+    {
+      "reqId": "V10.4.1",
+      "sourceContentSha256": "10ab3738901499372f715a4cd512ec017c6e3559c1e915a0b0c61ca988fd87f6",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Verifique que el servidor de autorización valide los URI de redirección basándose en una lista de permitidos específica para cada cliente, compuesta por URI prerregistrados, mediante una comparación exacta de cadenas."
+    },
+    {
+      "reqId": "V10.4.2",
+      "sourceContentSha256": "a9dc2e43f3c95e912d73e60eea8f8f8664bc50f113162d412f9b79ddde96cd46",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Compruebe que, si el servidor de autorización devuelve el código de autorización en la respuesta de autorización, este solo pueda utilizarse una vez para una solicitud de token. En el caso de una segunda solicitud válida con un código de autorización que ya se haya utilizado para emitir un token de acceso, el servidor de autorización deberá rechazar la solicitud de token y revocar cualquier token emitido relacionado con dicho código de autorización."
+    },
+    {
+      "reqId": "V10.4.3",
+      "sourceContentSha256": "15887765c9da73d73dc318ad8d17acbc4936deef63bffe3c3ed6890ee342fe38",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Compruebe que el código de autorización tenga una vigencia limitada. La vigencia máxima puede ser de hasta 10 minutos para las aplicaciones L1 y L2, y de hasta 1 minuto para las aplicaciones L3."
+    },
+    {
+      "reqId": "V10.4.4",
+      "sourceContentSha256": "3926ba0e4a5f8bdf6421615308a135b5a55d08ea8a694bfaf4298e337c68fd5e",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Verifique que, para un cliente determinado, el servidor de autorización solo permita el uso de las autorizaciones que dicho cliente necesite utilizar. Tenga en cuenta que ya no deben utilizarse las autorizaciones «token» (flujo implícito) y «contraseña» (flujo de credenciales de contraseña del propietario del recurso)."
+    },
+    {
+      "reqId": "V10.4.5",
+      "sourceContentSha256": "28f81ec82f15a61ac5a2b187479a9d842c1eaa821d1963a4031a6da510e71e4e",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Verifique que el servidor de autorización mitigue los ataques de repetición de tokens de actualización para los clientes públicos, preferiblemente mediante el uso de tokens de actualización restringidos al remitente, es decir, la demostración de prueba de posesión (DPoP) o tokens de acceso vinculados a certificados mediante TLS mutuo (mTLS). Para las aplicaciones L1 y L2, se puede utilizar la rotación de tokens de actualización. Si se utiliza la rotación de tokens de actualización, el servidor de autorización deberá invalidar el token de actualización tras su uso y revocar todos los tokens de actualización correspondientes a dicha autorización si se proporciona un token de actualización ya utilizado e invalidado."
+    },
+    {
+      "reqId": "V10.4.6",
+      "sourceContentSha256": "cf6d03767d1dfea053ffafd7c48ac20e49cc0762b73f833c5e55edfc215eb686",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Verifique que, si se utiliza la concesión de código, el servidor de autorización mitigue los ataques de interceptación del código de autorización exigiendo una clave de prueba para el intercambio de códigos (PKCE). Para las solicitudes de autorización, el servidor de autorización debe exigir un valor válido de «code_challenge» y no debe aceptar un valor de «code_challenge_method» igual a «plain». Para una solicitud de token, debe exigir la validación del parámetro «code_verifier»."
+    },
+    {
+      "reqId": "V10.4.7",
+      "sourceContentSha256": "ca0cd4f699bf2f7bc79a471c32c397436a13a9f91a8ffac097f1fe5f27b60219",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Compruebe que, si el servidor de autorización admite el registro dinámico de clientes no autenticados, mitigue el riesgo que suponen las aplicaciones cliente maliciosas. Debe validar los metadatos del cliente, como cualquier URI registrada, garantizar el consentimiento del usuario y advertir a este antes de procesar una solicitud de autorización con una aplicación cliente no fiable."
+    },
+    {
+      "reqId": "V10.4.8",
+      "sourceContentSha256": "2836230cec9b50041041350d2bd25907934335c93465a26835fde561f4215ff7",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Verifique que los tokens de actualización tengan una fecha de caducidad absoluta, incluso si se aplica una caducidad variable a los tokens de actualización."
+    },
+    {
+      "reqId": "V10.4.9",
+      "sourceContentSha256": "e1cdb8bfd5660ef6e783a661c214e2e37bf2964108b6b2467a52483e9bd55ff2",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Verifique que un usuario autorizado pueda revocar los tokens de actualización y los tokens de acceso de referencia mediante la interfaz de usuario del servidor de autorización, con el fin de mitigar el riesgo que suponen los clientes malintencionados o los tokens sustraídos."
+    },
+    {
+      "reqId": "V10.4.10",
+      "sourceContentSha256": "575b545083f43b45d6654114a38b52cf066bdc9be8cd0b94c0cfeab04539bacc",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Verifique que el cliente confidencial esté autenticado para las solicitudes de canal secundario de cliente a servidor autorizado, tales como solicitudes de token, solicitudes de autorización enviadas (PAR) y solicitudes de revocación de token."
+    },
+    {
+      "reqId": "V10.4.11",
+      "sourceContentSha256": "daf724a075784b0604e6139a5481fa0e0bbdef42c05ce42f709aca7849eb74bd",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Compruebe que la configuración del servidor de autorización solo asigne los ámbitos necesarios al cliente OAuth."
+    },
+    {
+      "reqId": "V10.4.12",
+      "sourceContentSha256": "2aad4769ce7e25e5d622c706e9f7c256b642e618293516a2070c5ea9bf645f61",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Compruebe que, para un cliente determinado, el servidor de autorización solo permita el valor de «response_mode» que dicho cliente necesite utilizar. Por ejemplo, haciendo que el servidor de autorización valide este valor comparándolo con los valores esperados o mediante el uso de una solicitud de autorización enviada (PAR) o una solicitud de autorización protegida por JWT (JAR)."
+    },
+    {
+      "reqId": "V10.4.13",
+      "sourceContentSha256": "f2f9d787cf402e6800f88569ad3e3573e20021a6fd02b34b2596f90988273aad",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Verifique que el tipo de concesión «código» se utilice siempre junto con las solicitudes de autorización enviadas (PAR)."
+    },
+    {
+      "reqId": "V10.4.14",
+      "sourceContentSha256": "b2ae3ed7d2e19b57f75988aae5eb9c27327eb1ca35d50e3a1f7abb8f48495ea4",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Verifique que el servidor de autorización emita únicamente tokens de acceso restringidos al remitente (Proof-of-Possession), ya sea mediante tokens de acceso vinculados a certificados que utilicen TLS mutuo (mTLS) o tokens de acceso vinculados a DPoP (Demonstration of Proof of Possession)."
+    },
+    {
+      "reqId": "V10.4.15",
+      "sourceContentSha256": "e86cbb8a460bda73c88e332b7ee685488e9bb552dffeba9e116f303a8a3611a6",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Verifique que, en el caso de un cliente del lado del servidor (que no se ejecuta en el dispositivo del usuario final), el servidor de autorización garantice que el valor del parámetro «authorization_details» proceda del backend del cliente y que el usuario no lo haya manipulado. Por ejemplo, exigiendo el uso de una solicitud de autorización enviada (PAR) o de una solicitud de autorización protegida por JWT (JAR)."
+    },
+    {
+      "reqId": "V10.4.16",
+      "sourceContentSha256": "eddff6ef282641ae53742ddeb01e3d13aee873dbf58009f9e3e7ad07552d1726",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Servidor de autorización OAuth",
+      "description": "Verifique que el cliente sea confidencial y que el servidor de autorización exija el uso de métodos sólidos de autenticación del cliente (basados en criptografía de clave pública y resistentes a los ataques de repetición), tales como TLS mutuo («tls_client_auth», «self_signed_tls_client_auth») o JWT con clave privada («private_key_jwt»)."
+    },
+    {
+      "reqId": "V10.5.1",
+      "sourceContentSha256": "ec802ab484a532fa77a5d6dc082126a98ff8386292d1a08ea68806a44cdab54d",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Cliente OIDC",
+      "description": "Verifique que el cliente (en su calidad de parte que confía) mitiga los ataques de repetición de tokens de identificación. Por ejemplo, asegurándose de que la afirmación «nonce» del token de identificación coincida con el valor «nonce» enviado en la solicitud de autenticación al proveedor de OpenID (lo que en OAuth2 se denomina solicitud de autorización enviada al servidor de autorización)."
+    },
+    {
+      "reqId": "V10.5.2",
+      "sourceContentSha256": "da4ed30ff8821c67348840812cc9df5fd186948fd40c620a576fedcf9bcc884d",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Cliente OIDC",
+      "description": "Verifique que el cliente identifique de forma unívoca al usuario a partir de las reclamaciones del token de identificación, normalmente la reclamación «sub», que no pueda reasignarse a otros usuarios (dentro del ámbito de un proveedor de identidad)."
+    },
+    {
+      "reqId": "V10.5.3",
+      "sourceContentSha256": "8720034e2ef37a0405c5756eb29a77f2f99a19b3188b15e6d1b4203e407cdb71",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Cliente OIDC",
+      "description": "Compruebe que el cliente rechace los intentos de un servidor de autorización malintencionado de suplantar a otro servidor de autorización a través de los metadatos del servidor de autorización. El cliente debe rechazar los metadatos del servidor de autorización si la URL del emisor que figura en dichos metadatos no coincide exactamente con la URL del emisor preconfigurada que espera el cliente."
+    },
+    {
+      "reqId": "V10.5.4",
+      "sourceContentSha256": "277da2ab5c06848c44c4246b16dd5009c31ca5d0bca4b6b7d03bc78c32efd7c0",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Cliente OIDC",
+      "description": "Compruebe que el cliente verifique que el token de identificación está destinado a ser utilizado por dicho cliente (público), comprobando que la reclamación «aud» del token sea igual al valor de «client_id» de dicho cliente."
+    },
+    {
+      "reqId": "V10.5.5",
+      "sourceContentSha256": "956448b6993f380de053db06404ffd840bee5df33c48890b05589ab523593b35",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Cliente OIDC",
+      "description": "Verifique que, al utilizar el cierre de sesión por canal secundario de OIDC, la parte de confianza mitigue la denegación de servicio mediante el cierre de sesión forzado y la confusión entre JWT en el flujo de cierre de sesión. El cliente debe verificar que el token de cierre de sesión esté correctamente tipificado con un valor de «logout+jwt», contenga la reclamación «event» con el nombre de miembro correcto y no contenga una reclamación «nonce». Tenga en cuenta que también se recomienda establecer un plazo de caducidad breve (por ejemplo, 2 minutos)."
+    },
+    {
+      "reqId": "V10.6.1",
+      "sourceContentSha256": "16e8ab5b887b176a2baf17ca4fe7f406b214d375e5537095e1b34b092990a474",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Proveedor de OpenID",
+      "description": "Compruebe que el proveedor de OpenID solo permita los valores «code», «ciba», «id_token» o «id_token code» para el modo de respuesta. Tenga en cuenta que se prefiere «code» a «id_token code» (el flujo híbrido de OIDC), y que no debe utilizarse «token» (en ningún flujo implícito)."
+    },
+    {
+      "reqId": "V10.6.2",
+      "sourceContentSha256": "16c3f9a496a797b7685430a65f762a9ccbfe9766b6cb9e3743d862c3d533f406",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Proveedor de OpenID",
+      "description": "Verifique que el proveedor de OpenID mitiga la denegación de servicio mediante el cierre de sesión forzado. Para ello, se debe obtener una confirmación explícita del usuario final o, en su caso, validar los parámetros de la solicitud de cierre de sesión (iniciada por la parte que confía), como el «id_token_hint»."
+    },
+    {
+      "reqId": "V10.7.1",
+      "sourceContentSha256": "672f45357d80c4768a520dbd39326051efd47124a64c138750de3a6332df8cfb",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Gestión del consentimiento",
+      "description": "Compruebe que el servidor de autorización se asegure de que el usuario da su consentimiento para cada solicitud de autorización. Si no se puede garantizar la identidad del cliente, el servidor de autorización debe solicitar siempre de forma explícita el consentimiento del usuario."
+    },
+    {
+      "reqId": "V10.7.2",
+      "sourceContentSha256": "aa1e939d8a654b1253ed3146d9a56feee630946b4636b157720fbad1364248af",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Gestión del consentimiento",
+      "description": "Verifique que, cuando el servidor de autorización solicite el consentimiento del usuario, este presente información suficiente y clara sobre aquello a lo que se está dando el consentimiento. Cuando proceda, esto deberá incluir la naturaleza de las autorizaciones solicitadas (normalmente en función del alcance, el servidor de recursos y los detalles de autorización de las Rich Authorization Requests (RAR)), la identidad de la aplicación autorizada y la vigencia de dichas autorizaciones."
+    },
+    {
+      "reqId": "V10.7.3",
+      "sourceContentSha256": "891ddc7f625c3a5c8bd894f6799a6390a5937d5386d00c492e06aae042071751",
+      "chapterName": "OAuth y OIDC",
+      "sectionName": "Gestión del consentimiento",
+      "description": "Compruebe que el usuario pueda revisar, modificar y revocar los consentimientos que haya otorgado a través del servidor de autorización."
+    },
+    {
+      "reqId": "V11.1.1",
+      "sourceContentSha256": "4322ab953826c8b4cacba18cd989cd09de6073e93d4bd3811b08972aeffa3795",
+      "chapterName": "Criptografía",
+      "sectionName": "Inventario y documentación criptográficos",
+      "description": "Compruebe que exista una política documentada para la gestión de claves criptográficas y un ciclo de vida de las mismas que se ajuste a una norma de gestión de claves, como la NIST SP 800-57. Esto debe incluir garantizar que las claves no se compartan en exceso (por ejemplo, con más de dos entidades en el caso de los secretos compartidos y con más de una entidad en el caso de las claves privadas)."
+    },
+    {
+      "reqId": "V11.1.2",
+      "sourceContentSha256": "549c1b0cfcf8d93fcab374e9e93e8334f53f6d48b4217c082b999ddc68ce8133",
+      "chapterName": "Criptografía",
+      "sectionName": "Inventario y documentación criptográficos",
+      "description": "Verifique que se realice, mantenga y actualice periódicamente un inventario criptográfico que incluya todas las claves criptográficas, los algoritmos y los certificados utilizados por la aplicación. Asimismo, debe documentarse dónde pueden y dónde no pueden utilizarse las claves en el sistema, así como los tipos de datos que pueden y no pueden protegerse mediante dichas claves."
+    },
+    {
+      "reqId": "V11.1.3",
+      "sourceContentSha256": "0b070dfe4b8bbee59be20cdf246ebf26ba135075dd3f175a2469a6c2e3cc9d11",
+      "chapterName": "Criptografía",
+      "sectionName": "Inventario y documentación criptográficos",
+      "description": "Verifique que se empleen mecanismos de detección criptográfica para identificar todas las instancias de criptografía en el sistema, incluidas las operaciones de cifrado, hash y firma."
+    },
+    {
+      "reqId": "V11.1.4",
+      "sourceContentSha256": "bb0366f487f17109be0ef36be01570c401b352c0e952602f9b13a4be249ad010",
+      "chapterName": "Criptografía",
+      "sectionName": "Inventario y documentación criptográficos",
+      "description": "Verifique que se mantenga un inventario criptográfico. Este debe incluir un plan documentado que describa la ruta de migración hacia nuevos estándares criptográficos, como la criptografía poscuántica, con el fin de hacer frente a futuras amenazas."
+    },
+    {
+      "reqId": "V11.2.1",
+      "sourceContentSha256": "3a256e2a058e0db6d208ecc010eca0df43a353bc73d007d10094637985a5944f",
+      "chapterName": "Criptografía",
+      "sectionName": "Implementación segura de la criptografía",
+      "description": "Verifique que se utilicen implementaciones validadas por el sector (incluidas las bibliotecas y las implementaciones aceleradas por hardware) para las operaciones criptográficas."
+    },
+    {
+      "reqId": "V11.2.2",
+      "sourceContentSha256": "94786a8c4fcf1e98b41f7fab58e52f324724fe6bb45f8b22b9c7e14f8df343a8",
+      "chapterName": "Criptografía",
+      "sectionName": "Implementación segura de la criptografía",
+      "description": "Verifique que la aplicación esté diseñada con «agilidad criptográfica», de modo que los algoritmos de números aleatorios, cifrado autenticado, MAC o hash, así como las longitudes de clave, las rondas, los cifrados y los modos, puedan reconfigurarse, actualizarse o sustituirse en cualquier momento, con el fin de protegerse frente a la ruptura de la criptografía. Del mismo modo, también debe ser posible sustituir claves y contraseñas, así como volver a cifrar los datos. Esto permitirá realizar actualizaciones sin problemas a la criptografía poscuántica (PQC), una vez que estén ampliamente disponibles implementaciones de alta fiabilidad de los esquemas o estándares de PQC aprobados."
+    },
+    {
+      "reqId": "V11.2.3",
+      "sourceContentSha256": "3dc90b5fdd77845079b4323749f11015be7a98fd3274a673bcbac454d7d6db92",
+      "chapterName": "Criptografía",
+      "sectionName": "Implementación segura de la criptografía",
+      "description": "Verifique que todas las primitivas criptográficas utilicen un mínimo de 128-bits de seguridad en función del algoritmo, el tamaño de la clave y la configuración. Por ejemplo, una clave ECC de 256-bits proporciona aproximadamente 128 bits de seguridad, mientras que RSA requiere una clave de 3072-bits para alcanzar 128 bits de seguridad."
+    },
+    {
+      "reqId": "V11.2.4",
+      "sourceContentSha256": "281f7abaa771e768ace5b9b78c3af146778007f6728fb82c200293ff2622b14f",
+      "chapterName": "Criptografía",
+      "sectionName": "Implementación segura de la criptografía",
+      "description": "Verifique que todas las operaciones criptográficas se realicen en tiempo constante, sin operaciones de «cortocircuito» en comparaciones, cálculos o devoluciones, para evitar la filtración de información."
+    },
+    {
+      "reqId": "V11.2.5",
+      "sourceContentSha256": "c08f25611d947e6f862c69a792366b1f3fd422467dea13ca8548c9f17fcefc78",
+      "chapterName": "Criptografía",
+      "sectionName": "Implementación segura de la criptografía",
+      "description": "Verifique que todos los módulos criptográficos fallen de forma segura y que los errores se gestionen de manera que no den lugar a vulnerabilidades, como los ataques de tipo «Padding Oracle»."
+    },
+    {
+      "reqId": "V11.3.1",
+      "sourceContentSha256": "113c816178cb5e3170f9474345f24baa2bb69f49c1efc5c8b3126de62f0fafec",
+      "chapterName": "Criptografía",
+      "sectionName": "Algoritmos de cifrado",
+      "description": "Compruebe que no se utilicen modos de bloque inseguros (p. ej., ECB) ni esquemas de relleno débiles (p. ej., PKCS#1 v1.5)."
+    },
+    {
+      "reqId": "V11.3.2",
+      "sourceContentSha256": "76e83105cc3cb3afc3b6239f39a418583da67895dc7e42e3c7a9962e9f2b86a2",
+      "chapterName": "Criptografía",
+      "sectionName": "Algoritmos de cifrado",
+      "description": "Verifique que solo se utilicen algoritmos y modos de cifrado aprobados, como AES con GCM."
+    },
+    {
+      "reqId": "V11.3.3",
+      "sourceContentSha256": "91e2b719ff59ef73e1f41d36ebf1852144b853bb524d948ede68e707ee40f2c1",
+      "chapterName": "Criptografía",
+      "sectionName": "Algoritmos de cifrado",
+      "description": "Verifique que los datos cifrados estén protegidos contra modificaciones no autorizadas, preferiblemente mediante el uso de un método de cifrado autenticado homologado o mediante la combinación de un método de cifrado homologado con un algoritmo MAC homologado."
+    },
+    {
+      "reqId": "V11.3.4",
+      "sourceContentSha256": "87f5a64a245af8c5760e1123c31b98e5312198fc89fc6065609baaeb9e69f9ba",
+      "chapterName": "Criptografía",
+      "sectionName": "Algoritmos de cifrado",
+      "description": "Verifique que los nonces, los vectores de inicialización y otros números de un solo uso no se utilicen para más de un par de clave de cifrado y elemento de datos. El método de generación debe ser adecuado para el algoritmo que se utilice."
+    },
+    {
+      "reqId": "V11.3.5",
+      "sourceContentSha256": "a529c05a0fff0413e3e26b39aedca503664043e229da11563a54a6a1eb2fa52c",
+      "chapterName": "Criptografía",
+      "sectionName": "Algoritmos de cifrado",
+      "description": "Compruebe que cualquier combinación de un algoritmo de cifrado y un algoritmo MAC funcione en modo «cifrado y luego MAC»."
+    },
+    {
+      "reqId": "V11.4.1",
+      "sourceContentSha256": "103f752ddaa5cf8fb75cf745592253b6dc3c78e0360db878568e1c96c2d447ee",
+      "chapterName": "Criptografía",
+      "sectionName": "Funciones de hash y funciones basadas en hash",
+      "description": "Compruebe que solo se utilicen funciones hash autorizadas para los casos de uso criptográficos generales, incluidas las firmas digitales, HMAC, KDF y la generación aleatoria de bits. Las funciones hash no permitidas, como MD5, no deben utilizarse con ningún fin criptográfico."
+    },
+    {
+      "reqId": "V11.4.2",
+      "sourceContentSha256": "86b2976aa8549a4728a2129db9baa95729e3c08e85bbaeeefd357a1b9b7ed1f5",
+      "chapterName": "Criptografía",
+      "sectionName": "Funciones de hash y funciones basadas en hash",
+      "description": "Verifique que las contraseñas se almacenen utilizando una función de derivación de claves aprobada y de gran intensidad computacional (también conocida como «función de hash de contraseñas»), con una configuración de parámetros basada en las directrices vigentes. Dicha configuración debe equilibrar la seguridad y el rendimiento, de modo que los ataques de fuerza bruta resulten lo suficientemente difíciles como para garantizar el nivel de seguridad requerido."
+    },
+    {
+      "reqId": "V11.4.3",
+      "sourceContentSha256": "0fb38143481c7a11b98c6280da7e194664c4f3d39a1e0d02c27bd9aa3d6ef19c",
+      "chapterName": "Criptografía",
+      "sectionName": "Funciones de hash y funciones basadas en hash",
+      "description": "Verifique que las funciones hash utilizadas en las firmas digitales, como parte de la autenticación o la integridad de los datos, sean resistentes a las colisiones y tengan longitudes de bits adecuadas. Si se requiere resistencia a las colisiones, la longitud de salida debe ser de al menos 256 bits. Si solo se requiere resistencia a los ataques de segunda preimagen, la longitud de salida debe ser de al menos 128 bits."
+    },
+    {
+      "reqId": "V11.4.4",
+      "sourceContentSha256": "da62fbc548d7db70eb004f276737c553802c53d3f978b0d24c63fa4f95aed45b",
+      "chapterName": "Criptografía",
+      "sectionName": "Funciones de hash y funciones basadas en hash",
+      "description": "Compruebe que la aplicación utilice funciones de derivación de claves homologadas con parámetros de «key stretching» al derivar claves secretas a partir de contraseñas. Los parámetros utilizados deben equilibrar la seguridad y el rendimiento para evitar que los ataques de fuerza bruta comprometan la clave criptográfica resultante."
+    },
+    {
+      "reqId": "V11.5.1",
+      "sourceContentSha256": "898a3522af1802641fb453e02d8b9fedd040d1de2607b53ee5f5d0ff442516e7",
+      "chapterName": "Criptografía",
+      "sectionName": "Valores aleatorios",
+      "description": "Verifique que todos los números aleatorios y cadenas de caracteres que se pretenda que sean imposibles de adivinar se generen mediante un generador de números pseudoaleatorios criptográficamente seguro (CSPRNG) y tengan al menos 128 bits de entropía. Tenga en cuenta que los UUID no cumplen esta condición."
+    },
+    {
+      "reqId": "V11.5.2",
+      "sourceContentSha256": "352f30266283e5b6f29e18b670f662bc31a937ff02e71f202f72828af6e70273",
+      "chapterName": "Criptografía",
+      "sectionName": "Valores aleatorios",
+      "description": "Compruebe que el mecanismo de generación de números aleatorios utilizado esté diseñado para funcionar de forma segura, incluso bajo una carga elevada."
+    },
+    {
+      "reqId": "V11.6.1",
+      "sourceContentSha256": "338f0e96765892db93924c405d4bc10e80d780cf61eb76536944bf7d7e080699",
+      "chapterName": "Criptografía",
+      "sectionName": "Criptografía de clave pública",
+      "description": "Verifique que solo se utilicen algoritmos criptográficos y modos de funcionamiento aprobados para la generación y el inicializado de claves, así como para la generación y verificación de firmas digitales. Los algoritmos de generación de claves no deben generar claves inseguras vulnerables a ataques conocidos; por ejemplo, las claves RSA, que son vulnerables a la factorización de Fermat."
+    },
+    {
+      "reqId": "V11.6.2",
+      "sourceContentSha256": "a520f546ed94fc206b7406a6607863e4be726fbef21731c93d9ba2a11f91c17a",
+      "chapterName": "Criptografía",
+      "sectionName": "Criptografía de clave pública",
+      "description": "Verifique que se utilicen algoritmos criptográficos aprobados para el intercambio de claves (como Diffie-Hellman), prestando especial atención a garantizar que los mecanismos de intercambio de claves utilicen parámetros seguros. De este modo se evitarán ataques al proceso de establecimiento de claves que podrían dar lugar a ataques de tipo «adversario en el medio» o a rupturas criptográficas."
+    },
+    {
+      "reqId": "V11.7.1",
+      "sourceContentSha256": "5c9f115d63bb508112a7b2b6229f378fe6c1393ae2ff2c4863bca374b5d535c1",
+      "chapterName": "Criptografía",
+      "sectionName": "Criptografía de datos en uso",
+      "description": "Verifique que se utilice el cifrado completo de la memoria, que proteja los datos confidenciales mientras están en uso, impidiendo el acceso por parte de usuarios o procesos no autorizados."
+    },
+    {
+      "reqId": "V11.7.2",
+      "sourceContentSha256": "0edd01685e9c278cb544a11a722421ca3286d417359d101d5762e9e74523c66a",
+      "chapterName": "Criptografía",
+      "sectionName": "Criptografía de datos en uso",
+      "description": "Compruebe que la minimización de datos garantice que se exponga la menor cantidad posible de datos durante el tratamiento, y asegúrese de que los datos se cifren inmediatamente después de su uso o tan pronto como sea posible."
+    },
+    {
+      "reqId": "V12.1.1",
+      "sourceContentSha256": "2f597a518f1a2d60b69eda324806b72d52ad6e50ab693c8c997b05a6af8213fe",
+      "chapterName": "Comunicación segura",
+      "sectionName": "Orientaciones generales sobre seguridad TLS",
+      "description": "Compruebe que solo estén habilitadas las últimas versiones recomendadas del protocolo TLS, como TLS 1.2 y TLS 1.3. La última versión del protocolo TLS debe ser la opción preferida."
+    },
+    {
+      "reqId": "V12.1.2",
+      "sourceContentSha256": "42ca2eb8bee4b3f2b19caae26ac09c3d4c31bafeec57c2e4ed3edf783d6a3a99",
+      "chapterName": "Comunicación segura",
+      "sectionName": "Orientaciones generales sobre seguridad TLS",
+      "description": "Verifique que solo estén habilitadas las suites de cifrado recomendadas, estableciendo como preferentes las más seguras. Las aplicaciones L3 solo deben admitir suites de cifrado que ofrezcan confidencialidad hacia adelante."
+    },
+    {
+      "reqId": "V12.1.3",
+      "sourceContentSha256": "36eddd573f44a126db68365ba3e7176a19cff59faa9d648892a232992b512508",
+      "chapterName": "Comunicación segura",
+      "sectionName": "Orientaciones generales sobre seguridad TLS",
+      "description": "Compruebe que la aplicación verifique que los certificados de cliente mTLS son fiables antes de utilizar la identidad del certificado para la autenticación o la autorización."
+    },
+    {
+      "reqId": "V12.1.4",
+      "sourceContentSha256": "f07e02f076fe4f82dcf51189b091c4722ce22fbbdca32ccf90ebd9e0d277e12b",
+      "chapterName": "Comunicación segura",
+      "sectionName": "Orientaciones generales sobre seguridad TLS",
+      "description": "Compruebe que esté habilitada y configurada la revocación adecuada de certificados, como el «stapling» del Protocolo de estado de certificados en línea (OCSP)."
+    },
+    {
+      "reqId": "V12.1.5",
+      "sourceContentSha256": "243483ddd8ec5460c1f3bc65689f548120dea69b131a0f85547eeb0d9178b105",
+      "chapterName": "Comunicación segura",
+      "sectionName": "Orientaciones generales sobre seguridad TLS",
+      "description": "Compruebe que la opción «Encrypted Client Hello» (ECH) esté habilitada en la configuración TLS de la aplicación para evitar la exposición de metadatos sensibles, como la indicación del nombre del servidor (SNI), durante los procesos de establecimiento de conexión TLS."
+    },
+    {
+      "reqId": "V12.2.1",
+      "sourceContentSha256": "0494ecec71374668a1708d23259a2f133a823ca8b804ef531af782310b904fc6",
+      "chapterName": "Comunicación segura",
+      "sectionName": "Comunicación HTTPS con servicios orientados al exterior",
+      "description": "Compruebe que se utilice TLS para todas las conexiones entre un cliente y los servicios externos basados en HTTP, y que no se recurra a comunicaciones inseguras o sin cifrar."
+    },
+    {
+      "reqId": "V12.2.2",
+      "sourceContentSha256": "1742a2e7cfcb785b1bd943327421242cee7847ce239da5dd88c6af2febc1874f",
+      "chapterName": "Comunicación segura",
+      "sectionName": "Comunicación HTTPS con servicios orientados al exterior",
+      "description": "Compruebe que los servicios orientados al exterior utilicen certificados TLS de confianza pública."
+    },
+    {
+      "reqId": "V12.3.1",
+      "sourceContentSha256": "06b6b8039f2e84e971c65e76ec0b58a2dd0cc7186596d4bc2c20ff743ae488b2",
+      "chapterName": "Comunicación segura",
+      "sectionName": "Seguridad general de la comunicación entre servicios",
+      "description": "Verifique que se utilice un protocolo cifrado, como TLS, para todas las conexiones entrantes y salientes hacia y desde la aplicación, incluidos los sistemas de supervisión, las herramientas de gestión, el acceso remoto y SSH, el middleware, las bases de datos, los mainframes, los sistemas de socios o las API externas. El servidor no debe recurrir a protocolos inseguros o sin cifrar."
+    },
+    {
+      "reqId": "V12.3.2",
+      "sourceContentSha256": "aaffeb3d9f708f426ba4720b6cadf2672cbebdf20dd4a3d3e67e6c4e08a8b594",
+      "chapterName": "Comunicación segura",
+      "sectionName": "Seguridad general de la comunicación entre servicios",
+      "description": "Compruebe que los clientes TLS validen los certificados recibidos antes de comunicarse con un servidor TLS."
+    },
+    {
+      "reqId": "V12.3.3",
+      "sourceContentSha256": "2ff4c1e649f7b28793b5ee8598cb0efece69a3c5a7a47e3638932ef6af15f028",
+      "chapterName": "Comunicación segura",
+      "sectionName": "Seguridad general de la comunicación entre servicios",
+      "description": "Compruebe que se utilice TLS u otro mecanismo de cifrado de transporte adecuado para toda la conectividad entre los servicios internos basados en HTTP dentro de la aplicación, y que no se recurra a comunicaciones inseguras o sin cifrar."
+    },
+    {
+      "reqId": "V12.3.4",
+      "sourceContentSha256": "4e41ac337513bae2cf12e7e35da763b97ea0a5f55fe18a04fb655acd2fc98888",
+      "chapterName": "Comunicación segura",
+      "sectionName": "Seguridad general de la comunicación entre servicios",
+      "description": "Compruebe que las conexiones TLS entre servicios internos utilicen certificados fiables. Cuando se utilicen certificados generados internamente o autofirmados, el servicio que los utilice deberá estar configurado para confiar únicamente en autoridades de certificación internas específicas y en certificados autofirmados específicos."
+    },
+    {
+      "reqId": "V12.3.5",
+      "sourceContentSha256": "5edfc74995f0882cc92d9ed1c2c51edb6aea7153ee6fbd1f4cbcc84201e67784",
+      "chapterName": "Comunicación segura",
+      "sectionName": "Seguridad general de la comunicación entre servicios",
+      "description": "Verifique que los servicios que se comunican internamente dentro de un sistema (comunicaciones entre servicios) utilicen una autenticación sólida para garantizar que se verifique cada punto final. Deben emplearse métodos de autenticación sólidos, como la autenticación de cliente TLS, para garantizar la identidad, utilizando una infraestructura de clave pública y mecanismos resistentes a los ataques de repetición. En el caso de las arquitecturas de microservicios, considere la posibilidad de utilizar una malla de servicios para simplificar la gestión de certificados y mejorar la seguridad."
+    },
+    {
+      "reqId": "V13.1.1",
+      "sourceContentSha256": "69168a8b232406cf84be2d097892dbe3692dc60d7d06c97d4e03751656663826",
+      "chapterName": "Configuración",
+      "sectionName": "Documentación de configuración",
+      "description": "Verifique que se hayan documentado todas las necesidades de comunicación de la aplicación. Esto debe incluir los servicios externos de los que depende la aplicación, así como los casos en los que un usuario final pueda indicar una ubicación externa a la que la aplicación se conecte posteriormente."
+    },
+    {
+      "reqId": "V13.1.2",
+      "sourceContentSha256": "554d9ad88bb7866a1309c20310f3da500e1fce5bbda9994bcbe9f21b0986ad5d",
+      "chapterName": "Configuración",
+      "sectionName": "Documentación de configuración",
+      "description": "Verifique que, para cada servicio que utilice la aplicación, la documentación defina el número máximo de conexiones simultáneas (por ejemplo, los límites del grupo de conexiones) y cómo se comporta la aplicación cuando se alcanza dicho límite, incluidos los mecanismos de respaldo o recuperación, con el fin de evitar situaciones de denegación de servicio."
+    },
+    {
+      "reqId": "V13.1.3",
+      "sourceContentSha256": "59b32ae149b57aee447c65dfe9a28534826a84cb29bc17a1f87b93a23f58cac0",
+      "chapterName": "Configuración",
+      "sectionName": "Documentación de configuración",
+      "description": "Compruebe que la documentación de la aplicación defina estrategias de gestión de recursos para cada sistema o servicio externo que utilice (por ejemplo, bases de datos, identificadores de archivos, subprocesos, conexiones HTTP). Esto debe incluir procedimientos de liberación de recursos, ajustes de tiempo de espera, gestión de fallos y, cuando se implemente una lógica de reintentos, la especificación de los límites de reintentos, los retrasos y los algoritmos de retroceso. En el caso de las operaciones síncronas de solicitud-respuesta HTTP, debe exigirse el uso de tiempos de espera cortos y, bien desactivar los reintentos, bien limitarlos estrictamente para evitar retrasos en cadena y el agotamiento de los recursos."
+    },
+    {
+      "reqId": "V13.1.4",
+      "sourceContentSha256": "8028ce725e53d1f2e36243332ed748ede0d69e01518cf546db4da77c153eaa79",
+      "chapterName": "Configuración",
+      "sectionName": "Documentación de configuración",
+      "description": "Compruebe que la documentación de la aplicación defina los secretos que son críticos para la seguridad de la misma, así como un calendario para su rotación, basándose en el modelo de amenazas de la organización y en los requisitos empresariales."
+    },
+    {
+      "reqId": "V13.2.1",
+      "sourceContentSha256": "92d90da5c65d4e17db1d10ebab9b75589a83dfbc2f41938bebdc0ddc7d790246",
+      "chapterName": "Configuración",
+      "sectionName": "Configuración de la comunicación del backend",
+      "description": "Verifique que las comunicaciones entre los componentes de la aplicación de backend que no admiten el mecanismo estándar de sesión de usuario de la aplicación —incluidas las API, el middleware y las capas de datos— estén autenticadas. La autenticación debe utilizar cuentas de servicio individuales, tokens de corta duración o autenticación basada en certificados, y no credenciales fijas como contraseñas, claves de API o cuentas compartidas con acceso privilegiado."
+    },
+    {
+      "reqId": "V13.2.2",
+      "sourceContentSha256": "1c9ce9c96d34218c49f7bbae55f7329b55ea0c306ce1439580815ad16f98ad5a",
+      "chapterName": "Configuración",
+      "sectionName": "Configuración de la comunicación del backend",
+      "description": "Verifique que las comunicaciones entre los componentes de la aplicación de backend —incluidos los servicios locales o del sistema operativo, las API, el middleware y las capas de datos— se realicen con cuentas a las que se hayan asignado los privilegios mínimos necesarios."
+    },
+    {
+      "reqId": "V13.2.3",
+      "sourceContentSha256": "864828d0e1e9eb199eb89a0350c4ca300682a15b61ba9d98edab1dadfce70112",
+      "chapterName": "Configuración",
+      "sectionName": "Configuración de la comunicación del backend",
+      "description": "Compruebe que, si es necesario utilizar una credencial para la autenticación en el servicio, la credencial utilizada por el usuario no sea una credencial predeterminada (por ejemplo, root/root o admin/admin)."
+    },
+    {
+      "reqId": "V13.2.4",
+      "sourceContentSha256": "85da1a1834d0aee595e768165ff08ff53e542a01891323ed3718ed2c34f14be9",
+      "chapterName": "Configuración",
+      "sectionName": "Configuración de la comunicación del backend",
+      "description": "Verifique que se utilice una lista de permitidos para definir los recursos o sistemas externos con los que la aplicación está autorizada a comunicarse (por ejemplo, para solicitudes salientes, cargas de datos o acceso a archivos). Esta lista de permitidos puede implementarse en la capa de aplicación, en el servidor web, en el cortafuegos o en una combinación de diferentes capas."
+    },
+    {
+      "reqId": "V13.2.5",
+      "sourceContentSha256": "504b55ae4b846a74a0298cb4049c9d010a6c2f4c41923e76f2e46ed4f215f3be",
+      "chapterName": "Configuración",
+      "sectionName": "Configuración de la comunicación del backend",
+      "description": "Compruebe que el servidor web o de aplicaciones esté configurado con una lista de recursos o sistemas autorizados a los que el servidor pueda enviar solicitudes o de los que pueda cargar datos o archivos."
+    },
+    {
+      "reqId": "V13.2.6",
+      "sourceContentSha256": "9f65a23b199bce6e2b342edd89bd8f3444e79fe4c421f240f2245bf5ae94db1a",
+      "chapterName": "Configuración",
+      "sectionName": "Configuración de la comunicación del backend",
+      "description": "Verifique que, cuando la aplicación se conecte a servicios independientes, siga la configuración documentada para cada conexión, como el número máximo de conexiones paralelas, el comportamiento al alcanzar el número máximo de conexiones permitidas, los tiempos de espera de conexión y las estrategias de reintento."
+    },
+    {
+      "reqId": "V13.3.1",
+      "sourceContentSha256": "6d88bad15eec368947f7c581a1896f37b7792a4c85dbca67cd85518691a9f635",
+      "chapterName": "Configuración",
+      "sectionName": "Gestión de secretos",
+      "description": "Verifique que se utilice una solución de gestión de secretos, como un almacén de claves, para crear, almacenar, controlar el acceso y destruir de forma segura los secretos del backend. Estos podrían incluir contraseñas, material de claves, integraciones con bases de datos y sistemas de terceros, claves y semillas para tokens basados en el tiempo, otros secretos internos y claves de API. Los secretos no deben incluirse en el código fuente de la aplicación ni en los artefactos de compilación. En el caso de una aplicación «L3», esto debe implicar una solución respaldada por hardware, como un HSM."
+    },
+    {
+      "reqId": "V13.3.2",
+      "sourceContentSha256": "8d5a10903d88c160821c78b156a3b0be60d0625494dd271fdbfe7a61f8e465eb",
+      "chapterName": "Configuración",
+      "sectionName": "Gestión de secretos",
+      "description": "Verifique que el acceso a los activos confidenciales se ajuste al principio del privilegio mínimo."
+    },
+    {
+      "reqId": "V13.3.3",
+      "sourceContentSha256": "68a0df7690127d1751cbd782cd9f75ce787ea91878583311976cdd213a486870",
+      "chapterName": "Configuración",
+      "sectionName": "Gestión de secretos",
+      "description": "Verifique que todas las operaciones criptográficas se realicen mediante un módulo de seguridad aislado (como una caja fuerte o un módulo de seguridad de hardware) para gestionar y proteger de forma segura el material de claves frente a su exposición fuera del módulo de seguridad."
+    },
+    {
+      "reqId": "V13.3.4",
+      "sourceContentSha256": "31c44f881040c068b43c13a861b38eefb1c1c9e8dca0f9eed3908bccba12ef77",
+      "chapterName": "Configuración",
+      "sectionName": "Gestión de secretos",
+      "description": "Compruebe que las claves secretas estén configuradas para caducar y rotarse según lo establecido en la documentación de la aplicación."
+    },
+    {
+      "reqId": "V13.4.1",
+      "sourceContentSha256": "53b093e87fa5b1166afe7a836aeeeeaf76566c494bb314ac0c6630a02b1ef403",
+      "chapterName": "Configuración",
+      "sectionName": "Fuga involuntaria de información",
+      "description": "Compruebe que la aplicación se haya implementado bien sin ningún metadato de control de código fuente —incluidas las carpetas .git o .svn—, bien de tal forma que no se pueda acceder a dichas carpetas ni desde el exterior ni desde la propia aplicación."
+    },
+    {
+      "reqId": "V13.4.2",
+      "sourceContentSha256": "3148a34d21ded9c798116aa83dc500953de2e5188b70467e483f16d8476ac8af",
+      "chapterName": "Configuración",
+      "sectionName": "Fuga involuntaria de información",
+      "description": "Compruebe que los modos de depuración estén desactivados para todos los componentes en los entornos de producción, con el fin de evitar la exposición de las funciones de depuración y la fuga de información."
+    },
+    {
+      "reqId": "V13.4.3",
+      "sourceContentSha256": "5b42acb2bc26c6cfddc4b319e44e4e5cebff876e7da385bbeb8a96f640e3c6a4",
+      "chapterName": "Configuración",
+      "sectionName": "Fuga involuntaria de información",
+      "description": "Compruebe que los servidores web no expongan listados de directorios a los clientes, salvo que se haya previsto explícitamente."
+    },
+    {
+      "reqId": "V13.4.4",
+      "sourceContentSha256": "5dd8d7eea7e4dfbbea6a557866fada3e64bec883ef67f676cc27bee5e3c0a74c",
+      "chapterName": "Configuración",
+      "sectionName": "Fuga involuntaria de información",
+      "description": "Compruebe que el uso del método HTTP TRACE no esté permitido en entornos de producción, a fin de evitar posibles fugas de información."
+    },
+    {
+      "reqId": "V13.4.5",
+      "sourceContentSha256": "e68e8ca27cc5ad8db588e481b2599a942c68e82f6b1bb61c70aac086c4bfd3bb",
+      "chapterName": "Configuración",
+      "sectionName": "Fuga involuntaria de información",
+      "description": "Compruebe que la documentación (como la relativa a las API internas) y los puntos finales de supervisión no queden expuestos, salvo que se pretenda expresamente."
+    },
+    {
+      "reqId": "V13.4.6",
+      "sourceContentSha256": "766856c1c44b47b7b47b4c0a722d1e31e82725e4e49922627f7c5ae5c3c17382",
+      "chapterName": "Configuración",
+      "sectionName": "Fuga involuntaria de información",
+      "description": "Compruebe que la aplicación no exponga información detallada sobre las versiones de los componentes de backend."
+    },
+    {
+      "reqId": "V13.4.7",
+      "sourceContentSha256": "f95adfee1f54ac6ed18f050aa32582416e6f34145a30569ef228b3a520ee0e31",
+      "chapterName": "Configuración",
+      "sectionName": "Fuga involuntaria de información",
+      "description": "Compruebe que el nivel web esté configurado para servir únicamente archivos con extensiones específicas, con el fin de evitar la filtración involuntaria de información, configuración y código fuente."
+    },
+    {
+      "reqId": "V14.1.1",
+      "sourceContentSha256": "b0c72b796e226d918cb3963b99d9ca8b0d638ac401eb69d0a702980a9a067bce",
+      "chapterName": "Protección de datos",
+      "sectionName": "Documentación sobre protección de datos",
+      "description": "Verifique que todos los datos sensibles creados y procesados por la aplicación hayan sido identificados y clasificados en niveles de protección. Esto incluye los datos que solo están codificados y, por lo tanto, son fáciles de descodificar, como las cadenas Base64 o la carga útil en texto sin cifrar dentro de un JWT. Los niveles de protección deben tener en cuenta todas las normativas y estándares de protección de datos y privacidad que la aplicación esté obligada a cumplir."
+    },
+    {
+      "reqId": "V14.1.2",
+      "sourceContentSha256": "1265df318996b66309c6020dcd20cc841d10ea2241141a29505bcc211da925c3",
+      "chapterName": "Protección de datos",
+      "sectionName": "Documentación sobre protección de datos",
+      "description": "Verifique que todos los niveles de protección de datos sensibles cuenten con un conjunto documentado de requisitos de protección. Esto debe incluir (entre otros) requisitos relacionados con el cifrado general, la verificación de la integridad, la conservación, la forma en que deben registrarse los datos, los controles de acceso a los datos sensibles en los registros, el cifrado a nivel de base de datos, la privacidad y las tecnologías de mejora de la privacidad que se vayan a utilizar, así como otros requisitos de confidencialidad."
+    },
+    {
+      "reqId": "V14.2.1",
+      "sourceContentSha256": "3dd4b7f72c6c7804fff385cbbcc48771d27fd3a143389467958f3cdc8dd63616",
+      "chapterName": "Protección de datos",
+      "sectionName": "Protección General de Datos",
+      "description": "Compruebe que los datos sensibles solo se envíen al servidor en el cuerpo del mensaje HTTP o en los campos de encabezado, y que la URL y la cadena de consulta no contengan información sensible, como una clave de API o un token de sesión."
+    },
+    {
+      "reqId": "V14.2.2",
+      "sourceContentSha256": "ff28e782d681ddc1fd683e952f14b75d87c0cb55e78680215ebb3a2db517a492",
+      "chapterName": "Protección de datos",
+      "sectionName": "Protección General de Datos",
+      "description": "Compruebe que la aplicación impide que los datos sensibles se almacenen en la caché de componentes del servidor, como los equilibradores de carga y las cachés de aplicaciones, o que garantiza que los datos se eliminen de forma segura tras su uso."
+    },
+    {
+      "reqId": "V14.2.3",
+      "sourceContentSha256": "700cd74e09cdc374517dc0d184e83675f6e3f620e40ec664c9a53911dc343449",
+      "chapterName": "Protección de datos",
+      "sectionName": "Protección General de Datos",
+      "description": "Compruebe que los datos sensibles definidos no se envíen a terceros no fiables (por ejemplo, rastreadores de usuarios) para evitar la recopilación no deseada de datos fuera del control de la aplicación."
+    },
+    {
+      "reqId": "V14.2.4",
+      "sourceContentSha256": "259ae8462b519dea0b1ae7f321726a033c117a27a1668cf26943880e8e1c1672",
+      "chapterName": "Protección de datos",
+      "sectionName": "Protección General de Datos",
+      "description": "Verifique que los controles relativos a los datos sensibles —en materia de cifrado, verificación de la integridad, conservación, forma de registro de los datos, controles de acceso a los datos sensibles en los registros, privacidad y tecnologías de mejora de la privacidad— se apliquen tal y como se definen en la documentación correspondiente al nivel de protección específico de dichos datos."
+    },
+    {
+      "reqId": "V14.2.5",
+      "sourceContentSha256": "1e92154af6d8cf4357772708fa4836b57d960c09ea88befceaeca858fee9a4e8",
+      "chapterName": "Protección de datos",
+      "sectionName": "Protección General de Datos",
+      "description": "Compruebe que los mecanismos de almacenamiento en caché estén configurados para almacenar únicamente aquellas respuestas que tengan el tipo de contenido esperado para ese recurso y que no contengan contenido sensible ni dinámico. El servidor web debe devolver una respuesta de tipo «404» o «302» cuando se acceda a un archivo inexistente, en lugar de devolver un archivo válido diferente. Esto debería impedir los ataques de «Web Cache Deception»."
+    },
+    {
+      "reqId": "V14.2.6",
+      "sourceContentSha256": "82caf94a27fb1ed3b3258582598bf08fb0b9ca5bda2f7950b0aba1ef31afc34f",
+      "chapterName": "Protección de datos",
+      "sectionName": "Protección General de Datos",
+      "description": "Compruebe que la aplicación solo devuelva los datos sensibles mínimos necesarios para el funcionamiento de la misma. Por ejemplo, devolviendo únicamente algunos de los dígitos de un número de tarjeta de crédito y no el número completo. Si se requieren los datos completos, estos deben ocultarse en la interfaz de usuario, a menos que el usuario los visualice específicamente."
+    },
+    {
+      "reqId": "V14.2.7",
+      "sourceContentSha256": "1fe96d608a998a6991dbc9df26442e0329f557fce79a4ef4550ab4c66b766dd1",
+      "chapterName": "Protección de datos",
+      "sectionName": "Protección General de Datos",
+      "description": "Verifique que la información sensible esté sujeta a una clasificación de retención de datos, garantizando que los datos obsoletos o innecesarios se eliminen automáticamente, según un calendario definido o según lo requiera la situación."
+    },
+    {
+      "reqId": "V14.2.8",
+      "sourceContentSha256": "85e5e37aad6a76bc4dcadc4b504994d803e1216681e8d5602bf6e14059d9fcd7",
+      "chapterName": "Protección de datos",
+      "sectionName": "Protección General de Datos",
+      "description": "Compruebe que se elimine la información sensible de los metadatos de los archivos enviados por los usuarios, salvo que estos hayan dado su consentimiento para su almacenamiento."
+    },
+    {
+      "reqId": "V14.3.1",
+      "sourceContentSha256": "30b0efa3ede6b5516cd700f78bd4b6ce26b3d4e05abf3b75f6d39dd45caf71d2",
+      "chapterName": "Protección de datos",
+      "sectionName": "Protección de datos en el lado del cliente",
+      "description": "Verifique que los datos autenticados se borren del almacenamiento del cliente, como el DOM del navegador, una vez finalizada la sesión o el cliente. El campo de encabezado de respuesta HTTP «Clear-Site-Data» puede resultar útil para ello, pero el lado del cliente también debe poder realizar el borrado si la conexión con el servidor no está disponible al finalizar la sesión."
+    },
+    {
+      "reqId": "V14.3.2",
+      "sourceContentSha256": "c2c174bb7df0255f79dd57f5836e6d5714d12cc1692d071b8b106710a31e23af",
+      "chapterName": "Protección de datos",
+      "sectionName": "Protección de datos en el lado del cliente",
+      "description": "Compruebe que la aplicación establezca campos de encabezado de respuesta HTTP suficientes para evitar el almacenamiento en caché (es decir, «Cache-Control: no-store»), de modo que los datos sensibles no se almacenen en la caché de los navegadores."
+    },
+    {
+      "reqId": "V14.3.3",
+      "sourceContentSha256": "13b58af23fa2b84b558f9ca242f3efdd65a3ba95528cd0b035ccc8fc48fde3fb",
+      "chapterName": "Protección de datos",
+      "sectionName": "Protección de datos en el lado del cliente",
+      "description": "Verifique que los datos almacenados en el almacenamiento del navegador (como localStorage, sessionStorage, IndexedDB o cookies) no contengan datos sensibles, con la excepción de los tokens de sesión."
+    },
+    {
+      "reqId": "V15.1.1",
+      "sourceContentSha256": "6e101abb47b3dc11b60e1eee0767fe49685eb1f1b67f0cd9342bb900bbf9be9d",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Documentación sobre codificación segura y arquitectura",
+      "description": "Compruebe que la documentación de la aplicación defina plazos de corrección basados en el riesgo para las versiones de componentes de terceros que presenten vulnerabilidades y para la actualización de bibliotecas en general, con el fin de minimizar el riesgo derivado de dichos componentes."
+    },
+    {
+      "reqId": "V15.1.2",
+      "sourceContentSha256": "4687cff647d96a7103f7a1a766bab0f58360315bea04b06015eda5b2d95dfd3d",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Documentación sobre codificación segura y arquitectura",
+      "description": "Verifique que se mantenga un catálogo de inventario, como una lista de materiales de software (SBOM), de todas las bibliotecas de terceros en uso, lo que incluye comprobar que los componentes procedan de repositorios predefinidos, de confianza y sometidos a un mantenimiento continuo."
+    },
+    {
+      "reqId": "V15.1.3",
+      "sourceContentSha256": "c8b2e44150e7bda9485ce2ff524bb43d066618fa1c287e35bbae6da044c31a5a",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Documentación sobre codificación segura y arquitectura",
+      "description": "Verifique que la documentación de la aplicación identifique aquellas funcionalidades que requieran mucho tiempo o consuman muchos recursos. Esto debe incluir cómo prevenir una pérdida de disponibilidad debida al uso excesivo de dicha funcionalidad y cómo evitar una situación en la que la generación de una respuesta tarde más que el tiempo de espera del usuario. Las posibles medidas de defensa pueden incluir el procesamiento asíncrono, el uso de colas y la limitación de los procesos paralelos por usuario y por aplicación."
+    },
+    {
+      "reqId": "V15.1.4",
+      "sourceContentSha256": "cf59576f49066fff5fcd27e983c56b73c70092c3963042301da5762bb91f4b8a",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Documentación sobre codificación segura y arquitectura",
+      "description": "Verifique que la documentación de la aplicación destaque las bibliotecas de terceros que se consideren «componentes de riesgo»."
+    },
+    {
+      "reqId": "V15.1.5",
+      "sourceContentSha256": "85738cb1f1694cce9c47a32868f3294e6a4c81df0ed560cdedba40bae1b79a0c",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Documentación sobre codificación segura y arquitectura",
+      "description": "Compruebe que la documentación de la aplicación destaque aquellas partes de la misma en las que se utilicen «funcionalidades peligrosas»."
+    },
+    {
+      "reqId": "V15.2.1",
+      "sourceContentSha256": "00be00d3d3214051049773fdbaf3cbef64f76e7b627bab1cda8ca09d4ff73661",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Arquitectura de seguridad y dependencias",
+      "description": "Compruebe que la aplicación solo contenga componentes que no hayan incumplido los plazos documentados de actualización y corrección."
+    },
+    {
+      "reqId": "V15.2.2",
+      "sourceContentSha256": "d6270d8eadab429b0c6abacafe14e524b4ad0e6d602c198abaf308634c88a5b5",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Arquitectura de seguridad y dependencias",
+      "description": "Verifique que la aplicación haya implementado medidas de protección contra la pérdida de disponibilidad debida a funcionalidades que requieran mucho tiempo o consuman muchos recursos, basándose en las decisiones y estrategias de seguridad documentadas al respecto."
+    },
+    {
+      "reqId": "V15.2.3",
+      "sourceContentSha256": "4e3c719eb61f1d458e32ef1b48b97e9bf4d54acd03f30c04f35b9593fba9e1ee",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Arquitectura de seguridad y dependencias",
+      "description": "Compruebe que el entorno de producción solo incluya las funcionalidades necesarias para el funcionamiento de la aplicación y que no exponga funcionalidades superfluas, como código de prueba, fragmentos de código de ejemplo y funcionalidades de desarrollo."
+    },
+    {
+      "reqId": "V15.2.4",
+      "sourceContentSha256": "79c3117a180a3d31276006a039130da0cf021b429a62a0f24d7b001392e51201",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Arquitectura de seguridad y dependencias",
+      "description": "Verifique que los componentes de terceros y todas sus dependencias transitivas se hayan incluido desde el repositorio previsto, ya sea de propiedad interna o de una fuente externa, y que no exista riesgo de un ataque por confusión de dependencias."
+    },
+    {
+      "reqId": "V15.2.5",
+      "sourceContentSha256": "5d7bb2e27c6c22b72aa095ea8e4508529cd25eff3f509c4c2721e752afd21bdc",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Arquitectura de seguridad y dependencias",
+      "description": "Verifique que la aplicación implemente protecciones adicionales en aquellas partes de la misma que, según la documentación, contengan «funcionalidades peligrosas» o utilicen bibliotecas de terceros consideradas «componentes de riesgo». Esto podría incluir técnicas como el sandboxing, la encapsulación, la contenedorización o el aislamiento a nivel de red, con el fin de retrasar y disuadir a los atacantes que, tras comprometer una parte de la aplicación, intenten extenderse a otras partes de la misma."
+    },
+    {
+      "reqId": "V15.3.1",
+      "sourceContentSha256": "0584c4a8a7d19d6f190887c9326e88f18eeff6bc218674fc6a1bbc1582c7ee96",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Programación defensiva",
+      "description": "Compruebe que la aplicación solo devuelva el subconjunto de campos requerido de un objeto de datos. Por ejemplo, no debe devolver un objeto de datos completo, ya que algunos campos concretos no deben ser accesibles para los usuarios."
+    },
+    {
+      "reqId": "V15.3.2",
+      "sourceContentSha256": "fbea0dcccb2cc16b609ae76a9ead31b8a671d78bd0e06bf8636421727b6ad6a3",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Programación defensiva",
+      "description": "Compruebe que, cuando el backend de la aplicación realice llamadas a URL externas, esté configurado para no seguir las redirecciones, salvo que se trate de una funcionalidad prevista."
+    },
+    {
+      "reqId": "V15.3.3",
+      "sourceContentSha256": "1d52b6fcbaf06054ec40fceff42763893eb6f6ff0b467b701d97192169fe96dd",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Programación defensiva",
+      "description": "Compruebe que la aplicación cuente con contramedidas para protegerse frente a ataques de asignación masiva, limitando los campos permitidos por controlador y acción; por ejemplo, que no sea posible insertar o actualizar el valor de un campo cuando no estaba previsto que formara parte de dicha acción."
+    },
+    {
+      "reqId": "V15.3.4",
+      "sourceContentSha256": "a752b9cb53ba420ae61bd3e59088b61783295fe90fa2ea6343cc99847b3b9efd",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Programación defensiva",
+      "description": "Compruebe que todos los componentes de proxy y middleware transfieran correctamente la dirección IP original del usuario utilizando campos de datos fiables que no puedan ser manipulados por el usuario final, y que la aplicación y el servidor web utilicen este valor correcto para el registro y las decisiones de seguridad, como la limitación de tasa, teniendo en cuenta que incluso la dirección IP original puede no ser fiable debido a las direcciones IP dinámicas, las VPN o los cortafuegos corporativos."
+    },
+    {
+      "reqId": "V15.3.5",
+      "sourceContentSha256": "8773eb255fc796900bfbf9478cc5fc34fec39d869807938f5eba5d32f3dfb2be",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Programación defensiva",
+      "description": "Compruebe que la aplicación garantice explícitamente que las variables sean del tipo correcto y que realice operaciones de igualdad y de comparación estrictas. El objetivo es evitar vulnerabilidades de «type juggling» o de confusión de tipos causadas por el hecho de que el código de la aplicación haga suposiciones sobre el tipo de una variable."
+    },
+    {
+      "reqId": "V15.3.6",
+      "sourceContentSha256": "2c5bd34f1de401d3f8cb23a7965def78fd5e0a0642169ad853f52d0527b5eff8",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Programación defensiva",
+      "description": "Compruebe que el código JavaScript esté escrito de forma que se evite la contaminación de prototipos, por ejemplo, utilizando Set() o Map() en lugar de literales de objeto."
+    },
+    {
+      "reqId": "V15.3.7",
+      "sourceContentSha256": "5650505476be185ccfe7eebb82f8d139a487d84b724beba64dcbcd5a17ba386f",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Programación defensiva",
+      "description": "Compruebe que la aplicación cuente con medidas de defensa contra los ataques de contaminación de parámetros HTTP, especialmente si el marco de la aplicación no distingue entre las distintas fuentes de los parámetros de solicitud (cadena de consulta, parámetros del cuerpo, cookies o campos de encabezado)."
+    },
+    {
+      "reqId": "V15.4.1",
+      "sourceContentSha256": "25f45ec003d22ea4b285f3ab094f3c391b6cbafdb75180282c96afd12db38e0c",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Concurrencia segura",
+      "description": "Verifique que el acceso a los objetos compartidos en código multihilo (como cachés, archivos u objetos en memoria a los que acceden varios hilos) se realice de forma segura mediante el uso de tipos seguros para hilos y mecanismos de sincronización, como bloqueos o semáforos, con el fin de evitar condiciones de carrera y la corrupción de datos."
+    },
+    {
+      "reqId": "V15.4.2",
+      "sourceContentSha256": "2822cd62af64ffb9ecdde110a7fadb59314ddc357f097449f994ca1ca82bd64d",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Concurrencia segura",
+      "description": "Compruebe que las comprobaciones del estado de un recurso —como su existencia o sus permisos— y las acciones que dependen de ellas se realicen como una única operación atómica para evitar condiciones de carrera entre el momento de la comprobación y el momento del uso (TOCTOU). Por ejemplo, comprobar si un archivo existe antes de abrirlo, o verificar el acceso de un usuario antes de concedérselo."
+    },
+    {
+      "reqId": "V15.4.3",
+      "sourceContentSha256": "fedbfdf5d31ca128ed15f4196be51f914a162109ee9ffea6128cbbf91473f916",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Concurrencia segura",
+      "description": "Compruebe que los bloqueos se utilicen de forma coherente para evitar que los subprocesos se bloqueen, ya sea por esperarse unos a otros o por reintentar indefinidamente, y que la lógica de bloqueo permanezca dentro del código responsable de gestionar el recurso, a fin de garantizar que los bloqueos no puedan ser modificados de forma involuntaria o maliciosa por clases o código externos."
+    },
+    {
+      "reqId": "V15.4.4",
+      "sourceContentSha256": "5ef8043da706b88d7119196130dd9dcd27bf06d3e4a17462df055e2e919f370c",
+      "chapterName": "Codificación y arquitectura seguras",
+      "sectionName": "Concurrencia segura",
+      "description": "Verifique que las políticas de asignación de recursos eviten la «hambruna de subprocesos» garantizando un acceso equitativo a los recursos, por ejemplo, mediante el uso de grupos de subprocesos, lo que permite que los subprocesos de menor prioridad se ejecuten en un plazo razonable."
+    },
+    {
+      "reqId": "V16.1.1",
+      "sourceContentSha256": "f544bf72836480686798597afda01ef4274671718b6ff6730aee9142092a5716",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Documentación sobre el registro de seguridad",
+      "description": "Verifique que exista un inventario que documente el registro de eventos realizado en cada capa de la pila tecnológica de la aplicación, qué eventos se registran, los formatos de los registros, dónde se almacenan dichos registros, cómo se utilizan, cómo se controla el acceso a los mismos y durante cuánto tiempo se conservan."
+    },
+    {
+      "reqId": "V16.2.1",
+      "sourceContentSha256": "4a96b2e9c275f2e7004e930a78015904c70db61b587e84ebb6a96c73376cf57e",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Registro general",
+      "description": "Compruebe que cada entrada del registro incluya los metadatos necesarios (tales como cuándo, dónde, quién y qué) que permitan una investigación detallada de la cronología de los hechos cuando se produzca un incidente."
+    },
+    {
+      "reqId": "V16.2.2",
+      "sourceContentSha256": "49f70edfb5128f634abee44fb59e540fd44fda93dd11bd0b1e3af7c0576980a6",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Registro general",
+      "description": "Compruebe que las fuentes de tiempo de todos los componentes de registro estén sincronizadas y que las marcas de tiempo en los metadatos de los eventos de seguridad utilicen el UTC o incluyan un desfase horario explícito. Se recomienda el uso del UTC para garantizar la coherencia entre los sistemas distribuidos y evitar confusiones durante los cambios de horario de verano."
+    },
+    {
+      "reqId": "V16.2.3",
+      "sourceContentSha256": "bc3306e944f692cdd5380c4b6146aeda772ddeae6392aced335e3663d322a8fb",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Registro general",
+      "description": "Compruebe que la aplicación solo almacene o transmita registros a los archivos y servicios que figuran en el inventario de registros."
+    },
+    {
+      "reqId": "V16.2.4",
+      "sourceContentSha256": "9ca7137430777bbcf7b7db5806b1dccd74e0dd7663633e09ea4060e07de1d5f8",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Registro general",
+      "description": "Compruebe que el procesador de registros que se utilice pueda leer y correlacionar los registros, preferiblemente mediante un formato de registro común."
+    },
+    {
+      "reqId": "V16.2.5",
+      "sourceContentSha256": "d056aab0d50734acf7503802161267fc41a31b08f50bfd1cef6feb1a895fbd32",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Registro general",
+      "description": "Compruebe que, al registrar datos sensibles, la aplicación aplique un registro basado en el nivel de protección de los datos. Por ejemplo, puede que no esté permitido registrar determinados datos, como credenciales o datos de pago. Otros datos, como los tokens de sesión, solo pueden registrarse tras haber sido sometidos a un proceso de hash o enmascaramiento, ya sea total o parcialmente."
+    },
+    {
+      "reqId": "V16.3.1",
+      "sourceContentSha256": "efa0545bbf2e870c074360d9a69d81a89e74747d5629c2c8e6e22f5067b30f5e",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Incidentes de seguridad",
+      "description": "Compruebe que se registren todas las operaciones de autenticación, incluidos los intentos exitosos y los fallidos. También deben recopilarse metadatos adicionales, como el tipo de autenticación o los factores utilizados."
+    },
+    {
+      "reqId": "V16.3.2",
+      "sourceContentSha256": "b8de94025943cb805d64d57a70ab07c5276403524b200220fba10df2efa96e84",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Incidentes de seguridad",
+      "description": "Verifique que se registren los intentos fallidos de autorización. En el caso de «L3», esto debe incluir el registro de todas las decisiones de autorización, incluido el registro de los accesos a datos sensibles (sin registrar los datos sensibles en sí)."
+    },
+    {
+      "reqId": "V16.3.3",
+      "sourceContentSha256": "83b7ec7b55a4a850495f5485d0189d88af118087d80cdac2d2989b10ce499f2e",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Incidentes de seguridad",
+      "description": "Compruebe que la aplicación registre los eventos de seguridad definidos en la documentación, así como los intentos de eludir los controles de seguridad, tales como la validación de entradas, la lógica de negocio y las medidas contra la automatización."
+    },
+    {
+      "reqId": "V16.3.4",
+      "sourceContentSha256": "c1f59ded854daa776d8e65baeb6c72b398e9c92159efab81cfdd92b842073ff4",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Incidentes de seguridad",
+      "description": "Compruebe que la aplicación registre los errores inesperados y los fallos de los controles de seguridad, tales como los fallos de TLS en el backend."
+    },
+    {
+      "reqId": "V16.4.1",
+      "sourceContentSha256": "7d78e45a77aa9f216b8c94867761062b1204e87d31c5ba0220980801673fa31c",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Protección de registros",
+      "description": "Compruebe que todos los componentes de registro codifican adecuadamente los datos para evitar la inyección de registros."
+    },
+    {
+      "reqId": "V16.4.2",
+      "sourceContentSha256": "dac7bfdf03bb7cad2ac05c50f07012cdd0d2ddbba18f4e4f9f4e5ed5cf274d03",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Protección de registros",
+      "description": "Compruebe que los registros estén protegidos contra el acceso no autorizado y que no puedan modificarse."
+    },
+    {
+      "reqId": "V16.4.3",
+      "sourceContentSha256": "39e4867855b47724241f044bdf2bfd95a99f43c15aa27d6bd46ca588721f8880",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Protección de registros",
+      "description": "Verifique que los registros se transmiten de forma segura a un sistema lógicamente independiente para su análisis, detección, notificación de alertas y escalado. El objetivo es garantizar que, en caso de que se produzca una brecha de seguridad en la aplicación, los registros no se vean comprometidos."
+    },
+    {
+      "reqId": "V16.5.1",
+      "sourceContentSha256": "4beb04faab849c673f5da572bef047dca1f02a07bd03bb6561d7d2f7a14d52cf",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Gestión de errores",
+      "description": "Verifique que se devuelva un mensaje genérico al usuario cuando se produzca un error inesperado o que afecte a la seguridad, garantizando que no se revelen datos internos confidenciales del sistema, tales como trazas de pila, consultas, claves secretas y tokens."
+    },
+    {
+      "reqId": "V16.5.2",
+      "sourceContentSha256": "7ec23430d3cc93653ad1bd4eb11a0eb96327c3c102d8b7588e0be03be62e74dd",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Gestión de errores",
+      "description": "Compruebe que la aplicación siga funcionando de forma segura cuando falle el acceso a recursos externos, por ejemplo, mediante el uso de mecanismos como los «circuit breakers» o la degradación gradual."
+    },
+    {
+      "reqId": "V16.5.3",
+      "sourceContentSha256": "d51ff0c707f5fcb0d5f4c0c22fbd3f76fb0aac735051bca9c53d9b01be44b867",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Gestión de errores",
+      "description": "Verifique que la aplicación falle de forma controlada y segura, incluso cuando se produzca una excepción, evitando situaciones de «fallo abierto», como el procesamiento de una transacción a pesar de los errores derivados de la lógica de validación."
+    },
+    {
+      "reqId": "V16.5.4",
+      "sourceContentSha256": "9b934757d49014a1845c3fa58a96bab160a9fca616a9fd3d6b83121e03f4c6c5",
+      "chapterName": "Registro de seguridad y gestión de errores",
+      "sectionName": "Gestión de errores",
+      "description": "Compruebe que se haya definido un gestor de errores de «último recurso» que detecte todas las excepciones no gestionadas. El objetivo es, por un lado, evitar la pérdida de detalles de los errores que deben registrarse en los archivos de registro y, por otro, garantizar que un error no provoque la caída de todo el proceso de la aplicación, lo que daría lugar a una pérdida de disponibilidad."
+    },
+    {
+      "reqId": "V17.1.1",
+      "sourceContentSha256": "ed9cb2970adcf9e8d9b0516e2e61b66b23355c0b9669035d5ca5c9bc1e47443b",
+      "chapterName": "WebRTC",
+      "sectionName": "Servidor TURN",
+      "description": "Compruebe que el servicio TURN (Traversal Using Relays around NAT) solo permita el acceso a direcciones IP que no estén reservadas para fines especiales (por ejemplo, redes internas, difusión o bucle de retorno). Tenga en cuenta que esto se aplica tanto a las direcciones IPv4 como a las IPv6."
+    },
+    {
+      "reqId": "V17.1.2",
+      "sourceContentSha256": "e56cb62c7258b3d332288bfa88566cb773d5b84e847cf0a08946538d56806486",
+      "chapterName": "WebRTC",
+      "sectionName": "Servidor TURN",
+      "description": "Compruebe que el servicio TURN (Traversal Using Relays around NAT) no sea susceptible de agotamiento de recursos cuando los usuarios legítimos intenten abrir un gran número de puertos en el servidor TURN."
+    },
+    {
+      "reqId": "V17.2.1",
+      "sourceContentSha256": "56ca383931a566ad1e4c61d513bc9d5d137d192d8b5c770484a076ebb39ef258",
+      "chapterName": "WebRTC",
+      "sectionName": "Medios",
+      "description": "Verifique que la clave del certificado de Datagram Transport Layer Security (DTLS) se gestione y proteja de acuerdo con la política documentada para la gestión de claves criptográficas."
+    },
+    {
+      "reqId": "V17.2.2",
+      "sourceContentSha256": "d763572ed992b718b68202adc5fdffd66bc1613e9e1c55e27e35f6ebcb1344b5",
+      "chapterName": "WebRTC",
+      "sectionName": "Medios",
+      "description": "Verifique que el servidor multimedia esté configurado para utilizar y admitir conjuntos de cifrado aprobados de Datagram Transport Layer Security (DTLS), así como un perfil de protección seguro para la extensión DTLS destinada al establecimiento de claves para el Protocolo Seguro de Transporte en Tiempo Real (DTLS-SRTP)."
+    },
+    {
+      "reqId": "V17.2.3",
+      "sourceContentSha256": "3ab54a51058ff810010d36d019d7df5448de553d4cb1b0b30bb67f04351c1b0d",
+      "chapterName": "WebRTC",
+      "sectionName": "Medios",
+      "description": "Verifique que la autenticación mediante el Protocolo de transporte seguro en tiempo real (SRTP) se compruebe en el servidor multimedia para evitar que los ataques de inyección del Protocolo de transporte en tiempo real (RTP) provoquen una denegación de servicio o la inserción de contenido de audio o vídeo en las transmisiones multimedia."
+    },
+    {
+      "reqId": "V17.2.4",
+      "sourceContentSha256": "c7b7c63176883ce0e020182da26b53f930f9ad14c26dd87c93d837165739c9c7",
+      "chapterName": "WebRTC",
+      "sectionName": "Medios",
+      "description": "Verifique que el servidor multimedia sea capaz de continuar procesando el tráfico multimedia entrante cuando se encuentre con paquetes mal formados del Protocolo Seguro de Transporte en Tiempo Real (SRTP)."
+    },
+    {
+      "reqId": "V17.2.5",
+      "sourceContentSha256": "3a9a65d7784f94f41dde21faeea3674cd08148eb1a88d6f9c66eaa3b90ff94c1",
+      "chapterName": "WebRTC",
+      "sectionName": "Medios",
+      "description": "Verifique que el servidor multimedia sea capaz de seguir procesando el tráfico multimedia entrante durante una avalancha de paquetes del Protocolo Seguro de Transporte en Tiempo Real (SRTP) procedentes de usuarios legítimos."
+    },
+    {
+      "reqId": "V17.2.6",
+      "sourceContentSha256": "0949a9e516085b4584ca3532a57a4ca7ca4fc8bc8fa9a6965be06d9e3bffd190",
+      "chapterName": "WebRTC",
+      "sectionName": "Medios",
+      "description": "Compruebe que el servidor multimedia no sea susceptible a la vulnerabilidad de «condición de carrera» de «ClientHello» en el protocolo DTLS (Datagram Transport Layer Security), verificando si se sabe públicamente que el servidor multimedia es vulnerable o realizando la prueba de condición de carrera."
+    },
+    {
+      "reqId": "V17.2.7",
+      "sourceContentSha256": "491046e519e7a56f231610442df02e7cccb60a90e728eeb17f791273d74b42f8",
+      "chapterName": "WebRTC",
+      "sectionName": "Medios",
+      "description": "Verifique que cualquier mecanismo de grabación de audio o vídeo asociado al servidor multimedia sea capaz de seguir procesando el tráfico multimedia entrante durante una avalancha de paquetes del Protocolo Seguro de Transporte en Tiempo Real (SRTP) procedentes de usuarios legítimos."
+    },
+    {
+      "reqId": "V17.2.8",
+      "sourceContentSha256": "2456b84fd9669c80b4f73e64d534a2c072bc2df728dc2a20c93b7beddadcbf5f",
+      "chapterName": "WebRTC",
+      "sectionName": "Medios",
+      "description": "Verifique que el certificado de seguridad de la capa de transporte de datagramas (DTLS) se compare con el atributo de huella digital del Protocolo de Descripción de Sesión (SDP), interrumpiendo la transmisión multimedia si la comprobación falla, con el fin de garantizar la autenticidad de dicha transmisión."
+    },
+    {
+      "reqId": "V17.3.1",
+      "sourceContentSha256": "cec493832e8c43c3e975dc661a10e717995dc0ab60b915ea718031e25bf7414e",
+      "chapterName": "WebRTC",
+      "sectionName": "Señalización",
+      "description": "Compruebe que el servidor de señalización sea capaz de seguir procesando los mensajes de señalización legítimos entrantes durante un ataque de saturación. Esto debe lograrse mediante la implementación de una limitación de tasa a nivel de señalización."
+    },
+    {
+      "reqId": "V17.3.2",
+      "sourceContentSha256": "971e19dc7dfe7d21954a0c2f791c8ac7adb21201ba6231023d571c3290c6fda0",
+      "chapterName": "WebRTC",
+      "sectionName": "Señalización",
+      "description": "Verifique que el servidor de señalización sea capaz de continuar procesando mensajes de señalización legítimos cuando se encuentre con mensajes de señalización mal formados que puedan provocar una situación de denegación de servicio. Esto podría incluir la implementación de la validación de entradas, la gestión segura de desbordamientos de enteros, la prevención de desbordamientos de búfer y el empleo de otras técnicas robustas de gestión de errores."
+    }
+  ],
+  "terminologyRevision": 1
+}

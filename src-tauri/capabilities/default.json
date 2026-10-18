@@ -1,0 +1,6 @@
+{
+  "identifier": "main",
+  "description": "Solo la ventana principal; sin acceso genérico a archivos, terminal ni red externa.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

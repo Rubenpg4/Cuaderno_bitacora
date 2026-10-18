@@ -1,0 +1,344 @@
+@media (min-width: 1600px) {
+  .app-shell {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+  .sidebar {
+    width: 240px;
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+  .main-content {
+    padding: 40px 45px 0;
+  }
+  .page-heading h1 {
+    font-size: 32px;
+  }
+}
+@media (max-width: 1250px) {
+  .main-content {
+    max-width: 980px;
+  }
+  .page-heading {
+    flex-wrap: wrap;
+  }
+  .page-heading > .button {
+    margin-top: 0;
+  }
+  .report-intro {
+    flex-wrap: wrap;
+  }
+  .report-intro > .button {
+    margin-left: 87px;
+  }
+  .kanban {
+    grid-template-columns: repeat(4, minmax(210px, 1fr));
+  }
+  .save-status {
+    max-width: 110px;
+  }
+  .memory-summary {
+    flex-wrap: wrap;
+  }
+  .lock-story {
+    padding: 40px;
+  }
+  .lock-story h1 {
+    font-size: 35px;
+  }
+  .daily-metrics {
+    gap: 10px;
+  }
+  .daily-metrics > div {
+    font-size: 11px;
+    gap: 6px;
+  }
+}
+@media (max-width: 1000px) {
+  .topbar {
+    padding: 0 24px;
+  }
+  .practice-list {
+    grid-template-columns: 1fr;
+  }
+  .practice-card:last-child:nth-child(odd) {
+    grid-column: auto;
+    width: 100%;
+  }
+  .daily-metrics > div {
+    font-size: 12px;
+  }
+}
+@media (max-width: 720px) {
+  .app-shell {
+    display: block;
+  }
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.2s;
+    z-index: 55;
+    box-shadow: 10px 0 60px #18365340;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  .workspace {
+    width: 100%;
+  }
+  .menu-button {
+    display: flex;
+  }
+  .topbar {
+    height: 57px;
+    padding: 0 14px;
+  }
+  .breadcrumb {
+    font-size: 11px;
+    gap: 5px;
+  }
+  .search input {
+    width: 105px;
+    font-size: 11px;
+  }
+  .search kbd {
+    display: none;
+  }
+  .top-actions {
+    gap: 5px;
+  }
+  .main-content {
+    padding: 25px 19px 0;
+  }
+  .page-heading h1 {
+    font-size: 25px;
+  }
+  .page-heading p {
+    font-size: 12px;
+  }
+  .page-heading {
+    margin-bottom: 22px;
+  }
+  .daily-composer {
+    padding: 18px;
+  }
+  .daily-composer .section-heading {
+    flex-wrap: wrap;
+  }
+  .daily-composer .save-status {
+    max-width: none;
+    font-size: 10px;
+  }
+  .daily-composer .form-grid {
+    gap: 0 12px;
+  }
+  .field {
+    font-size: 13px;
+  }
+  .daily-metrics {
+    gap: 8px;
+  }
+  .daily-metrics strong {
+    font-size: 20px;
+  }
+  .daily-metrics > div {
+    font-size: 10px;
+    gap: 5px;
+  }
+  .metric-icon {
+    width: 28px;
+    height: 28px;
+  }
+  .metric-icon > svg {
+    width: 16px;
+  }
+  .task-row {
+    padding: 13px 10px;
+    gap: 8px;
+  }
+  .task-row-text strong {
+    font-size: 12px;
+  }
+  .task-row-text small {
+    font-size: 10px;
+  }
+  .task-row .badge {
+    font-size: 9px;
+  }
+  .upcoming-date-chip,
+  .overdue-date-chip {
+    font-size: 10px;
+    padding: 1px 5px;
+  }
+  .section-heading h2 {
+    font-size: 17px;
+  }
+  .button {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+  .meeting-callout {
+    padding: 16px 13px;
+    gap: 10px;
+  }
+  .meeting-callout strong {
+    font-size: 12px;
+  }
+  .meeting-callout p {
+    font-size: 10px;
+  }
+  .meeting-topics {
+    gap: 12px;
+  }
+  .meeting-topics p {
+    font-size: 10px;
+  }
+  .meeting-topics h3 {
+    font-size: 12px;
+  }
+  .report-intro {
+    padding: 19px;
+    gap: 14px;
+  }
+  .report-icon {
+    padding: 12px;
+  }
+  .report-intro h2 {
+    font-size: 17px;
+  }
+  .report-intro .button {
+    margin: 0;
+  }
+  .report-intro > div:nth-child(2) {
+    min-width: 150px;
+  }
+  .meeting-card {
+    padding: 16px;
+  }
+  .meeting-card > .row {
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  .memory-project {
+    flex-wrap: wrap;
+    padding: 16px;
+  }
+  .memory-project > .badge {
+    margin-left: 40px;
+  }
+  .timeline-date {
+    width: 40px;
+    font-size: 10px;
+  }
+  .timeline-item {
+    gap: 17px;
+  }
+  .journal-card {
+    padding: 16px;
+  }
+  .journal-card h2 {
+    font-size: 17px;
+  }
+  .journal-meta {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .board-toolbar p {
+    display: none;
+  }
+  .main-footer {
+    font-size: 9px;
+  }
+  .modal-backdrop {
+    padding: 12px;
+  }
+  .modal {
+    max-height: min(94dvh, calc(100dvh - 24px));
+    border-radius: 10px;
+    width: 100%;
+    max-width: 100%;
+  }
+  .modal.wide {
+    width: 100%;
+  }
+  .modal-head {
+    padding: 15px 18px;
+  }
+  .modal-head h2 {
+    font-size: 18px;
+  }
+  .modal-body {
+    padding: 20px 18px;
+  }
+  .check-editor .row {
+    flex-wrap: wrap;
+  }
+  .form-footer {
+    gap: 10px;
+  }
+  .form-footer > .muted {
+    font-size: 10px;
+  }
+  .tabbar {
+    gap: 15px;
+  }
+  .tabbar button {
+    font-size: 11px;
+  }
+  .lock-screen {
+    grid-template-columns: 1fr;
+  }
+  .lock-story {
+    padding: 25px 30px;
+    gap: 25px;
+  }
+  .lock-story h1 {
+    font-size: 25px;
+    margin: 10px 0;
+  }
+  .lock-story > div > p {
+    font-size: 13px;
+  }
+  .lock-illustration {
+    display: none;
+  }
+  .lock-foot {
+    display: none;
+  }
+  .unlock-card {
+    padding: 28px;
+    max-width: 440px;
+  }
+  .unlock-card h2 {
+    font-size: 26px;
+  }
+  .unlock-card .badge {
+    display: none;
+  }
+}
+@media (max-width: 400px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .search {
+    display: none;
+  }
+  .daily-metrics > div {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .task-row .badge {
+    max-width: 65px;
+    white-space: normal;
+  }
+  .page-heading h1 {
+    font-size: 23px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *:before,
+  *:after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
