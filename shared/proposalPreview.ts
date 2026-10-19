@@ -41,6 +41,8 @@ function checkChange(proposal: Proposal, record?: RecordItem): PreviewChange[] {
 
 export function proposalChanges(proposal: Proposal, record?: RecordItem): PreviewChange[] {
   if (proposal.operation === 'check') return checkChange(proposal, record);
+  if (proposal.operation === 'delete')
+    return [{ field: 'delete', before: record?.title ?? 'Registro', after: 'Se eliminará' }];
   return Object.entries(proposal.patch)
     .filter(([field]) => !hiddenFields.has(field))
     .flatMap(([field, after]) => {

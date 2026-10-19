@@ -91,6 +91,7 @@ function previewValue(field: string, value: unknown, records: Snapshot['records'
 }
 
 function previewField(field: string, records: Snapshot['records']): string {
+  if (field === 'delete') return 'Eliminación';
   if (!field.startsWith('check:')) return fieldNames[field] || field;
   const id = field.slice('check:'.length);
   const practice = records.find((record) => record.id === id);
@@ -179,12 +180,14 @@ export default function Assistants({
   snapshot,
   refresh,
   focusProposalId,
+  currentSubprojectId,
   proposalSoundEnabled,
   toggleProposalSound,
 }: {
   snapshot: Snapshot;
   refresh: () => Promise<void>;
   focusProposalId?: string;
+  currentSubprojectId?: string;
   proposalSoundEnabled: boolean;
   toggleProposalSound: () => void;
 }) {
@@ -197,7 +200,10 @@ export default function Assistants({
     [selectedProjects] = useState<string[]>(() =>
       snapshot.records.filter((record) => record.kind === 'project').map((record) => record.id),
     ),
-    [selectedScopes, setSelectedScopes] = useState<string[]>([GENERAL_SCOPE]),
+    // Starts with «General» plus the subproject open in the sidebar, if any.
+    [selectedScopes, setSelectedScopes] = useState<string[]>(() =>
+      currentSubprojectId ? [GENERAL_SCOPE, currentSubprojectId] : [GENERAL_SCOPE],
+    ),
     [config, setConfig] = useState(''),
     [activeTab, setActiveTab] = useState<'connect' | 'proposals'>(() =>
       snapshot.proposals.some((p) => p.status === 'pending') ||
@@ -229,6 +235,15 @@ export default function Assistants({
     setProvider('claude');
     checkClaudeIdentity();
   }, [corporate]);
+  // Each client keeps one session; its scopes and permission prefill the form for renewal.
+  const providerGrant = snapshot.grants.find(
+    (grant) => grant.provider === provider && grant.scope === 'projects',
+  );
+  useEffect(() => {
+    if (!providerGrant) return;
+    setSelectedScopes(grantScopes(providerGrant));
+    setCanCompleteTasks(providerGrant.canCompleteTasks === true);
+  }, [provider]);
   const projects = snapshot.records.filter((record) => record.kind === 'project');
   const activeChildren = subprojectsOf(snapshot.records).filter(
     (child) => child.status === 'Activo',
@@ -382,6 +397,7 @@ export default function Assistants({
         mcpPath: string;
         dataDir: string;
         expiresAt: string;
+        renewed: boolean;
       }>('grant', {
         provider,
         projectIds: selectedProjects,
@@ -421,7 +437,7 @@ export default function Assistants({
       }
       setConfig(formattedConfig);
       setMessage(
-        `Sesión creada hasta las ${new Date(g.expiresAt).toLocaleTimeString('es-ES')}. Se revoca al bloquear Bitácora.`,
+        `Sesión ${g.renewed ? 'renovada' : 'creada'} hasta las ${new Date(g.expiresAt).toLocaleTimeString('es-ES')}. Se revoca al bloquear Bitácora.`,
       );
     });
   }
@@ -611,7 +627,10 @@ export default function Assistants({
                   }
                   onClick={() => void createGrant()}
                 >
-                  <KeyRound size={16} /> Crear sesión para este cuaderno
+                  <KeyRound size={16} />{' '}
+                  {providerGrant
+                    ? 'Renovar sesión para este cuaderno'
+                    : 'Crear sesión para este cuaderno'}
                 </Button>
               </section>
               {config && (
@@ -674,6 +693,7 @@ export default function Assistants({
                     <div className="row" style={{ gap: 8, alignItems: 'center' }}>
                       <Button
                         variant="secondary"
+                        disabled={!grantedScopes.length}
                         onClick={() =>
                           void run(async () => {
                             const renewed = await api<{ id: string; expiresAt: string }>(
@@ -681,6 +701,7 @@ export default function Assistants({
                               {
                                 id: g.id,
                                 durationMinutes: effectiveDuration,
+                                scopes: grantedScopes,
                               },
                             );
                             setMessage(
@@ -879,7 +900,9 @@ export default function Assistants({
                                 const requiresBatch = conflict && canAcceptGroup;
                                 const acceptLabel = canAcceptGroup
                                   ? `Aceptar criterios y completar tarea (${reviewGroup.length})`
-                                  : 'Aceptar cambios';
+                                  : p.operation === 'delete'
+                                    ? 'Aceptar eliminación'
+                                    : 'Aceptar cambios';
                                 const isProposalOpen = !!openProposals[p.id];
                                 const proposalDescription =
                                   p.rationale ||
@@ -934,7 +957,9 @@ export default function Assistants({
                                                   ? 'Creación'
                                                   : p.operation === 'check'
                                                     ? 'Verificación'
-                                                    : 'Actualización'}
+                                                    : p.operation === 'delete'
+                                                      ? 'Eliminación'
+                                                      : 'Actualización'}
                                               </Badge>
                                               <Badge>{names[p.provider]}</Badge>
                                             </div>
@@ -972,6 +997,13 @@ export default function Assistants({
                                             Esta verificación se aceptará junto con el cierre de la
                                             tarea.
                                           </p>
+                                        )}
+                                        {p.operation === 'delete' && (
+                                          <Notice error>
+                                            {original?.kind === 'task' && original.recurrence
+                                              ? 'Al aceptar se cancela esta aparición de la serie.'
+                                              : 'Al aceptar, el registro y su historial se eliminan definitivamente, como al borrarlo desde su editor.'}
+                                          </Notice>
                                         )}
                                         <dl className="diff">
                                           {proposalChanges(p, original).map((change) => (
@@ -1048,7 +1080,8 @@ export default function Assistants({
               })}
               <p className="muted">
                 Los cambios aceptados se pueden deshacer desde el historial del registro. Las
-                creaciones se conservan para mantener sus referencias.
+                creaciones se conservan para mantener sus referencias. Las eliminaciones aceptadas
+                no se pueden deshacer.
               </p>
             </>
           )}

@@ -44,6 +44,8 @@ Bitácora es un cuaderno de ingeniería y gestión de proyectos local (offline-f
    - **Convergencia de tareas de programación:** Contrasta cada criterio de aceptación con implementación, pruebas o revisión; ejecuta las comprobaciones y la compilación pertinentes según \`AGENTS.md\`, actualiza la documentación afectada y registra evidencias concretas. Reconcilia cualquier cambio de alcance con la especificación y el plan antes de dar el trabajo por terminado. Documenta decisiones duraderas con motivo, responsable y siguiente paso cuando proceda; protege los datos privados del cuaderno.
    - Siempre incluye una justificación clara en \`rationale\`.
 
+   - **Borrado:** \`proponer_eliminacion\` con versión y motivo; la acepta una persona.
+
 6. **Seguimiento de propuestas (\`consultar_propuestas\`):**
    - Permite consultar si las propuestas enviadas siguen pendientes, fueron aceptadas o rechazadas.
 

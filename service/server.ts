@@ -535,7 +535,11 @@ export async function startServer(
           case '/api/renew-grant': {
             const durationMinutes =
               d.durationMinutes === undefined ? undefined : Number(d.durationMinutes);
-            send(res, 200, domain.renewGrant(d.id, durationMinutes, await corporateOrgId(true)));
+            send(
+              res,
+              200,
+              domain.renewGrant(d.id, durationMinutes, await corporateOrgId(true), d.scopes),
+            );
             break;
           }
           case '/api/revoke-grant':

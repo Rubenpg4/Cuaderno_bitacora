@@ -51,7 +51,13 @@ export function taskCompletionReviewGroup(proposal: Proposal, pending: Proposal[
 export function planProposalReview(proposals: Proposal[], records: RecordItem[]) {
   const ordered = [...proposals].sort((a, b) => {
     const rank = (p: Proposal) =>
-      p.operation === 'check' ? 0 : p.patch.state === 'Completada' ? 2 : 1;
+      p.operation === 'check'
+        ? 0
+        : p.operation === 'delete'
+          ? 3
+          : p.patch.state === 'Completada'
+            ? 2
+            : 1;
     return rank(a) - rank(b);
   });
   const accepted: Proposal[] = [];
@@ -59,6 +65,7 @@ export function planProposalReview(proposals: Proposal[], records: RecordItem[])
   const fields = new Map<string, Map<string, unknown>>();
   const ids = new Set<string>();
   const rebasedChecks = new Set<string>();
+  const deleted = new Set<string>();
   const reviewingClosures = new Set(
     proposals
       .filter((p) => p.previousTaskState !== undefined && p.patch.state === 'Completada')
@@ -98,6 +105,15 @@ export function planProposalReview(proposals: Proposal[], records: RecordItem[])
       proposal.operation === 'check'
         ? ([[`checks:${String(proposal.patch.practiceId)}`, proposal.patch]] as const)
         : Object.entries(proposal.patch);
+    // Deletions run last, so any earlier change to the same record would be lost.
+    if (proposal.targetId && deleted.has(proposal.targetId)) {
+      conflicts.set(proposal.id, 'Otra propuesta del lote ya elimina este registro.');
+      continue;
+    }
+    if (proposal.operation === 'delete' && targetFields?.size) {
+      conflicts.set(proposal.id, 'Otra propuesta del lote modifica el registro que se eliminaría.');
+      continue;
+    }
     const overlap = changes.find(
       ([key, value]) => targetFields?.has(key) && !sameValue(targetFields.get(key), value),
     );
@@ -109,6 +125,7 @@ export function planProposalReview(proposals: Proposal[], records: RecordItem[])
       continue;
     }
     accepted.push(proposal);
+    if (proposal.operation === 'delete' && proposal.targetId) deleted.add(proposal.targetId);
     if (proposal.operation === 'check' && record?.version !== proposal.expectedVersion)
       rebasedChecks.add(proposal.id);
     if (targetFields && proposal.targetId) {

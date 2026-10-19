@@ -1476,33 +1476,40 @@ export class Domain {
     });
   }
   deleteTask(id: string, expectedVersion: number) {
+    return this.transaction(() => this.discardTask(id, expectedVersion));
+  }
+  /** Rejects deleting a recurring occurrence that can no longer be cancelled. */
+  private assertTaskDiscardable(task: RecordItem | undefined, expectedVersion: number) {
+    if (task?.kind !== 'task' || !task.recurrence) return;
+    if (task.state === 'Completada')
+      throw Error('Una aparición completada conserva su historial y no se cancela.');
+    if (task.recurrence.canceledAt) throw Error('La aparición ya está cancelada.');
+    if (task.version !== expectedVersion) throw Error('La tarea ha cambiado. Vuelve a abrirla.');
+    if (this.activeProjectId && task.project !== this.activeProjectId)
+      throw Error('Tarea fuera del cuaderno activo.');
+  }
+  /** Cancels a recurring occurrence or removes a single task; the caller owns the transaction. */
+  private discardTask(id: string, expectedVersion: number) {
     const task = this.require().records.find((record) => record.id === id);
+    this.assertTaskDiscardable(task, expectedVersion);
     if (task?.kind === 'task' && task.recurrence) {
-      if (task.state === 'Completada')
-        throw Error('Una aparición completada conserva su historial y no se cancela.');
-      if (task.recurrence.canceledAt) throw Error('La aparición ya está cancelada.');
-      if (task.version !== expectedVersion) throw Error('La tarea ha cambiado. Vuelve a abrirla.');
-      if (this.activeProjectId && task.project !== this.activeProjectId)
-        throw Error('Tarea fuera del cuaderno activo.');
-      return this.transaction(() => {
-        this.write(
-          'task',
-          {
-            ...task,
-            recurrence: {
-              ...task.recurrence,
-              canceledAt: new Date().toISOString(),
-              cancellationReason: 'manual',
-            },
+      this.write(
+        'task',
+        {
+          ...task,
+          recurrence: {
+            ...task.recurrence,
+            canceledAt: new Date().toISOString(),
+            cancellationReason: 'manual',
           },
-          id,
-          expectedVersion,
-          'Cancelación de aparición',
-        );
-        return { ok: true };
-      });
+        },
+        id,
+        expectedVersion,
+        'Cancelación de aparición',
+      );
+      return { ok: true };
     }
-    return this.deleteRecord('task', id, expectedVersion);
+    return this.removeRecord('task', id, expectedVersion);
   }
   deleteIncident(id: string, expectedVersion: number) {
     return this.deleteRecord('incident', id, expectedVersion);
@@ -1530,144 +1537,142 @@ export class Domain {
     return this.deleteRecord('objective', id, expectedVersion);
   }
   private deleteRecord(kind: Kind, id: string, expectedVersion: number) {
-    return this.transaction(() => {
-      const s = this.require();
-      const recordToDelete = s.records.find((r) => r.id === id);
-      const labels = {
-        task: 'tarea',
-        incident: 'incidencia',
-        entry: 'entrada',
-        decision: 'decisión',
-        idea: 'idea',
-        meeting: 'reunión',
-        project: 'proyecto',
-        subproject: 'subproyecto',
-        practice: 'política o criterio',
-        objective: 'objetivo',
-      };
-      const label = labels[kind];
-      if (!recordToDelete || recordToDelete.kind !== kind)
-        throw Error(
-          `${label[0].toUpperCase()}${label.slice(1)} no encontrad${kind === 'project' || kind === 'practice' ? 'o' : 'a'}.`,
-        );
-      if (recordToDelete.version !== expectedVersion)
-        throw Error(
-          `Conflicto: ${kind === 'project' || kind === 'practice' ? 'el' : 'la'} ${label} ha cambiado. Vuelve a abrirl${kind === 'project' || kind === 'practice' ? 'o' : 'a'}.`,
-        );
-      this.assertWritable(recordToDelete);
-      s.records = s.records.filter((r) => r.id !== id);
-      for (const capture of s.captures ?? []) {
-        if (capture.linkedRecordId === id) {
-          delete capture.linkedRecordId;
-          capture.version++;
-          capture.updatedAt = new Date().toISOString();
-        }
+    return this.transaction(() => this.removeRecord(kind, id, expectedVersion));
+  }
+  /** Removes a record and its references; the caller owns the transaction. */
+  private removeRecord(kind: Kind, id: string, expectedVersion: number) {
+    const s = this.require();
+    const recordToDelete = s.records.find((r) => r.id === id);
+    const labels = {
+      task: 'tarea',
+      incident: 'incidencia',
+      entry: 'entrada',
+      decision: 'decisión',
+      idea: 'idea',
+      meeting: 'reunión',
+      project: 'proyecto',
+      subproject: 'subproyecto',
+      practice: 'política o criterio',
+      objective: 'objetivo',
+    };
+    const label = labels[kind];
+    if (!recordToDelete || recordToDelete.kind !== kind)
+      throw Error(
+        `${label[0].toUpperCase()}${label.slice(1)} no encontrad${kind === 'project' || kind === 'practice' ? 'o' : 'a'}.`,
+      );
+    if (recordToDelete.version !== expectedVersion)
+      throw Error(
+        `Conflicto: ${kind === 'project' || kind === 'practice' ? 'el' : 'la'} ${label} ha cambiado. Vuelve a abrirl${kind === 'project' || kind === 'practice' ? 'o' : 'a'}.`,
+      );
+    this.assertWritable(recordToDelete);
+    s.records = s.records.filter((r) => r.id !== id);
+    for (const capture of s.captures ?? []) {
+      if (capture.linkedRecordId === id) {
+        delete capture.linkedRecordId;
+        capture.version++;
+        capture.updatedAt = new Date().toISOString();
       }
-      delete (s.drafts ??= {})[`record:${id}`];
-      if (recordToDelete.kind === 'entry') {
-        const dailyKey = `daily:${recordToDelete.date}:${recordToDelete.project || 'none'}${recordToDelete.subprojectId ? `:${recordToDelete.subprojectId}` : ''}`;
-        if (s.drafts?.[dailyKey]?.id === id) delete s.drafts[dailyKey];
+    }
+    delete (s.drafts ??= {})[`record:${id}`];
+    if (recordToDelete.kind === 'entry') {
+      const dailyKey = `daily:${recordToDelete.date}:${recordToDelete.project || 'none'}${recordToDelete.subprojectId ? `:${recordToDelete.subprojectId}` : ''}`;
+      if (s.drafts?.[dailyKey]?.id === id) delete s.drafts[dailyKey];
+    }
+    for (const record of s.records) {
+      if (kind === 'project' && record.project === id) {
+        const before = structuredClone(record);
+        record.project = '';
+        record.version++;
+        record.updatedAt = new Date().toISOString();
+        s.history.unshift({
+          id: randomUUID(),
+          recordId: record.id,
+          at: record.updatedAt,
+          actor: 'Eliminación de proyecto',
+          before,
+          after: structuredClone(record),
+        });
       }
-      for (const record of s.records) {
-        if (kind === 'project' && record.project === id) {
+      if (kind === 'task' && record.kind === 'entry')
+        record.taskIds = record.taskIds.filter((taskId) => taskId !== id);
+      if (record.kind === 'entry' && record.linkedIds)
+        record.linkedIds = record.linkedIds.filter((linkedId) => linkedId !== id);
+      if (kind === 'task' && record.kind === 'task' && record.dependencyIds.includes(id)) {
+        const before = structuredClone(record);
+        record.dependencyIds = record.dependencyIds.filter((dependencyId) => dependencyId !== id);
+        record.version++;
+        record.updatedAt = new Date().toISOString();
+        s.history.unshift({
+          id: randomUUID(),
+          recordId: record.id,
+          at: record.updatedAt,
+          actor: 'Eliminación de dependencia',
+          before,
+          after: structuredClone(record),
+        });
+      }
+      if (record.kind === 'meeting') {
+        record.sourceIds = record.sourceIds.filter((sourceId) => sourceId !== id);
+        if (kind === 'task' && record.agreementItems?.some((item) => item.followUpTaskId === id)) {
           const before = structuredClone(record);
-          record.project = '';
+          record.agreementItems = record.agreementItems.map((item) =>
+            item.followUpTaskId === id ? { ...item, followUpTaskId: undefined } : item,
+          );
           record.version++;
           record.updatedAt = new Date().toISOString();
           s.history.unshift({
             id: randomUUID(),
             recordId: record.id,
             at: record.updatedAt,
-            actor: 'Eliminación de proyecto',
-            before,
-            after: structuredClone(record),
-          });
-        }
-        if (kind === 'task' && record.kind === 'entry')
-          record.taskIds = record.taskIds.filter((taskId) => taskId !== id);
-        if (record.kind === 'entry' && record.linkedIds)
-          record.linkedIds = record.linkedIds.filter((linkedId) => linkedId !== id);
-        if (kind === 'task' && record.kind === 'task' && record.dependencyIds.includes(id)) {
-          const before = structuredClone(record);
-          record.dependencyIds = record.dependencyIds.filter((dependencyId) => dependencyId !== id);
-          record.version++;
-          record.updatedAt = new Date().toISOString();
-          s.history.unshift({
-            id: randomUUID(),
-            recordId: record.id,
-            at: record.updatedAt,
-            actor: 'Eliminación de dependencia',
-            before,
-            after: structuredClone(record),
-          });
-        }
-        if (record.kind === 'meeting') {
-          record.sourceIds = record.sourceIds.filter((sourceId) => sourceId !== id);
-          if (
-            kind === 'task' &&
-            record.agreementItems?.some((item) => item.followUpTaskId === id)
-          ) {
-            const before = structuredClone(record);
-            record.agreementItems = record.agreementItems.map((item) =>
-              item.followUpTaskId === id ? { ...item, followUpTaskId: undefined } : item,
-            );
-            record.version++;
-            record.updatedAt = new Date().toISOString();
-            s.history.unshift({
-              id: randomUUID(),
-              recordId: record.id,
-              at: record.updatedAt,
-              actor: 'Eliminación de tarea de seguimiento',
-              before,
-              after: structuredClone(record),
-            });
-          }
-        }
-        if (record.kind === 'objective') {
-          const links = record.links.filter((link) => link.sourceId !== id);
-          if (links.length !== record.links.length)
-            this.reviseObjective(record, links, 'Eliminación de registro vinculado');
-        }
-        if (
-          kind === 'practice' &&
-          record.kind === 'task' &&
-          record.checks?.some((c) => c.practiceId === id)
-        ) {
-          const before = structuredClone(record);
-          record.checks = record.checks.filter((c) => c.practiceId !== id);
-          record.version++;
-          record.updatedAt = new Date().toISOString();
-          s.history.unshift({
-            id: randomUUID(),
-            recordId: record.id,
-            at: record.updatedAt,
-            actor: 'Eliminación de criterio',
+            actor: 'Eliminación de tarea de seguimiento',
             before,
             after: structuredClone(record),
           });
         }
       }
-      if (kind === 'project') {
-        for (const [key, draft] of Object.entries(s.drafts ?? {})) {
-          if (draft.project !== id) continue;
-          draft.project = '';
-          if (key.startsWith('daily:') && key.endsWith(`:${id}`)) {
-            const destination = `${key.slice(0, -id.length)}none`;
-            if (!s.drafts?.[destination]) s.drafts![destination] = draft;
-            delete s.drafts![key];
-          }
+      if (record.kind === 'objective') {
+        const links = record.links.filter((link) => link.sourceId !== id);
+        if (links.length !== record.links.length)
+          this.reviseObjective(record, links, 'Eliminación de registro vinculado');
+      }
+      if (
+        kind === 'practice' &&
+        record.kind === 'task' &&
+        record.checks?.some((c) => c.practiceId === id)
+      ) {
+        const before = structuredClone(record);
+        record.checks = record.checks.filter((c) => c.practiceId !== id);
+        record.version++;
+        record.updatedAt = new Date().toISOString();
+        s.history.unshift({
+          id: randomUUID(),
+          recordId: record.id,
+          at: record.updatedAt,
+          actor: 'Eliminación de criterio',
+          before,
+          after: structuredClone(record),
+        });
+      }
+    }
+    if (kind === 'project') {
+      for (const [key, draft] of Object.entries(s.drafts ?? {})) {
+        if (draft.project !== id) continue;
+        draft.project = '';
+        if (key.startsWith('daily:') && key.endsWith(`:${id}`)) {
+          const destination = `${key.slice(0, -id.length)}none`;
+          if (!s.drafts?.[destination]) s.drafts![destination] = draft;
+          delete s.drafts![key];
         }
       }
-      s.history = s.history.filter((h) => h.recordId !== id);
-      const revoked = s.shares.filter((share) => share.recordId === id).map((share) => share.id);
-      s.shares = s.shares.filter((share) => share.recordId !== id);
-      for (const [grantId, grant] of this.grants)
-        if (grant.shareIds.some((shareId) => revoked.includes(shareId)))
-          this.grants.delete(grantId);
-      for (const proposal of s.proposals)
-        if (proposal.targetId === id && proposal.status === 'pending') proposal.status = 'rejected';
-      return { ok: true };
-    });
+    }
+    s.history = s.history.filter((h) => h.recordId !== id);
+    const revoked = s.shares.filter((share) => share.recordId === id).map((share) => share.id);
+    s.shares = s.shares.filter((share) => share.recordId !== id);
+    for (const [grantId, grant] of this.grants)
+      if (grant.shareIds.some((shareId) => revoked.includes(shareId))) this.grants.delete(grantId);
+    for (const proposal of s.proposals)
+      if (proposal.targetId === id && proposal.status === 'pending') proposal.status = 'rejected';
+    return { ok: true };
   }
   syncCriteria(id: string, version: number) {
     return this.transaction(() => {
@@ -1863,6 +1868,29 @@ export class Domain {
         'La duración de la sesión debe ser un número entero entre 15 minutos y 8 horas (480 minutos).',
       );
     const token = randomBytes(32).toString('base64url');
+    // One session per client: creating it again renews the live one with the current choices.
+    const current = [...this.grants.values()].find(
+      (grant) =>
+        grant.provider === provider &&
+        grant.scope === scope &&
+        grant.profileVersion === s.mcpProfileVersion &&
+        this.corporateMatches(s, grant, corporateOrgId) &&
+        Date.parse(grant.expiresAt) > Date.now(),
+    );
+    for (const [key, grant] of this.grants)
+      if (grant.provider === provider && grant.scope === scope && grant !== current)
+        this.grants.delete(key);
+    if (current) {
+      Object.assign(current, {
+        shareIds: ids,
+        projectIds,
+        ...(scope === 'projects' ? { scopes: [...scopes] } : {}),
+        canCompleteTasks,
+        expiresAt: new Date(Date.now() + durationMinutes * 60000).toISOString(),
+        hash: createHash('sha256').update(token).digest('hex'),
+      });
+      return { id: current.id, token, expiresAt: current.expiresAt, renewed: true };
+    }
     const id = randomUUID();
     const g: Grant = {
       id,
@@ -1878,12 +1906,14 @@ export class Domain {
       ...(s.mcpProfile === 'corporativo' && { orgId: corporateOrgId }),
     };
     this.grants.set(id, g);
-    return { id, token, expiresAt: g.expiresAt };
+    return { id, token, expiresAt: g.expiresAt, renewed: false };
   }
+  /** Extends a live project session and, when given, replaces its scopes with the current ones. */
   renewGrant(
     id: string,
     durationMinutes: number = DEFAULT_SESSION_DURATION_MINUTES,
     corporateOrgId?: string,
+    scopes?: string[],
   ) {
     const state = this.require();
     const grant = this.grants.get(id);
@@ -1904,8 +1934,10 @@ export class Domain {
       throw Error(
         'La duración de la sesión debe ser un número entero entre 15 minutos y 8 horas (480 minutos).',
       );
+    if (scopes !== undefined) this.validateGrantScopes(scopes);
     grant.expiresAt = new Date(Date.now() + durationMinutes * 60000).toISOString();
-    return { id: grant.id, expiresAt: grant.expiresAt };
+    if (scopes !== undefined) grant.scopes = [...scopes];
+    return { id: grant.id, expiresAt: grant.expiresAt, scopes: grantScopes(grant) };
   }
   revokeGrant(id: string) {
     this.grants.delete(id);
@@ -2541,6 +2573,7 @@ export class Domain {
       throw Error('Registro o versión no autorizados.');
     if (d.targetId && s.records.find((r) => r.id === d.targetId)?.kind !== d.kind)
       throw Error('Tipo inválido.');
+    if (d.operation === 'delete') return this.proposeDeletion(g, d, target!);
     if (
       d.kind === 'task' &&
       d.operation === 'update' &&
@@ -2777,6 +2810,34 @@ export class Domain {
       };
     });
   }
+  /** A deletion carries no field changes and stays pending until a person accepts it. */
+  private proposeDeletion(g: Grant, d: z.infer<typeof proposalSchema>, target: RecordItem) {
+    const s = this.require();
+    if (Object.keys(d.patch).length) throw Error('Una propuesta de eliminación no admite patch.');
+    if (!d.rationale.trim()) throw Error('Explica en rationale el motivo de la eliminación.');
+    const targetScope = scopeOf(target) || GENERAL_SCOPE;
+    // A child session sees general practices but must not remove what other scopes rely on.
+    if (g.scope === 'projects' && !effectiveGrantScopes(g, s.records).includes(targetScope))
+      throw Error('El ámbito del registro no está autorizado en esta sesión.');
+    this.assertWritable(target);
+    this.assertTaskDiscardable(target, target.version);
+    if (target.kind === 'practice' && target.mandatory)
+      throw Error('Una práctica obligatoria se elimina desde su editor, no mediante propuestas.');
+    return this.transaction(() => {
+      const p: Proposal = {
+        ...d,
+        patch: {},
+        id: randomUUID(),
+        provider: g.provider,
+        projectId: target.project,
+        targetScope,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
+      s.proposals.unshift(p);
+      return { id: p.id, status: p.status };
+    });
+  }
   proposalStatus(g: Grant) {
     const state = this.require();
     const visibleIds = new Set(this.visible(g).map((share) => share.recordId));
@@ -2795,7 +2856,12 @@ export class Domain {
             ? !!p.projectId &&
               g.projectIds.includes(p.projectId) &&
               (p.targetId
-                ? visibleIds.has(p.targetId)
+                ? visibleIds.has(p.targetId) ||
+                  // An accepted deletion keeps reporting to the scope that held the record.
+                  (p.operation === 'delete' &&
+                    !!p.targetScope &&
+                    scopes.includes(p.targetScope) &&
+                    !state.records.some((record) => record.id === p.targetId))
                 : scopes.includes(scopeOf(p.patch as { subprojectId?: string }) || GENERAL_SCOPE))
             : !p.targetId || visibleIds.has(p.targetId) || grantedIds.has(p.targetId)),
       )
@@ -2912,6 +2978,17 @@ export class Domain {
       return p;
     }
     const before = s.records.find((r) => r.id === p.targetId);
+    if (p.operation === 'delete') {
+      if (!before || before.kind !== p.kind) throw Error('El registro ya no existe.');
+      if (before.kind === 'practice' && before.mandatory)
+        throw Error('Una práctica obligatoria se elimina desde su editor, no mediante propuestas.');
+      if (expectedVersion === undefined) throw Error('Falta la versión del registro.');
+      if (before.kind === 'task') this.discardTask(before.id, expectedVersion);
+      else this.removeRecord(before.kind, before.id, expectedVersion);
+      // Removal rejects pending proposals on the record, this one included.
+      p.status = 'accepted';
+      return p;
+    }
     let data = { ...(before || blank(p.kind)), ...p.patch } as Record<string, unknown>;
     if (p.kind === 'entry' && p.entryMentionIds) {
       const mentionedIds = [...p.entryMentionIds.taskIds, ...p.entryMentionIds.linkedIds];

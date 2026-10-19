@@ -212,7 +212,7 @@ export const schemas = {
 };
 export const proposalSchema = z
   .object({
-    operation: z.enum(['create', 'update', 'check']),
+    operation: z.enum(['create', 'update', 'check', 'delete']),
     kind: z.enum([
       'task',
       'entry',

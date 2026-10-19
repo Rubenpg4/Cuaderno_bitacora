@@ -285,6 +285,21 @@ server.registerTool(
   (args) => call('propose', args),
 );
 server.registerTool(
+  'proponer_eliminacion',
+  {
+    description:
+      'Propone eliminar una tarea, entrada de diario, incidencia, idea, práctica, decisión o reunión autorizada. Requiere targetId y expectedVersion actuales de leer_elementos, y un motivo concreto en rationale. El registro debe pertenecer a un ámbito autorizado; proyectos, subproyectos, objetivos y prácticas obligatorias no se eliminan por MCP. En una aparición de una serie recurrente, aceptar la propuesta cancela esa aparición. Nada se borra hasta que la persona acepta la propuesta en Bitácora; canCompleteTasks no la acepta. Propón eliminar solo duplicados, registros obsoletos o los que la persona haya pedido retirar.',
+    inputSchema: {
+      kind: z.enum(['task', 'entry', 'incident', 'idea', 'practice', 'decision', 'meeting']),
+      targetId: z.string(),
+      expectedVersion: z.number().int(),
+      rationale: z.string().min(1).max(2000),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+  },
+  (args) => call('propose', { ...args, operation: 'delete', patch: {} }),
+);
+server.registerTool(
   'consultar_propuestas',
   {
     description:

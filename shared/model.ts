@@ -266,10 +266,12 @@ export interface Share {
 export interface Proposal {
   id: string;
   provider: Provider;
-  operation: 'create' | 'update' | 'check';
+  operation: 'create' | 'update' | 'check' | 'delete';
   kind: Kind;
   targetId?: string;
   projectId?: string;
+  /** Ámbito del registro cuya eliminación se propone; lo conserva tras borrarlo. */
+  targetScope?: string;
   expectedVersion?: number;
   previousTaskState?: Task['state'];
   patch: Record<string, unknown>;

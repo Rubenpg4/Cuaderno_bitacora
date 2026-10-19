@@ -1980,6 +1980,114 @@ describe('fecha real de finalización y entradas diarias', () => {
     expect(() => d.renewGrant(g.id, 60)).toThrow('no disponible');
   });
 
+  it('mantiene una sesión por cliente y renueva la existente al crearla de nuevo', () => {
+    const project = d.save('project', { ...blank('project'), title: 'Proyecto sesión única' });
+    d.settings({ companyAuthorized: true, universityStructure: '' });
+    const first = d.grant('codex', [], 'projects', [project.id], 15);
+    const other = d.grant('claude', [], 'projects', [project.id]);
+    expect(first.renewed).toBe(false);
+
+    const again = d.grant('codex', [], 'projects', [project.id], 120, true);
+    expect(again).toMatchObject({ id: first.id, renewed: true });
+    expect(Date.parse(again.expiresAt)).toBeGreaterThan(Date.parse(first.expiresAt));
+    expect([...d.grants.values()].filter((g) => g.provider === 'codex')).toHaveLength(1);
+    expect(d.grants.get(first.id)?.canCompleteTasks).toBe(true);
+    // The token rotates with the connector file; the previous one stops working.
+    expect(() => d.authorize(first.token)).toThrow('revocada');
+    expect(d.authorize(again.token).id).toBe(first.id);
+    expect(d.authorize(other.token).provider).toBe('claude');
+
+    d.grants.get(first.id)!.expiresAt = new Date(0).toISOString();
+    const replaced = d.grant('codex', [], 'projects', [project.id]);
+    expect(replaced.renewed).toBe(false);
+    expect(d.grants.has(first.id)).toBe(false);
+  });
+
+  it('propone eliminaciones que solo se aplican al aceptarlas', () => {
+    const project = d.save('project', { ...blank('project'), title: 'Proyecto borrado' });
+    d.settings({ companyAuthorized: true, universityStructure: '' });
+    const auth = d.authorize(d.grant('codex', [], 'projects', [project.id]).token);
+    const entry = d.save('entry', {
+      ...blank('entry'),
+      title: 'Entrada duplicada',
+      project: project.id,
+    }) as Entry;
+    const remove = (input: Record<string, unknown>) =>
+      d.propose(auth, {
+        operation: 'delete',
+        kind: 'entry',
+        targetId: entry.id,
+        expectedVersion: entry.version,
+        patch: {},
+        rationale: 'Duplicada de la entrada del lunes',
+        ...input,
+      });
+
+    expect(() => remove({ patch: { title: 'Otro' } })).toThrow('no admite patch');
+    expect(() => remove({ rationale: '  ' })).toThrow('motivo');
+    expect(() => remove({ expectedVersion: entry.version + 1 })).toThrow('no autorizados');
+    expect(() =>
+      d.propose(auth, {
+        operation: 'delete',
+        kind: 'project',
+        targetId: project.id,
+        expectedVersion: project.version,
+        patch: {},
+        rationale: 'No',
+      }),
+    ).toThrow('edición humana');
+    const mandatory = practice({ project: project.id, mandatory: true });
+    expect(() =>
+      d.propose(auth, {
+        operation: 'delete',
+        kind: 'practice',
+        targetId: mandatory.id,
+        expectedVersion: mandatory.version,
+        patch: {},
+        rationale: 'Obsoleta',
+      }),
+    ).toThrow('obligatoria');
+
+    const proposal = remove({});
+    expect(proposal.status).toBe('pending');
+    expect(remove({}).id).toBe(proposal.id);
+    expect(d.require().records.some((r) => r.id === entry.id)).toBe(true);
+
+    expect(d.review(proposal.id, true).status).toBe('accepted');
+    expect(d.require().records.some((r) => r.id === entry.id)).toBe(false);
+    expect(d.proposalStatus(auth)).toContainEqual(
+      expect.objectContaining({ id: proposal.id, status: 'accepted' }),
+    );
+  });
+
+  it('no acepta en el mismo lote cambios y eliminación de un registro', () => {
+    const project = d.save('project', { ...blank('project'), title: 'Proyecto lote borrado' });
+    d.settings({ companyAuthorized: true, universityStructure: '' });
+    const auth = d.authorize(d.grant('codex', [], 'projects', [project.id]).token);
+    const t = task({ project: project.id });
+    const update = d.propose(auth, {
+      operation: 'update',
+      kind: 'task',
+      targetId: t.id,
+      expectedVersion: t.version,
+      patch: { nextStep: 'Revisar' },
+      rationale: 'Ajuste',
+    });
+    const remove = d.propose(auth, {
+      operation: 'delete',
+      kind: 'task',
+      targetId: t.id,
+      expectedVersion: t.version,
+      patch: {},
+      rationale: 'Duplicada',
+    });
+    expect(() => d.reviewBatch([remove.id, update.id], true)).toThrow('se eliminaría');
+    expect(d.require().records.some((r) => r.id === t.id)).toBe(true);
+    expect(d.reviewBatch([remove.id], true)[0].status).toBe('accepted');
+    expect(d.require().records.some((r) => r.id === t.id)).toBe(false);
+    expect(d.require().proposals.find((p) => p.id === update.id)?.status).toBe('rejected');
+  });
+
   it('permite aceptar propuestas en lote mediante reviewBatch', () => {
     const project = d.save('project', { ...blank('project'), title: 'Proyecto Lote' });
     d.settings({ companyAuthorized: true, universityStructure: '' });
@@ -2096,7 +2204,7 @@ describe('fecha real de finalización y entradas diarias', () => {
     const criterion = practice({ project: project.id, mandatory: true });
     const t = task({ project: project.id, state: 'En curso' });
     d.settings({ companyAuthorized: true, universityStructure: '' });
-    const ordinary = d.authorize(d.grant('codex', [], 'projects', [project.id]).token);
+    const ordinary = d.authorize(d.grant('claude', [], 'projects', [project.id]).token);
     const allowed = d.authorize(d.grant('codex', [], 'projects', [project.id], 60, true).token);
     const check = d.propose(allowed, {
       operation: 'check',

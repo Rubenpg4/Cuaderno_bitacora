@@ -2128,6 +2128,7 @@ export default function App() {
               snapshot={snapshot}
               refresh={refresh}
               focusProposalId={dialog.proposalId}
+              currentSubprojectId={selectedChild?.id}
               proposalSoundEnabled={proposalSoundEnabled}
               toggleProposalSound={toggleProposalSound}
             />

@@ -3679,6 +3679,12 @@ test('puede abrir una sesión MCP para el cuaderno activo', async ({ page }) => 
       canCompleteTasks: true,
     }),
   );
+  // A second click on the same client renews its session instead of opening another one.
+  await page.getByRole('button', { name: 'Renovar sesión para este cuaderno' }).click();
+  await expect(page.getByText('Sesión renovada hasta', { exact: false })).toBeVisible();
+  expect(
+    (await call('snapshot')).grants.filter((g: { provider: string }) => g.provider === 'codex'),
+  ).toHaveLength(1);
   await page.getByLabel('Cliente').selectOption('claude');
   await page.getByRole('button', { name: 'Crear sesión para este cuaderno' }).click();
   const config = JSON.parse(await page.locator('pre.config').innerText());
@@ -3693,6 +3699,67 @@ test('puede abrir una sesión MCP para el cuaderno activo', async ({ page }) => 
   const copiedSkill = await page.evaluate(() => navigator.clipboard.readText());
   expect(copiedSkill.replace(/\r\n/g, '\n')).toBe(
     readFileSync('.agents/skills/bitacora-mcp/SKILL.md', 'utf8').replace(/\r\n/g, '\n'),
+  );
+});
+
+test('MCP propone eliminar una entrada y solo se borra al aceptar', async ({ page }) => {
+  await unlock(page);
+  const { blank } = await import('../service/domain');
+  const project = (await call('snapshot')).records.find(
+    (record: { kind: string }) => record.kind === 'project',
+  );
+  const entry = await call('save', {
+    kind: 'entry',
+    data: { ...blank('entry'), project: project.id, title: 'Entrada repetida' },
+  });
+  await call('settings', { companyAuthorized: true, universityStructure: '' });
+  await call('grant', { provider: 'codex', scope: 'projects', projectIds: [project.id] });
+  const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+  const { StdioClientTransport } = await import('@modelcontextprotocol/sdk/client/stdio.js');
+  const client = new Client({ name: 'test-delete', version: '1.0.0' });
+  await client.connect(
+    new StdioClientTransport({
+      command: process.execPath,
+      args: [resolve('dist-service/mcp.cjs')],
+      env: {
+        ...(process.env as Record<string, string>),
+        BITACORA_DATA_DIR: dir,
+        BITACORA_PROVIDER: 'codex',
+      },
+    }),
+  );
+  const proposal = await client.callTool({
+    name: 'proponer_eliminacion',
+    arguments: {
+      kind: 'entry',
+      targetId: entry.id,
+      expectedVersion: entry.version,
+      rationale: 'Duplica la entrada de ayer',
+    },
+  });
+  expect(proposal.isError).not.toBe(true);
+  await client.close();
+  expect((await call('snapshot')).records.some((r: { id: string }) => r.id === entry.id)).toBe(
+    true,
+  );
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Asistentes', exact: false }).click();
+  await page
+    .locator('.tabbar')
+    .getByRole('button', { name: /Propuestas/ })
+    .click();
+  await page.getByRole('button', { name: /Entradas/ }).click();
+  const card = page.locator('.proposal').filter({ hasText: 'Entrada repetida' });
+  await expect(card.getByText('Eliminación', { exact: true })).toBeVisible();
+  await card.getByRole('button', { name: 'Aceptar eliminación' }).click();
+  await page
+    .getByRole('dialog', { name: 'Vista previa de aceptación' })
+    .getByRole('button', { name: 'Aceptar 1 propuesta' })
+    .click();
+  await expect(page.locator('.proposal')).toHaveCount(0);
+  expect((await call('snapshot')).records.some((r: { id: string }) => r.id === entry.id)).toBe(
+    false,
   );
 });
 
@@ -3868,7 +3935,7 @@ test('MCP desde los tres clientes: solo el cuaderno activo y propuestas revisada
       scope: 'projects',
       projectIds: [project.id],
     });
-    await call('revoke-grant', { id: grant.id });
+    expect(renewed).toMatchObject({ id: grant.id, renewed: true });
     expect((await client.callTool({ name: 'estado_sesion', arguments: {} })).isError).not.toBe(
       true,
     );

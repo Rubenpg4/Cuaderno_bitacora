@@ -5,7 +5,13 @@ import { join } from 'node:path';
 import { blank, type Domain } from '../service/domain';
 import { Vault, migrateSubprojects } from '../service/vault';
 import { Workspaces } from '../service/workspaces';
-import { applicable, type Practice, type Snapshot, type Task } from '../shared/model';
+import {
+  applicable,
+  type Practice,
+  type Provider,
+  type Snapshot,
+  type Task,
+} from '../shared/model';
 import { grantSees, inSelection, scopePath } from '../shared/subprojects';
 
 const password = 'contraseña larga del cuaderno';
@@ -33,9 +39,9 @@ function child(title: string) {
 function task(extra: Record<string, unknown> = {}) {
   return domain.save('task', { ...blank('task'), title: 'Tarea', ...extra }) as Task;
 }
-function sessionFor(scopes: string[], canCompleteTasks = false) {
+function sessionFor(scopes: string[], canCompleteTasks = false, provider: Provider = 'claude') {
   domain.settings({ companyAuthorized: true, universityStructure: '' });
-  const g = domain.grant('claude', [], 'projects', [projectId], 60, canCompleteTasks, scopes);
+  const g = domain.grant(provider, [], 'projects', [projectId], 60, canCompleteTasks, scopes);
   return domain.authorize(g.token);
 }
 
@@ -194,7 +200,7 @@ describe('modelo y gestión de subproyectos', () => {
       },
       rationale: 'Idea',
     });
-    const childOnly = sessionFor([api.id]);
+    const childOnly = sessionFor([api.id], false, 'codex');
     const archived = domain.setSubprojectStatus(api.id, api.version, 'Archivado');
     expect(archived).toMatchObject({ status: 'Archivado', version: 2 });
     expect(archived.archivedAt).toBeTruthy();
@@ -426,6 +432,40 @@ describe('permisos MCP por ámbito', () => {
       }),
     ).toThrow('no está autorizada');
     expect(domain.proposalStatus(session)).toHaveLength(1);
+  });
+
+  it('actualiza los ámbitos al renovar y limita las eliminaciones al ámbito del registro', () => {
+    const api = child('API');
+    const web = child('Web');
+    const general = domain.save('practice', {
+      ...blank('practice'),
+      title: 'Práctica general',
+      project: projectId,
+      status: 'Recomendación personal',
+    }) as Practice;
+    const apiTask = task({ subprojectId: api.id });
+    const session = sessionFor([api.id]);
+    const remove = (target: { id: string; version: number; kind: string }) =>
+      domain.propose(session, {
+        operation: 'delete',
+        kind: target.kind,
+        targetId: target.id,
+        expectedVersion: target.version,
+        patch: {},
+        rationale: 'Obsoleto',
+      });
+    expect(() => remove(general)).toThrow('ámbito del registro');
+    expect(remove(apiTask).status).toBe('pending');
+
+    expect(domain.renewGrant(session.id, 60, undefined, ['general', web.id]).scopes).toEqual([
+      'general',
+      web.id,
+    ]);
+    expect(domain.grants.get(session.id)?.scopes).toEqual(['general', web.id]);
+    expect(() => domain.renewGrant(session.id, 60, undefined, [])).toThrow('Selecciona');
+    expect(domain.grants.get(session.id)?.scopes).toEqual(['general', web.id]);
+    expect(sessionFor(['general']).id).toBe(session.id);
+    expect(domain.grants.get(session.id)?.scopes).toEqual(['general']);
   });
 
   it('exige la verificación corporativa también en subproyectos', () => {
