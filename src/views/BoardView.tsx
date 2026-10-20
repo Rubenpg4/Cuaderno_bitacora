@@ -20,6 +20,8 @@ import {
   type Task,
 } from '../../shared/model';
 import { Badge } from '../ui';
+import { MarkdownPreview } from '../Markdown';
+import { markdownToPlainText } from '../../shared/markdown';
 import { isOverdueTask, compareBoardTasks } from '../taskFilters';
 import CalendarMonths from './CalendarMonths';
 import CopyRecordId from '../CopyRecordId';
@@ -335,7 +337,13 @@ export default function BoardView({
                         </Badge>
                       </div>
                       <h3>{incident.title}</h3>
-                      <p>{incident.description || 'Sin descripción detallada.'}</p>
+                      <p>
+                        {incident.description ? (
+                          <MarkdownPreview source={incident.description} />
+                        ) : (
+                          'Sin descripción detallada.'
+                        )}
+                      </p>
                       <div className="incident-card-date">
                         <CalendarDays size={14} />
                         <span>{taskDateLabel(incident.date)}</span>
@@ -384,9 +392,11 @@ export default function BoardView({
                           </span>
                           <h3>{task.title}</h3>
                           <p>
-                            {task.description ||
-                              task.nextStep ||
-                              'Añade contexto al abrir la tarea.'}
+                            {task.description || task.nextStep ? (
+                              <MarkdownPreview source={task.description || task.nextStep} />
+                            ) : (
+                              'Añade contexto al abrir la tarea.'
+                            )}
                           </p>
                           <div className="card-tags">
                             <Badge>{task.phase}</Badge>
@@ -465,7 +475,9 @@ export default function BoardView({
                       {incident.solution && (
                         <div className="incident-solution-preview">
                           <strong>Solución</strong>
-                          <p title={incident.solution}>{incident.solution}</p>
+                          <p title={markdownToPlainText(incident.solution)}>
+                            <MarkdownPreview source={incident.solution} />
+                          </p>
                         </div>
                       )}
                       <div className="incident-card-date">

@@ -95,4 +95,14 @@ describe('guía canónica de MCP y skill portátil', () => {
       expect(source).toContain('nivel objetivo');
     }
   });
+
+  it('pide redactar en Markdown los textos largos que la app muestra compilados', () => {
+    const skill = readFileSync('.agents/skills/bitacora-mcp/SKILL.md', 'utf8');
+    for (const source of [MCP_GUIDE_TEXT, skill]) {
+      expect(source).toContain('Formato Markdown');
+      expect(source).toContain('- [ ]');
+      expect(source).toContain('Sin HTML');
+      expect(source).toMatch(/description`? en Markdown/);
+    }
+  });
 });

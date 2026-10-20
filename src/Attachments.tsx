@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FileText, Image as ImageIcon, Paperclip, Upload, X } from 'lucide-react';
 import type { Attachment } from '../shared/model';
+import { Markdown } from './Markdown';
 
 const mimeByExtension: Record<string, string> = {
   png: 'image/png',
@@ -58,7 +59,7 @@ function AttachmentItem({
         {attachment.mime.startsWith('image/') ? (
           <img className="attachment-image" src={url} alt={attachment.name} />
         ) : attachment.mime === 'text/markdown' ? (
-          <pre className="attachment-markdown">{markdown}</pre>
+          <Markdown className="attachment-markdown" source={markdown} />
         ) : (
           <iframe
             className="attachment-pdf"

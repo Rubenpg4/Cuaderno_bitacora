@@ -72,6 +72,7 @@ import {
   saveProposalSoundEnabled,
 } from './app/proposalSound';
 import RecordEditor from './RecordEditor';
+import { Markdown, MarkdownPreview } from './Markdown';
 import CopyRecordId from './CopyRecordId';
 import DailyComposer from './DailyComposer';
 import { mentionSummaryText } from './EntryMentions';
@@ -1556,9 +1557,13 @@ export default function App() {
                               </Badge>
                             </span>
                             <small>
-                              {incident.resolvedDate === day
-                                ? `Resuelta: ${incident.solution}`
-                                : incident.description}
+                              {incident.resolvedDate === day ? (
+                                <>
+                                  Resuelta: <MarkdownPreview source={incident.solution} />
+                                </>
+                              ) : (
+                                <MarkdownPreview source={incident.description} />
+                              )}
                             </small>
                           </span>
                           <ChevronRight size={16} />
@@ -1584,7 +1589,9 @@ export default function App() {
                         <BookOpen size={18} style={{ flexShrink: 0 }} />
                         <span>
                           <strong>{decision.title}</strong>
-                          <small>{decision.decision || decision.problem}</small>
+                          <small>
+                            <MarkdownPreview source={decision.decision || decision.problem} />
+                          </small>
                         </span>
                         <ChevronRight size={16} />
                       </button>
@@ -1608,7 +1615,9 @@ export default function App() {
                         <Lightbulb size={18} style={{ flexShrink: 0 }} />
                         <span>
                           <strong>{idea.title}</strong>
-                          <small>{idea.description}</small>
+                          <small>
+                            <MarkdownPreview source={idea.description} />
+                          </small>
                         </span>
                         <ChevronRight size={16} />
                       </button>
@@ -1866,7 +1875,7 @@ export default function App() {
                     {m.agreements && (
                       <>
                         <h4>Acuerdos</h4>
-                        <p className="preserve">{m.agreements}</p>
+                        <Markdown source={m.agreements} />
                         <Button
                           variant="ghost"
                           onClick={() =>
@@ -1966,7 +1975,7 @@ export default function App() {
                           <Button variant="ghost" onClick={() => openRecord(objective)}>
                             <h3>{objective.title}</h3>
                           </Button>
-                          <p>{objective.description}</p>
+                          <Markdown source={objective.description} />
                           <Badge
                             tone={objective.validation.state === 'Validado' ? 'green' : 'amber'}
                           >

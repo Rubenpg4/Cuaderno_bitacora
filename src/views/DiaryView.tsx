@@ -2,6 +2,7 @@ import { AlertCircle, ChevronRight, FileText, Lightbulb, NotebookPen } from 'luc
 import type { Decision, Entry, Idea, Incident, RecordItem } from '../../shared/model';
 import { Badge, Empty } from '../ui';
 import { MentionText } from '../EntryMentions';
+import { MarkdownPreview } from '../Markdown';
 import CopyRecordId from '../CopyRecordId';
 
 type DiaryMode = 'entries' | 'incidents' | 'decisions' | 'ideas';
@@ -75,15 +76,17 @@ export default function DiaryView({
                 </div>
                 <h2>{record.title}</h2>
                 <p>
-                  {record.kind === 'entry' ? (
-                    <MentionText value={record.activity} records={allRecords} onOpen={openRecord} />
-                  ) : record.kind === 'incident' ? (
-                    record.description
-                  ) : record.kind === 'decision' ? (
-                    record.problem
-                  ) : (
-                    record.description
-                  )}
+                  <MarkdownPreview
+                    source={
+                      record.kind === 'entry'
+                        ? record.activity
+                        : record.kind === 'decision'
+                          ? record.problem
+                          : record.description
+                    }
+                    records={allRecords}
+                    onOpenRecord={openRecord}
+                  />
                 </p>
                 {record.kind === 'entry' &&
                   (record.taskIds.length > 0 || !!record.linkedIds?.length) && (
@@ -110,7 +113,11 @@ export default function DiaryView({
                         ? `Resuelta el ${record.resolvedDate}`
                         : 'Pendiente de resolver'}
                     </strong>
-                    {record.solution && <p>{record.solution}</p>}
+                    {record.solution && (
+                      <p>
+                        <MarkdownPreview source={record.solution} />
+                      </p>
+                    )}
                   </div>
                 )}
                 {record.kind === 'entry' && (
@@ -127,13 +134,25 @@ export default function DiaryView({
                 {record.kind === 'decision' && (
                   <div className="decision-preview">
                     <strong>Decisión</strong>
-                    <p>{record.decision || 'Pendiente de decidir'}</p>
+                    <p>
+                      {record.decision ? (
+                        <MarkdownPreview source={record.decision} />
+                      ) : (
+                        'Pendiente de decidir'
+                      )}
+                    </p>
                   </div>
                 )}
                 {record.kind === 'idea' && (
                   <div className="decision-preview">
                     <strong>Idea</strong>
-                    <p>{record.description || 'Sin descripción'}</p>
+                    <p>
+                      {record.description ? (
+                        <MarkdownPreview source={record.description} />
+                      ) : (
+                        'Sin descripción'
+                      )}
+                    </p>
                   </div>
                 )}
               </button>

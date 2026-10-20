@@ -1,0 +1,286 @@
+/* Markdown compilado: lectura completa, vista previa en tarjetas y campos con conmutador. */
+.markdown-body {
+  --md-code-bg: color-mix(in srgb, var(--ink) 7%, transparent);
+  --md-soft: color-mix(in srgb, var(--blue) 7%, transparent);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.6;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.markdown-body > :first-child {
+  margin-top: 0;
+}
+.markdown-body > :last-child {
+  margin-bottom: 0;
+}
+.markdown-body p {
+  margin: 0 0 0.6em;
+}
+.markdown-body .md-heading {
+  margin: 1em 0 0.4em;
+  line-height: 1.3;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.markdown-body .md-h1 {
+  font-size: 17px;
+  font-weight: 700;
+}
+.markdown-body .md-h2 {
+  font-size: 15px;
+  font-weight: 650;
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid var(--line);
+}
+.markdown-body .md-h3 {
+  font-size: 14px;
+  font-weight: 650;
+}
+.markdown-body .md-h4,
+.markdown-body .md-h5,
+.markdown-body .md-h6 {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0 0 0.6em;
+  padding-left: 1.45em;
+}
+.markdown-body li {
+  margin: 0.15em 0;
+}
+.markdown-body ul > li::marker {
+  color: var(--blue);
+}
+.markdown-body ol > li::marker {
+  color: var(--muted);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.markdown-body .md-item-body > p,
+.markdown-body .md-item-body > ul,
+.markdown-body .md-item-body > ol {
+  margin-bottom: 0.2em;
+}
+.markdown-body .md-item-body > :last-child {
+  margin-bottom: 0;
+}
+.markdown-body li.md-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  list-style: none;
+  margin-left: -1.3em;
+}
+.markdown-body .md-item-body {
+  flex: 1;
+  min-width: 0;
+}
+.md-task-mark {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-top: 0.3em;
+  border: 1.5px solid color-mix(in srgb, var(--muted) 70%, transparent);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+}
+.md-task-mark.checked {
+  background: var(--green);
+  border-color: var(--green);
+}
+.markdown-body li.md-task:has(.md-task-mark.checked) .md-item-body {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--muted) 60%, transparent);
+}
+.markdown-body blockquote {
+  margin: 0 0 0.6em;
+  padding: 0.45em 0.9em;
+  border-left: 3px solid color-mix(in srgb, var(--blue) 55%, transparent);
+  border-radius: 0 6px 6px 0;
+  background: var(--md-soft);
+  color: color-mix(in srgb, var(--ink) 80%, var(--muted));
+}
+.markdown-body code,
+.markdown-preview code {
+  font-family: 'Cascadia Code', Consolas, ui-monospace, monospace;
+  font-size: 0.88em;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: var(--md-code-bg, color-mix(in srgb, var(--ink) 7%, transparent));
+}
+.markdown-body pre {
+  position: relative;
+  margin: 0 0 0.6em;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f6f9fc;
+  overflow: auto;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.markdown-body pre[data-lang]::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 5px;
+  right: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.markdown-body pre code {
+  padding: 0;
+  background: none;
+  white-space: pre;
+  font-size: inherit;
+}
+.markdown-body hr {
+  margin: 0.9em 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.markdown-body a {
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--blue) 45%, transparent);
+}
+.markdown-body a:hover {
+  text-decoration-color: currentColor;
+}
+.markdown-body del {
+  color: var(--muted);
+}
+.markdown-body .md-table {
+  margin: 0 0 0.6em;
+  overflow-x: auto;
+}
+.markdown-body table {
+  border-collapse: collapse;
+  font-size: 12.5px;
+  min-width: 50%;
+}
+.markdown-body th,
+.markdown-body td {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.markdown-body th {
+  font-weight: 650;
+  background: var(--md-soft);
+}
+.markdown-body tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--ink) 2.5%, transparent);
+}
+
+/* Vista previa compacta: todo en línea para respetar el recorte de las tarjetas. */
+.markdown-preview strong {
+  font-weight: 650;
+}
+.markdown-preview .md-link {
+  color: var(--blue);
+}
+.markdown-preview .md-preview-item {
+  margin-right: 0.3em;
+}
+.markdown-preview .md-task-mark {
+  display: inline-grid;
+  width: 11px;
+  height: 11px;
+  margin: 0 0.3em 0 0;
+  font-size: 8px;
+  vertical-align: -1px;
+}
+
+/* Campo con conmutador Visual/Editor. */
+.markdown-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+.markdown-field-head > label,
+.markdown-field-label {
+  color: #354c66;
+  min-width: 0;
+}
+.markdown-switch {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.markdown-switch:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.markdown-switch-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  color: var(--muted);
+  transition:
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+.markdown-switch-option[data-active='true'] {
+  background: var(--paper);
+  color: var(--blue);
+  box-shadow: 0 1px 2px rgba(23, 47, 77, 0.14);
+}
+.markdown-switch:hover .markdown-switch-option[data-active='false'] {
+  color: var(--ink);
+}
+.markdown-view {
+  width: 100%;
+  min-height: 2.6em;
+  padding: 10px 12px;
+  border: 1px solid #e3eaf2;
+  border-radius: 6px;
+  background: #fbfcfe;
+}
+.modal .markdown-view {
+  max-height: 40dvh;
+  overflow-y: auto;
+}
+.markdown-empty {
+  display: block;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--muted);
+  border-style: dashed;
+  cursor: text;
+}
+.markdown-empty:hover {
+  border-color: color-mix(in srgb, var(--blue) 45%, transparent);
+}

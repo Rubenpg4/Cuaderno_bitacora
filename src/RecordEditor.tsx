@@ -47,6 +47,7 @@ import TaskRecurrenceFields from './TaskRecurrenceFields';
 import TaskPicker from './TaskPicker';
 import CopyRecordId from './CopyRecordId';
 import { MentionEditor } from './EntryMentions';
+import { MarkdownField } from './MarkdownField';
 import { entryMentionFields, linksFromEntryText } from './entryLinks';
 import { useDraft } from './useDraft';
 import ObjectiveLinks from './ObjectiveLinks';
@@ -241,38 +242,47 @@ export default function RecordEditor({
             (!data.project || r.project === data.project),
         )
       : [];
-  const input = (key: string, multi = false, label = labels[key] || key, placeholder?: string) => (
-    <Field label={label} key={key}>
-      {multi && kind === 'entry' ? (
-        <MentionEditor
-          value={data[key] || ''}
-          onChange={(value) => change(key, value)}
-          records={snapshot.records}
-          onOpen={(linked) =>
-            void flush()
-              .then(() => onOpenRecord?.(linked))
-              .catch((e) => setError(e.message))
-          }
-          ariaLabel={label}
-          rows={key === 'activity' ? 4 : 2}
-          placeholder={placeholder}
-        />
-      ) : multi ? (
-        <AutoTextarea
-          value={String(data[key] || '')}
-          onChange={(e) => change(key, e.target.value)}
-          rows={key === 'body' ? 12 : 3}
-        />
-      ) : (
+  const openLinked = (linked: RecordItem) =>
+    void flush()
+      .then(() => onOpenRecord?.(linked))
+      .catch((e) => setError(e.message));
+  const input = (key: string, multi = false, label = labels[key] || key, placeholder?: string) =>
+    multi ? (
+      <MarkdownField
+        key={key}
+        label={label}
+        value={String(data[key] || '')}
+        records={snapshot.records}
+        onOpenRecord={openLinked}
+      >
+        {kind === 'entry' ? (
+          <MentionEditor
+            value={data[key] || ''}
+            onChange={(value) => change(key, value)}
+            records={snapshot.records}
+            onOpen={openLinked}
+            ariaLabel={label}
+            rows={key === 'activity' ? 4 : 2}
+            placeholder={placeholder}
+          />
+        ) : (
+          <AutoTextarea
+            value={String(data[key] || '')}
+            onChange={(e) => change(key, e.target.value)}
+            rows={key === 'body' ? 12 : 3}
+          />
+        )}
+      </MarkdownField>
+    ) : (
+      <Field label={label} key={key}>
         <input
           value={data[key] || ''}
           onChange={(e) => change(key, e.target.value)}
           required={key === 'title'}
           maxLength={key === 'title' ? 240 : 16000}
         />
-      )}
-    </Field>
-  );
+      </Field>
+    );
   const select = (key: string, label: string, options: readonly string[]) => (
     <Field label={label}>
       <select value={data[key]} onChange={(e) => change(key, e.target.value)}>
@@ -836,21 +846,22 @@ export default function RecordEditor({
               </div>
             </div>
           )}
-          <Field label="¿En qué has avanzado?">
+          <MarkdownField
+            label="¿En qué has avanzado?"
+            value={String(data.activity || '')}
+            records={snapshot.records}
+            onOpenRecord={openLinked}
+          >
             <MentionEditor
               value={data.activity || ''}
               onChange={(value) => change('activity', value)}
               records={snapshot.records}
-              onOpen={(linked) =>
-                void flush()
-                  .then(() => onOpenRecord?.(linked))
-                  .catch((cause) => setError((cause as Error).message))
-              }
+              onOpen={openLinked}
               rows={4}
               placeholder="Describe tu avance o escribe @ para vincular un registro…"
               ariaLabel="¿En qué has avanzado?"
             />
-          </Field>
+          </MarkdownField>
           <div className="form-grid">
             {input('result', true, 'Resultado', 'Qué ha quedado hecho o más claro')}
             {input('learning', true, 'Aprendizaje', 'Algo que te llevas de hoy')}

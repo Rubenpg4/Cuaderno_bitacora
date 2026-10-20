@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -43,6 +43,13 @@ async function unlock(page: Page) {
   await page.getByLabel('Repite la contraseña').fill('Prueba de bitácora segura');
   await page.getByRole('button', { name: 'Crear mi bitácora' }).click();
   await expect(page.getByRole('heading', { name: 'Un día más, un paso adelante.' })).toBeVisible();
+}
+function markdownSwitch(scope: Page | Locator, label: string) {
+  const page = 'page' in scope ? scope.page() : scope;
+  return scope
+    .locator('.markdown-field')
+    .filter({ has: page.locator('.markdown-field-head').getByText(label, { exact: true }) })
+    .getByRole('switch', { name: 'Editar en Markdown' });
 }
 async function call(action: string, data: unknown = {}) {
   const r = await fetch(`${url}/api/${action}`, {
@@ -1652,7 +1659,9 @@ test('adjunta Markdown al crear una tarea y permite consultarlo y quitarlo', asy
   await page.getByRole('button', { name: /Tarea con evidencia/ }).click();
   const reopened = page.getByRole('dialog', { name: 'Editar tarea' });
   await reopened.getByText('Vista previa').click();
-  await expect(reopened.locator('.attachment-markdown')).toContainText('# Evidencia de prueba');
+  await expect(
+    reopened.locator('.attachment-markdown').getByRole('heading', { name: 'Evidencia de prueba' }),
+  ).toBeVisible();
   await reopened.getByRole('button', { name: 'Quitar evidencia.md' }).click();
   await reopened.getByRole('button', { name: 'Guardar cambios' }).click();
   await expect(reopened).toHaveCount(0);
@@ -2437,7 +2446,9 @@ test('los campos multilínea del popup crecen, se reducen y conservan el acceso 
     .getByRole('button', { name: 'Comprobar altura de campos', exact: true })
     .click();
   const edit = page.getByRole('dialog', { name: 'Editar tarea' });
+  await markdownSwitch(edit, 'Descripción').click();
   const existing = edit.getByLabel('Descripción', { exact: true });
+  await expect(existing).toBeFocused();
   await expect
     .poll(() => existing.evaluate((element) => element.scrollHeight > element.clientHeight))
     .toBe(true);
@@ -2447,6 +2458,8 @@ test('los campos multilínea del popup crecen, se reducen y conservan el acceso 
     .toBeLessThanOrEqual(initialHeight + 1);
   await existing.focus();
   await expect(existing).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(markdownSwitch(edit, 'Solución')).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(edit.getByLabel('Solución', { exact: true })).toBeFocused();
 });
@@ -2879,7 +2892,7 @@ test('el editor prioriza la entrada guardada frente a un borrador de una versió
   await page.reload();
   await page.getByRole('button', { name: 'Diario', exact: true }).click();
   await page.locator('.journal-card').filter({ hasText: 'Avance del día' }).click();
-  const activity = page.getByRole('textbox', { name: '¿En qué has avanzado?' });
+  const activity = page.getByRole('group', { name: '¿En qué has avanzado?' });
   await expect(activity).toContainText('@Tarea vinculada');
   await expect(activity).not.toContainText(task.id);
   await expect(page.getByText('Hay un borrador de una versión anterior.')).toBeVisible();
@@ -3600,11 +3613,53 @@ test('recupera un formulario de tarea incompleto y lo limpia al crear', async ({
   await page.reload();
   await page.getByRole('button', { name: 'Tablero', exact: true }).click();
   await page.getByRole('button', { name: 'Nueva tarea', exact: true }).click();
+  await expect(page.getByRole('group', { name: 'Descripción' })).toHaveText('Pendiente de nombrar');
+  await markdownSwitch(page, 'Descripción').click();
   await expect(page.getByLabel('Descripción', { exact: true })).toHaveValue('Pendiente de nombrar');
   await page.getByLabel('Título', { exact: true }).fill('Tarea recuperada');
   await page.getByRole('button', { name: 'Crear registro' }).click();
   await expect(page.locator('form.record-form')).toHaveCount(0);
   expect((await call('snapshot')).drafts).toEqual({});
+});
+
+test('muestra el Markdown compilado y alterna cada cuadro entre visual y editor', async ({
+  page,
+}) => {
+  await unlock(page);
+  await page.getByRole('button', { name: 'Tablero', exact: true }).click();
+  await page.getByRole('button', { name: 'Nueva tarea', exact: true }).click();
+  const created = page.getByRole('dialog', { name: 'Nueva tarea' });
+  await expect(markdownSwitch(created, 'Descripción')).toHaveAttribute('aria-checked', 'true');
+  await created.getByLabel('Título', { exact: true }).fill('Tarea con Markdown');
+  await created
+    .getByLabel('Descripción', { exact: true })
+    .fill('## Objetivo\n\nTexto con **negrita** y `código`.\n\n- [x] Hecho\n- [ ] Pendiente');
+  await markdownSwitch(created, 'Descripción').click();
+  const view = created.getByRole('group', { name: 'Descripción' });
+  await expect(view.getByRole('heading', { name: 'Objetivo' })).toBeVisible();
+  await expect(view.locator('strong')).toHaveText('negrita');
+  await expect(view.locator('code')).toHaveText('código');
+  await expect(view.getByRole('listitem')).toHaveCount(2);
+  await expect(view).not.toContainText('**');
+  await created.getByRole('button', { name: 'Crear registro' }).click();
+  await expect(created).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Expandir todo' }).click();
+  const card = page.locator('.task-card', { hasText: 'Tarea con Markdown' });
+  await expect(card.locator('.markdown-preview strong')).toHaveText(['Objetivo', 'negrita']);
+  await expect(card).not.toContainText('##');
+  await card.getByRole('button', { name: /Tarea con Markdown/ }).click();
+  const edit = page.getByRole('dialog', { name: 'Editar tarea' });
+  const toggle = markdownSwitch(edit, 'Descripción');
+  await expect(toggle).toHaveAttribute('aria-checked', 'false');
+  await expect(edit.getByRole('group', { name: 'Descripción' }).locator('h4')).toHaveText(
+    'Objetivo',
+  );
+  await expect(markdownSwitch(edit, 'Solución')).toHaveAttribute('aria-checked', 'true');
+  await toggle.click();
+  const source = edit.getByLabel('Descripción', { exact: true });
+  await expect(source).toBeFocused();
+  await expect(source).toHaveValue(/^## Objetivo\n/);
 });
 
 test('incidencia y solución aparecen en sus días; calendario mensual permite navegar', async ({

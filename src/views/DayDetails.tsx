@@ -23,6 +23,7 @@ import {
   type Task,
 } from '../../shared/model';
 import { MentionText, mentionSummaryText } from '../EntryMentions';
+import { Markdown } from '../Markdown';
 import CopyRecordId from '../CopyRecordId';
 import { Badge } from '../ui';
 import { isOverdueTask } from '../taskFilters';
@@ -57,14 +58,18 @@ function recordFields(
 ) {
   const linkedText = (value: string) =>
     value ? <MentionText value={value} records={records} onOpen={openRecord} /> : undefined;
+  const markdown = (value?: string) =>
+    value?.trim() ? (
+      <Markdown source={value} records={records} onOpenRecord={openRecord} />
+    ) : undefined;
   switch (record.kind) {
     case 'task':
       return (
         <>
-          <DayField label="Descripción" value={record.description} />
-          <DayField label="Solución" value={record.solution} />
-          <DayField label="Siguiente paso" value={record.nextStep} />
-          <DayField label="Bloqueo" value={record.blocked} />
+          <DayField label="Descripción" value={markdown(record.description)} />
+          <DayField label="Solución" value={markdown(record.solution)} />
+          <DayField label="Siguiente paso" value={markdown(record.nextStep)} />
+          <DayField label="Bloqueo" value={markdown(record.blocked)} />
           <DayField label="Tipo" value={record.type} />
           <DayField label="Fase" value={record.phase} />
           <DayField label="Etiquetas" value={record.tags.join(', ')} />
@@ -89,8 +94,8 @@ function recordFields(
     case 'incident':
       return (
         <>
-          <DayField label="Descripción" value={record.description} />
-          <DayField label="Solución" value={record.solution} />
+          <DayField label="Descripción" value={markdown(record.description)} />
+          <DayField label="Solución" value={markdown(record.solution)} />
           {record.date !== day && <DayField label="Apareció" value={record.date} />}
           {record.resolvedDate && record.resolvedDate !== day && (
             <DayField label="Se resolvió" value={record.resolvedDate} />
@@ -100,14 +105,14 @@ function recordFields(
     case 'entry':
       return (
         <>
-          <DayField label="Actividad" value={linkedText(record.activity)} />
-          <DayField label="Resultado" value={linkedText(record.result)} />
-          <DayField label="Aprendizaje" value={linkedText(record.learning)} />
-          <DayField label="Siguiente paso" value={linkedText(record.nextStep)} />
-          <DayField label="Bloqueo" value={linkedText(record.blocker)} />
+          <DayField label="Actividad" value={markdown(record.activity)} />
+          <DayField label="Resultado" value={markdown(record.result)} />
+          <DayField label="Aprendizaje" value={markdown(record.learning)} />
+          <DayField label="Siguiente paso" value={markdown(record.nextStep)} />
+          <DayField label="Bloqueo" value={markdown(record.blocker)} />
           <DayField label="Competencia" value={record.competency} />
           <DayField label="Evidencia" value={record.evidence} />
-          <DayField label="Texto original" value={linkedText(record.original)} />
+          <DayField label="Texto original" value={markdown(record.original)} />
           <DayField label="Contribución" value={record.contribution} />
           <DayField
             label="Tareas vinculadas"
@@ -146,23 +151,23 @@ function recordFields(
     case 'decision':
       return (
         <>
-          <DayField label="Problema" value={record.problem} />
-          <DayField label="Alternativas" value={record.alternatives} />
-          <DayField label="Decisión" value={record.decision} />
-          <DayField label="Motivo" value={record.reason} />
-          <DayField label="Consecuencias" value={record.consequences} />
-          <DayField label="Evidencia" value={record.evidence} />
+          <DayField label="Problema" value={markdown(record.problem)} />
+          <DayField label="Alternativas" value={markdown(record.alternatives)} />
+          <DayField label="Decisión" value={markdown(record.decision)} />
+          <DayField label="Motivo" value={markdown(record.reason)} />
+          <DayField label="Consecuencias" value={markdown(record.consequences)} />
+          <DayField label="Evidencia" value={markdown(record.evidence)} />
         </>
       );
     case 'idea':
-      return <DayField label="Descripción" value={record.description} />;
+      return <DayField label="Descripción" value={markdown(record.description)} />;
     case 'meeting':
       return (
         <>
           <DayField label="Desde" value={record.from.replace('T', ' ')} />
           <DayField label="Hasta" value={record.to.replace('T', ' ')} />
-          <DayField label="Contenido" value={record.body} />
-          <DayField label="Acuerdos" value={record.agreements} />
+          <DayField label="Contenido" value={markdown(record.body)} />
+          <DayField label="Acuerdos" value={markdown(record.agreements)} />
         </>
       );
   }

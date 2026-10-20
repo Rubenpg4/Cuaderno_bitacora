@@ -686,3 +686,18 @@
     right: 20px;
   }
 }
+:root[data-theme='dark'] .markdown-field-head > label,
+:root[data-theme='dark'] .markdown-field-label {
+  color: #b4c5da;
+}
+:root[data-theme='dark'] .markdown-view {
+  background: #172436;
+  border-color: #43566f;
+}
+:root[data-theme='dark'] .markdown-body pre {
+  background: #142031;
+}
+:root[data-theme='dark'] .markdown-switch-option[data-active='true'] {
+  background: #2c3e56;
+  box-shadow: none;
+}

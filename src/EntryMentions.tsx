@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { ENTRY_MENTION_PATTERN, type RecordItem } from '../shared/model';
+import { markdownToPlainText } from '../shared/markdown';
 export { mentionSummaryText } from '../shared/model';
 
 export type MentionedRecord = Extract<
@@ -16,15 +17,16 @@ const labels = {
 const kinds = ['incident', 'task', 'decision', 'idea'] as const;
 
 function summary(record: MentionedRecord) {
+  const text = (value: string) => markdownToPlainText(value) || 'Sin descripción';
   switch (record.kind) {
     case 'task':
-      return `${record.state} · ${record.due}${record.description ? ` · ${record.description}` : ''}`;
+      return `${record.state} · ${record.due}${record.description ? ` · ${text(record.description)}` : ''}`;
     case 'incident':
-      return `${record.date} · ${record.solution || record.description || 'Sin descripción'}`;
+      return `${record.date} · ${text(record.solution || record.description)}`;
     case 'decision':
-      return `${record.date} · ${record.decision || record.problem || 'Sin descripción'}`;
+      return `${record.date} · ${text(record.decision || record.problem)}`;
     case 'idea':
-      return `${record.date} · ${record.description || 'Sin descripción'}`;
+      return `${record.date} · ${text(record.description)}`;
   }
 }
 
