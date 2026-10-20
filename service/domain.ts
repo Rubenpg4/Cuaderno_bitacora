@@ -8,7 +8,7 @@ import {
   readAsvs,
   proposeAsvs,
   reviewAsvsProposals,
-  taskAsvsContext,
+  asvsMcpContext,
   taskAsvsCriteria,
   proposeTaskAsvs,
 } from './asvs/mcp.js';
@@ -35,11 +35,17 @@ import {
 import { planAsvsRemediation } from './asvs/remediation.js';
 import { schemas, proposalSchema, short, text } from './records/schemas.js';
 import { normalizeAttachments } from './records/attachments.js';
-import { resolveEntryMentions, type EntryMentionIds } from '../shared/entryLinks.js';
+import {
+  resolveEntryMentions,
+  resolveMeetingSources,
+  type EntryMentionIds,
+} from '../shared/entryLinks.js';
 import { planProposalReview, sameProposalValue } from '../shared/proposalReview.js';
 import { diagnoseTaskQuality, TASK_QUALITY_CATEGORIES } from '../shared/taskQuality.js';
 import { objectiveCoverage, validObjectiveLink } from '../shared/objectiveCoverage.js';
 import { captureWeeklyBaseline, weeklySignals } from '../shared/weeklyReviewSignals.js';
+import { ASVS_DISABLED_MESSAGE, asvsActive } from '../shared/asvsTracking.js';
+import { MCP_ACTION_TOOLS } from '../shared/mcpProtocol.js';
 import { addDays, occurrenceDays, type RecurrenceRule } from '../shared/recurrence.js';
 import {
   GENERAL_SCOPE,
@@ -123,6 +129,19 @@ function includeEntryMentionIds(data: Record<string, unknown>, ids: EntryMention
   };
 }
 
+/** Project-scope excerpts are JSON objects; selected shares keep their free text. */
+function excerptFields(excerpt?: string) {
+  try {
+    const value: unknown = JSON.parse(excerpt ?? '');
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+/** MCP session rejection whose message is safe to return to the connector. */
+export class McpSessionError extends Error {}
 interface Grant extends GrantInfo {
   hash: string;
   profileVersion: number;
@@ -228,8 +247,7 @@ export class Domain {
     const state = this.require();
     const projectId = this.activeProjectId ?? state.records.find((r) => r.kind === 'project')?.id;
     if (!projectId) throw Error('Cuaderno no disponible.');
-    const gaps = asvsOverview(state, { projectId }, this.activeProjectId).gaps;
-    return weeklySignals(state.records, projectId, state.weeklyReview, madridDate(), gaps);
+    return weeklySignals(state.records, projectId, state.weeklyReview, madridDate());
   }
   asvsConfigure(input: unknown) {
     return this.transaction(() => configureAsvs(this.require(), input, this.activeProjectId));
@@ -276,13 +294,7 @@ export class Domain {
       state.weeklyReview = {
         version: current.version + 1,
         baseline: captureWeeklyBaseline(state.records, projectId, at, madridDate()),
-        decisions: current.decisions.filter(
-          (decision) =>
-            decision.key.startsWith('asvs:') &&
-            this.weeklySignals().some(
-              (signal) => signal.key === decision.key && signal.cause === decision.cause,
-            ),
-        ),
+        decisions: [],
       };
       return state.weeklyReview;
     });
@@ -2001,20 +2013,44 @@ export class Domain {
     if (state.mcpProfile !== 'corporativo') return true;
     return grant.provider === 'claude' && !!grant.orgId && grant.orgId === corporateOrgId;
   }
+  /**
+   * Rejects with the cause and the next step. Details are given only to the holder of a token
+   * that matches a session; any other token gets the generic message.
+   */
   authorize(token: string, corporateOrgId?: string) {
-    const state = this.require();
+    if (!this.state || !this.unlocked)
+      throw new McpSessionError(
+        'Bitácora está bloqueada. Desbloquea el cuaderno y crea o renueva la sesión en Asistentes.',
+      );
+    const state = this.state;
     const hash = createHash('sha256').update(token).digest('hex');
-    const g = [...this.grants.values()].find(
-      (g) => g.hash === hash && Date.parse(g.expiresAt) > Date.now(),
-    );
-    if (
-      !g ||
-      !this.corporateMatches(state, g, corporateOrgId) ||
-      g.profileVersion !== state.mcpProfileVersion ||
-      !state.settings.companyAuthorized
-    )
-      throw Error('Sesión revocada, caducada o no autorizada.');
+    const g = [...this.grants.values()].find((g) => g.hash === hash);
+    if (!g)
+      throw new McpSessionError(
+        'Sesión revocada o no reconocida. Crea o renueva la sesión en Asistentes.',
+      );
+    if (Date.parse(g.expiresAt) <= Date.now())
+      throw new McpSessionError('Sesión caducada. Renueva la sesión en Asistentes.');
+    if (!state.settings.companyAuthorized)
+      throw new McpSessionError(
+        'Sesión no autorizada: el acceso de asistentes está desactivado. Actívalo y crea una sesión en Asistentes.',
+      );
+    if (g.profileVersion !== state.mcpProfileVersion)
+      throw new McpSessionError(
+        'Sesión revocada por un cambio de perfil MCP. Crea una sesión nueva en Asistentes.',
+      );
+    if (!this.corporateMatches(state, g, corporateOrgId))
+      throw new McpSessionError(
+        'Sesión no autorizada: la cuenta de Claude Code de este equipo no pertenece a la organización de la sesión. Inicia sesión con la organización autorizada y renueva la sesión.',
+      );
     return g;
+  }
+  /** Only the tool name from a closed list is kept, so no client text is stored. */
+  recordGrantUse(g: Grant, action: string) {
+    const tool = MCP_ACTION_TOOLS[action];
+    if (!tool) return;
+    g.lastUsedAt = new Date().toISOString();
+    g.lastTool = tool;
   }
   /** Records an MCP project session may see; every MCP query starts from this list. */
   grantRecords(g: Grant) {
@@ -2083,7 +2119,7 @@ export class Domain {
           description: r.description,
           solution: r.solution,
           dependencyIds: r.dependencyIds.filter((id) => visibleIds.has(id)),
-          asvsLinks: r.asvsLinks,
+          ...(asvsActive(this.require().asvs) && { asvsLinks: r.asvsLinks }),
           checks: r.checks
             .filter((check) => visibleIds.has(check.practiceId))
             .map(({ practiceId, state, note }) => ({ practiceId, state, note })),
@@ -2198,25 +2234,45 @@ export class Domain {
         version: sh.recordVersion,
         title: sh.title,
         ...(summary ? {} : { excerpt: sh.excerpt }),
-        ...(!summary && s.records.find((r) => r.id === sh.recordId)?.kind === 'task'
-          ? {
-              asvs: taskAsvsContext(
-                s,
-                g,
-                s.records.find((r) => r.id === sh.recordId)!.project,
-                sh.recordId,
-              ),
-            }
-          : {}),
       }));
-    // Leave space for the response envelope and pagination cursors.
-    let budget = 11800;
-    const page: typeof rows = [];
+    // The task ASVS context is the same for every task of the notebook: send it once per page.
+    const pageTasks = summary
+      ? []
+      : rows.slice(q.offset, q.offset + q.limit).filter((row) => row.kind === 'task');
+    const contextTask = q.taskId ?? pageTasks[0]?.id;
+    // Its criteria hint names the task only when it is unambiguous.
+    const criteriaTask = q.taskId ?? (pageTasks.length === 1 ? contextTask : undefined);
+    const asvs = contextTask
+      ? asvsMcpContext(s, g, s.records.find((r) => r.id === contextTask)!.project, criteriaTask)
+      : {};
+    // Leave space for the response envelope, the ASVS context and pagination cursors.
+    let budget = 11800 - JSON.stringify(asvs).length;
+    const page: (Omit<(typeof rows)[number], 'excerpt'> & {
+      excerpt?: string;
+      fields?: Record<string, unknown>;
+    })[] = [];
     let nextExcerptOffset: number | null = null;
     for (const row of rows.slice(q.offset, q.offset + q.limit)) {
       if (summary) {
         page.push(row);
         continue;
+      }
+      // A record that fits whole travels as an object, not as JSON escaped inside a string;
+      // only a cut record is sent as text so that `excerptOffset` can rebuild it.
+      const fields = q.excerptOffset === undefined ? excerptFields(row.excerpt) : undefined;
+      if (fields) {
+        const whole = {
+          id: row.id,
+          kind: row.kind,
+          version: row.version,
+          title: row.title,
+          fields,
+        };
+        if (JSON.stringify(whole).length <= budget) {
+          page.push(whole);
+          budget -= JSON.stringify(whole).length;
+          continue;
+        }
       }
       const excerpt = (row.excerpt ?? '').slice(q.excerptOffset ?? 0);
       const item = { ...row, excerpt };
@@ -2241,19 +2297,36 @@ export class Domain {
     }
     return {
       items: page,
-      ...(q.taskId
-        ? {
-            asvs: taskAsvsContext(
-              s,
-              g,
-              s.records.find((r) => r.id === q.taskId)!.project,
-              q.taskId,
-            ),
-          }
-        : {}),
+      ...asvs,
       nextOffset: q.offset + page.length < rows.length ? q.offset + page.length : null,
       ...(nextExcerptOffset !== null && { nextExcerptOffset }),
     };
+  }
+  /** `leer_elementos`: unknown fields are rejected instead of silently dropped. */
+  readRecords(g: Grant, input: unknown) {
+    const q = z
+      .object({
+        recordIds: z
+          .array(short)
+          .min(1, 'Selecciona los identificadores que quieres leer.')
+          .max(10, 'Lee como máximo diez registros por llamada.'),
+        offset: z.number().int().min(0).optional(),
+        excerptOffset: z.number().int().min(0).optional(),
+      })
+      .strict()
+      .parse(input);
+    return this.context(g, { ...q, limit: 10 });
+  }
+  /** `consultar_criterios`: practices associated with one authorized task. */
+  taskCriteria(g: Grant, input: unknown) {
+    const q = z
+      .object({
+        taskId: short.min(1, 'Indica una tarea autorizada.'),
+        offset: z.number().int().min(0).optional(),
+      })
+      .strict()
+      .parse(input);
+    return this.context(g, { ...q, kind: 'practice', limit: 5 });
   }
   sessionInfo(g: Grant) {
     const projects =
@@ -2272,7 +2345,11 @@ export class Domain {
       provider: g.provider,
       scope: g.scope,
       expiresAt: g.expiresAt,
+      expiresInMinutes: Math.max(0, Math.floor((Date.parse(g.expiresAt) - Date.now()) / 60000)),
       canCompleteTasks: g.canCompleteTasks === true,
+      asvs: asvsActive(this.require().asvs)
+        ? { enabled: true }
+        : { enabled: false, guidance: ASVS_DISABLED_MESSAGE },
       projects,
       ...(g.scope === 'projects'
         ? {
@@ -2443,33 +2520,56 @@ export class Domain {
       .parse(input);
     const records = this.grantRecords(g);
     if (!records.some((r) => r.id === q.recordId)) throw Error('Registro no autorizado.');
-    const idsFor = (r: RecordItem) => {
+    // Typed edges so the assistant knows how two records relate, not only that they do.
+    type Edge = {
+      id: string;
+      relation: 'dependency' | 'criterion' | 'link' | 'source' | 'objective';
+      role?: string;
+    };
+    const edgesOf = (r: RecordItem): Edge[] => {
       switch (r.kind) {
         case 'task':
-          return [...r.dependencyIds, ...r.checks.map((check) => check.practiceId)];
+          return [
+            ...r.dependencyIds.map((id): Edge => ({ id, relation: 'dependency' })),
+            ...r.checks.map((check): Edge => ({ id: check.practiceId, relation: 'criterion' })),
+          ];
         case 'entry':
-          return [...r.taskIds, ...(r.linkedIds || [])];
+          return [...r.taskIds, ...(r.linkedIds || [])].map((id): Edge => ({
+            id,
+            relation: 'link',
+          }));
         case 'meeting':
-          return r.sourceIds;
+          return r.sourceIds.map((id): Edge => ({ id, relation: 'source' }));
         case 'objective':
-          return r.links.map((link) => link.sourceId);
+          return r.links.map((link): Edge => ({
+            id: link.sourceId,
+            relation: 'objective',
+            role: link.role,
+          }));
         default:
           return [];
       }
     };
     const source = records.find((r) => r.id === q.recordId)!;
-    const rows = records
-      .filter(
-        (r) =>
-          r.id !== q.recordId && (idsFor(source).includes(r.id) || idsFor(r).includes(q.recordId)),
-      )
-      .map((r) => ({
-        id: r.id,
-        kind: r.kind,
-        version: r.version,
-        title: r.title,
-        direction: idsFor(source).includes(r.id) ? 'outgoing' : 'incoming',
-      }));
+    const outgoing = edgesOf(source);
+    const rows = records.flatMap((r) => {
+      if (r.id === q.recordId) return [];
+      const edge = outgoing.find((e) => e.id === r.id);
+      const incoming = edge ? undefined : edgesOf(r).find((e) => e.id === q.recordId);
+      const found = edge ?? incoming;
+      if (!found) return [];
+      return [
+        {
+          id: r.id,
+          kind: r.kind,
+          version: r.version,
+          title: r.title,
+          direction: edge ? ('outgoing' as const) : ('incoming' as const),
+          relation: found.relation,
+          ...(found.role && { role: found.role }),
+        },
+      ];
+    });
     const items = rows.slice(q.offset, q.offset + q.limit);
     return {
       items,
@@ -2529,6 +2629,9 @@ export class Domain {
       if (d.operation === 'create') {
         if (d.patch.subprojectId !== undefined && typeof d.patch.subprojectId !== 'string')
           throw Error('Indica el subproyecto de destino con su identificador.');
+        // «General» is the absence of a subproject; `estado_sesion` lists it as `general`.
+        if (d.patch.subprojectId === '' || d.patch.subprojectId === GENERAL_SCOPE)
+          delete d.patch.subprojectId;
         const destination = scopeOf(d.patch as { subprojectId?: string }) || GENERAL_SCOPE;
         if (!effectiveGrantScopes(g, s.records).includes(destination))
           throw Error('El ámbito de destino no está autorizado en esta sesión.');
@@ -2562,7 +2665,7 @@ export class Domain {
         id: duplicate.id,
         status: duplicate.status,
         ...(duplicate.kind === 'task'
-          ? { asvs: taskAsvsContext(s, g, duplicate.projectId!, duplicate.targetId) }
+          ? asvsMcpContext(s, g, duplicate.projectId!, duplicate.targetId)
           : {}),
       };
     if (
@@ -2586,6 +2689,7 @@ export class Domain {
       )
     )
       throw Error('Ya hay una propuesta de cierre pendiente para esta tarea.');
+    if ('asvsLinks' in d.patch && !asvsActive(s.asvs)) throw Error(ASVS_DISABLED_MESSAGE);
     if (
       'asvsLinks' in d.patch &&
       (d.kind !== 'task' || d.operation === 'check' || g.scope !== 'projects')
@@ -2686,19 +2790,27 @@ export class Domain {
     let patch = { ...d.patch };
     if ('attachments' in patch) patch.attachments = normalizeAttachments(patch.attachments);
     let entryMentionIds: EntryMentionIds | undefined;
-    if (d.kind === 'entry') {
+    let meetingSourceIds: string[] | undefined;
+    if (d.kind === 'entry' || d.kind === 'meeting') {
       const projectId = d.operation === 'create' ? d.patch.project : target?.project;
       const origin = d.operation === 'create' ? (d.patch as { subprojectId?: string }) : target;
       const visibleIds = new Set(shares.map((share) => share.recordId));
+      // Mentions resolve only to records this session sees in the same project and scope.
       const records = s.records.filter(
         (record) =>
           record.project === projectId &&
           visibleIds.has(record.id) &&
           sameScope(record, origin ?? {}),
       );
-      const resolved = resolveEntryMentions(d.patch, records);
-      patch = resolved.entry;
-      entryMentionIds = { taskIds: resolved.taskIds, linkedIds: resolved.linkedIds };
+      if (d.kind === 'entry') {
+        const resolved = resolveEntryMentions(d.patch, records);
+        patch = resolved.entry;
+        entryMentionIds = { taskIds: resolved.taskIds, linkedIds: resolved.linkedIds };
+      } else if (typeof d.patch.body === 'string') {
+        const resolved = resolveMeetingSources(d.patch.body, records);
+        patch.body = resolved.body;
+        if (resolved.sourceIds.length) meetingSourceIds = resolved.sourceIds;
+      }
     }
     if (d.operation === 'check') {
       if (d.kind !== 'task') throw Error('Verificación inválida.');
@@ -2759,14 +2871,7 @@ export class Domain {
         id: normalizedDuplicate.id,
         status: normalizedDuplicate.status,
         ...(normalizedDuplicate.kind === 'task'
-          ? {
-              asvs: taskAsvsContext(
-                s,
-                g,
-                normalizedDuplicate.projectId!,
-                normalizedDuplicate.targetId,
-              ),
-            }
+          ? asvsMcpContext(s, g, normalizedDuplicate.projectId!, normalizedDuplicate.targetId)
           : {}),
       };
     return this.transaction(() => {
@@ -2774,6 +2879,7 @@ export class Domain {
         ...d,
         patch,
         ...(entryMentionIds && { entryMentionIds }),
+        ...(meetingSourceIds && { meetingSourceIds }),
         id: randomUUID(),
         provider: g.provider,
         projectId:
@@ -2806,7 +2912,7 @@ export class Domain {
       return {
         id: p.id,
         status: p.status,
-        ...(p.kind === 'task' ? { asvs: taskAsvsContext(s, g, p.projectId!, p.targetId) } : {}),
+        ...(p.kind === 'task' ? asvsMcpContext(s, g, p.projectId!, p.targetId) : {}),
       };
     });
   }
@@ -2838,7 +2944,20 @@ export class Domain {
       return { id: p.id, status: p.status };
     });
   }
-  proposalStatus(g: Grant) {
+  /**
+   * Own proposals with what they target, so an assistant that lost its context can match them.
+   * Filters and pages; never shows other providers' proposals.
+   */
+  proposalStatus(g: Grant, input: unknown = {}) {
+    const q = z
+      .object({
+        status: z.enum(['pending', 'accepted', 'rejected']).optional(),
+        targetId: short.optional(),
+        offset: z.number().int().min(0).default(0),
+        limit: z.number().int().min(1).max(20).default(20),
+      })
+      .strict()
+      .parse(input);
     const state = this.require();
     const visibleIds = new Set(this.visible(g).map((share) => share.recordId));
     const grantedIds = new Set(
@@ -2865,9 +2984,19 @@ export class Domain {
                 : scopes.includes(scopeOf(p.patch as { subprojectId?: string }) || GENERAL_SCOPE))
             : !p.targetId || visibleIds.has(p.targetId) || grantedIds.has(p.targetId)),
       )
-      .slice(0, 20)
-      .map((p) => ({ id: p.id, status: p.status, createdAt: p.createdAt }));
-    return [
+      .map((p) => ({
+        id: p.id,
+        status: p.status,
+        createdAt: p.createdAt,
+        kind: p.kind,
+        operation: p.operation,
+        ...(p.targetId && { targetId: p.targetId }),
+        title:
+          (p.operation === 'create'
+            ? (p.patch as { title?: unknown }).title
+            : state.records.find((r) => r.id === p.targetId)?.title) || undefined,
+      }));
+    const rows = [
       ...statuses,
       ...(state.asvs?.proposals ?? [])
         .filter(
@@ -2877,15 +3006,39 @@ export class Domain {
             g.projectIds.includes(p.request.projectId) &&
             (p.request.taskId ? visibleIds.has(p.request.taskId) : general),
         )
-        .map((p) => ({ id: p.id, status: p.status, createdAt: p.createdAt })),
+        .map((p) => ({
+          id: p.id,
+          status: p.status,
+          createdAt: p.createdAt,
+          kind: 'asvs' as const,
+          operation: p.destination === 'task' ? 'task-verification' : 'evaluation',
+          ...(p.request.taskId && { targetId: p.request.taskId }),
+          title: p.reference,
+        })),
       ...(state.asvs?.revisionProposals ?? [])
         .filter(
           (p) => p.provider === g.provider && general && g.projectIds.includes(p.request.projectId),
         )
-        .map((p) => ({ id: p.id, status: p.status, createdAt: p.createdAt })),
+        .map((p) => ({
+          id: p.id,
+          status: p.status,
+          createdAt: p.createdAt,
+          kind: 'asvs' as const,
+          operation: 'revision',
+          title: p.request.reference,
+        })),
     ]
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, 20);
+      .filter(
+        (p) =>
+          (!q.status || p.status === q.status) &&
+          (!q.targetId || ('targetId' in p && p.targetId === q.targetId)),
+      )
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const items = rows.slice(q.offset, q.offset + q.limit);
+    return {
+      items,
+      nextOffset: q.offset + items.length < rows.length ? q.offset + items.length : null,
+    };
   }
   completeTask(g: Grant, input: unknown) {
     if (Date.parse(g.expiresAt) <= Date.now()) throw Error('Sesión MCP caducada.');
@@ -2999,6 +3152,17 @@ export class Domain {
       )
         throw Error('Un registro mencionado ya no pertenece al proyecto de la entrada.');
       data = includeEntryMentionIds(data, p.entryMentionIds);
+    }
+    if (p.kind === 'meeting' && p.meetingSourceIds) {
+      if (
+        p.meetingSourceIds.some(
+          (id) => !s.records.some((record) => record.id === id && record.project === p.projectId),
+        )
+      )
+        throw Error('Una fuente mencionada ya no pertenece al proyecto de la reunión.');
+      data.sourceIds = [
+        ...new Set([...((data.sourceIds as string[] | undefined) ?? []), ...p.meetingSourceIds]),
+      ];
     }
     if (p.kind === 'task' && Array.isArray(p.patch.dependencyIds)) {
       const taskProject =

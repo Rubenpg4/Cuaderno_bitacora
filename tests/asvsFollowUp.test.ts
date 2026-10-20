@@ -248,9 +248,9 @@ describe('revalidación y cobertura ASVS', () => {
     const p = domain.asvsRevisionPropose(g, revision());
     expect(domain.asvsRevisionPropose(g, revision()).id).toBe(p.id);
     expect(overview().summary.fulfilled).toBe(1);
-    expect(domain.proposalStatus(g).some((s) => s.id === p.id && s.status === 'pending')).toBe(
-      true,
-    );
+    expect(
+      domain.proposalStatus(g).items.some((s) => s.id === p.id && s.status === 'pending'),
+    ).toBe(true);
     domain.asvsRevisionReview({ id: p.id, accept: true });
     expect(overview().summary.fulfilled).toBe(0);
     const conflict = domain.asvsRevisionPropose(
@@ -285,6 +285,8 @@ describe('revalidación y cobertura ASVS', () => {
       priority: 'Por determinar',
       dependencyCandidates: [similar.id],
     });
+    expect(plan.items[0].actionGuidance).toContain('Reutiliza');
+    expect(plan.items[0].es === null || !!plan.items[0].es.description).toBe(true);
     expect(JSON.stringify(plan)).not.toContain('Nota privada sintética');
     expect(() => domain.asvsRemediation(g, { projectId, limit: 100 })).toThrow();
     expect(() => domain.asvsRemediation({ ...g, scope: 'selected' }, { projectId })).toThrow();
@@ -322,31 +324,16 @@ describe('revalidación y cobertura ASVS', () => {
     });
     expect(overview().summary.fulfilled).toBe(0);
   });
-  it('agrupa señales ASVS y conserva el descarte hasta que cambia la causa, incluso al terminar revisión', () => {
+  it('no genera señales semanales de ASVS ni conserva descartes antiguos al terminar la revisión', () => {
     review();
     domain.asvsSourceRevision(revision());
-    const signals = domain.weeklySignals().filter((s) => s.kind === 'asvs');
-    expect(signals.length).toBeLessThan(70);
-    const signal = signals.find((s) => s.title.includes('revalidaciones'))!;
-    domain.decideWeeklySignal({
-      expectedVersion: 0,
-      key: signal.key,
-      cause: signal.cause,
-      mode: 'dismissed',
-    });
-    domain.finishWeeklyReview(1);
-    expect(domain.require().weeklyReview!.decisions).toHaveLength(1);
-    expect(domain.weeklySignals().find((s) => s.key === signal.key)?.cause).toBe(signal.cause);
-    domain.asvsSourceRevision(revision({ expectedVersion: 1, revision: 'commit-sintético-3' }));
-    expect(domain.weeklySignals().find((s) => s.key === signal.key)?.cause).not.toBe(signal.cause);
-    expect(() =>
-      domain.decideWeeklySignal({
-        expectedVersion: 2,
-        key: `asvs:ajeno:${signal.itemId}`,
-        cause: signal.cause,
-        mode: 'dismissed',
-      }),
-    ).toThrow('señal');
+    expect(domain.weeklySignals().some((s) => (s.kind as string) === 'asvs')).toBe(false);
+    domain.require().weeklyReview = {
+      version: 0,
+      decisions: [{ key: `asvs:${projectId}:V1-revalidation`, cause: '[]', mode: 'dismissed' }],
+    };
+    domain.finishWeeklyReview(0);
+    expect(domain.require().weeklyReview!.decisions).toEqual([]);
     workspaces.validateState(domain.require());
   });
 });

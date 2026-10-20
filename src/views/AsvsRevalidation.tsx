@@ -7,10 +7,12 @@ export default function AsvsRevalidation({
   data,
   overview,
   onSaved,
+  open = false,
 }: {
   data?: AsvsData;
   overview: AsvsOverview;
   onSaved: (result: AsvsOverview) => void;
+  open?: boolean;
 }) {
   const [reference, setReference] = useState('');
   const [revision, setRevision] = useState('');
@@ -59,7 +61,7 @@ export default function AsvsRevalidation({
     }
   }
   return (
-    <details className="asvs-config">
+    <details className="asvs-tool" open={open}>
       <summary>Revalidar una revisión externa</summary>
       <p>
         Bitácora detecta cambios de fuentes registradas. No vigila repositorios ni archivos

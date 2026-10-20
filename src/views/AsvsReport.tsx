@@ -120,7 +120,7 @@ export default function AsvsReport({
     }
   }
   return (
-    <details className="asvs-config asvs-report">
+    <details className="asvs-tool asvs-report">
       <summary>Exportar trazabilidad ASVS</summary>
       <p>
         Selecciona requisitos y, opcionalmente, tareas y referencias de evidencia. Se omiten notas

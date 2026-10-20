@@ -5,8 +5,9 @@ import { join, resolve, extname, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import { ZodError } from 'zod';
 import { Vault } from './vault.js';
-import { Domain } from './domain.js';
+import { Domain, McpSessionError } from './domain.js';
 import { Workspaces } from './workspaces.js';
 import { exportDocument } from './export.js';
 import { asvsReportExport } from './asvs/report.js';
@@ -19,6 +20,12 @@ import {
   type ClaudeIdentity,
 } from './claudeIdentity.js';
 import type { Kind, McpProfile, Provider } from '../shared/model.js';
+import { ASVS_DISABLED_MESSAGE, asvsActive } from '../shared/asvsTracking.js';
+import {
+  MCP_PROTOCOL_HEADER,
+  MCP_PROTOCOL_MISMATCH,
+  MCP_PROTOCOL_VERSION,
+} from '../shared/mcpProtocol.js';
 export function defaultDataDir() {
   return (
     process.env.BITACORA_DATA_DIR ||
@@ -54,6 +61,7 @@ export async function startServer(
 ) {
   const dir = options.dir || defaultDataDir(),
     workspaces = new Workspaces(dir);
+  const idleMs = options.idleMs || 15 * 60000;
   let domain = new Domain(new Vault(dir));
   const fileGrantProviders: Provider[] = ['claude', 'codex', 'antigravity'];
   const providerGrantPath = (provider: Provider) => join(dir, `mcp-grant-${provider}.json`);
@@ -158,44 +166,52 @@ export async function startServer(
             send(res, 405, { error: 'Método no permitido.' });
             return;
           }
-          let grant;
-          try {
-            grant = domain.authorize(bearer, await mcpOrgId(req));
-          } catch {
-            send(res, 401, { error: 'Sesión MCP revocada, caducada o no autorizada.' });
+          // Connectors since protocol 2 declare theirs; a different one must not run any action.
+          const protocol = req.headers[MCP_PROTOCOL_HEADER.toLowerCase()];
+          if (protocol !== undefined && protocol !== String(MCP_PROTOCOL_VERSION)) {
+            send(res, 409, { error: MCP_PROTOCOL_MISMATCH });
             return;
           }
+          const authorizeMcp = async () => {
+            try {
+              return domain.authorize(bearer, await mcpOrgId(req));
+            } catch (e) {
+              send(res, 401, {
+                error:
+                  e instanceof McpSessionError
+                    ? e.message
+                    : 'Sesión MCP revocada, caducada o no autorizada.',
+              });
+            }
+          };
+          let grant = await authorizeMcp();
+          if (!grant) return;
           if (lifecycleBusy) throw Error('Operación de cuaderno en curso.');
           const d = await body(req);
           if (lifecycleBusy) throw Error('Operación de cuaderno en curso.');
-          try {
-            grant = domain.authorize(bearer, await mcpOrgId(req));
-          } catch {
-            send(res, 401, { error: 'Sesión MCP revocada, caducada o no autorizada.' });
-            return;
-          }
+          grant = await authorizeMcp();
+          if (!grant) return;
+          // Disabled ASVS is not reviewed by assistants: every ASVS path is closed.
+          if (
+            (String(d.action).startsWith('asvs-') ||
+              (d.action === 'complete-task' && d.input?.asvsIds?.length)) &&
+            !asvsActive(domain.require().asvs)
+          )
+            throw Error(ASVS_DISABLED_MESSAGE);
           let result;
-          if (d.action === 'session') result = domain.sessionInfo(grant);
-          else if (d.action === 'context') result = domain.context(grant, d.input, true);
-          else if (d.action === 'read') {
-            if (!Array.isArray(d.input?.recordIds) || !d.input.recordIds.length)
-              throw Error('Selecciona los identificadores que quieres leer.');
-            result = domain.context(grant, {
-              recordIds: d.input.recordIds,
-              offset: d.input.offset,
-              excerptOffset: d.input.excerptOffset,
-              limit: 10,
-            });
-          } else if (d.action === 'criteria') {
-            if (typeof d.input?.taskId !== 'string' || !d.input.taskId)
-              throw Error('Indica una tarea autorizada.');
-            result = domain.context(grant, {
-              taskId: d.input.taskId,
-              kind: 'practice',
-              offset: d.input.offset,
-              limit: 5,
-            });
-          } else if (d.action === 'propose') result = domain.propose(grant, d.input);
+          if (d.action === 'session') {
+            // MCP calls are not activity (decision D1): tell the assistant when the idle lock
+            // will end its session so it can warn the person in time.
+            const idleLockAt = domain.lastActivity + idleMs;
+            result = {
+              ...domain.sessionInfo(grant),
+              idleLockAt: new Date(idleLockAt).toISOString(),
+              idleLockInMinutes: Math.max(0, Math.floor((idleLockAt - Date.now()) / 60000)),
+            };
+          } else if (d.action === 'context') result = domain.context(grant, d.input, true);
+          else if (d.action === 'read') result = domain.readRecords(grant, d.input);
+          else if (d.action === 'criteria') result = domain.taskCriteria(grant, d.input);
+          else if (d.action === 'propose') result = domain.propose(grant, d.input);
           else if (d.action === 'asvs-query') result = domain.asvsQuery(grant, d.input);
           else if (d.action === 'asvs-read') result = domain.asvsRead(grant, d.input);
           else if (d.action === 'asvs-propose') result = domain.asvsPropose(grant, d.input);
@@ -211,8 +227,12 @@ export async function startServer(
           else if (d.action === 'summary') result = domain.projectSummary(grant, d.input);
           else if (d.action === 'task-quality') result = domain.taskQuality(grant, d.input);
           else if (d.action === 'relations') result = domain.relatedRecords(grant, d.input);
-          else if (d.action === 'proposals') result = domain.proposalStatus(grant);
+          else if (d.action === 'proposals') result = domain.proposalStatus(grant, d.input ?? {});
           else throw Error('Operación no permitida.');
+          domain.recordGrantUse(
+            grant,
+            d.action === 'propose' && d.input?.operation === 'delete' ? 'propose-delete' : d.action,
+          );
           send(res, 200, result);
           return;
         }
@@ -641,9 +661,19 @@ export async function startServer(
       res.writeHead(200, { 'Content-Type': types[extname(file)] || 'application/octet-stream' });
       res.end(readFileSync(file));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo completar la operación.';
+      const mcp = req.url?.startsWith('/mcp');
+      // Assistants need the failing field to correct the call; the interface keeps its summary.
+      const message =
+        mcp && error instanceof ZodError
+          ? `Revisa los campos: ${error.issues
+              .slice(0, 5)
+              .map((issue) => `${issue.path.join('.') || 'entrada'}: ${issue.message}`)
+              .join('; ')}`
+          : error instanceof Error
+            ? error.message
+            : 'No se pudo completar la operación.';
       const unsafeMcpError =
-        req.url?.startsWith('/mcp') &&
+        mcp &&
         (Boolean((error as NodeJS.ErrnoException)?.code) || /[\\/]|[a-f0-9]{64}/i.test(message));
       send(res, 400, {
         error: unsafeMcpError
@@ -661,7 +691,7 @@ export async function startServer(
   port = (server.address() as { port: number }).port;
   writeFileSync(
     join(dir, 'connection.json'),
-    JSON.stringify({ port, protocol: 1, pid: process.pid }),
+    JSON.stringify({ port, protocol: MCP_PROTOCOL_VERSION, pid: process.pid }),
     { mode: 0o600 },
   );
   const timer = setInterval(() => {
@@ -672,11 +702,7 @@ export async function startServer(
         if (!grant || Date.parse(grant.expiresAt) <= Date.now()) clearFileGrant(p, id);
       } catch {}
     }
-    if (
-      !lifecycleBusy &&
-      domain.unlocked &&
-      Date.now() - domain.lastActivity > (options.idleMs || 15 * 60000)
-    ) {
+    if (!lifecycleBusy && domain.unlocked && Date.now() - domain.lastActivity > idleMs) {
       workspaces.lock();
       clearFileGrant();
     }

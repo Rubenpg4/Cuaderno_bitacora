@@ -40,6 +40,6 @@ El [mapa de cambios](mapa-cambios.md) indica las rutas de entrada y las comproba
 - Al añadir campos o tipos de registro, revisa `shared/model.ts`, los esquemas de `service/records/schemas.ts`, `blank()` en `service/records/defaults.ts`, los valores iniciales de `src/defaults.ts`, los editores y las pruebas de dominio.
 - Al cambiar una ruta HTTP, revisa `service/server.ts`, `src/api.ts`, las llamadas de interfaz y pruebas de servicio.
 - Al cambiar el ciclo de vida de cuadernos, revisa `service/workspaces.ts`, la migración, el índice, la pantalla de inicio y las pruebas de aislamiento.
-- Al cambiar MCP, revisa `service/mcp.ts`, autorización y visibilidad en `service/domain.ts` y `grantSees` en `shared/subprojects.ts`, la configuración expuesta en `src/Assistants.tsx` y pruebas de permisos.
+- Al cambiar MCP, revisa `service/mcp.ts`, autorización y visibilidad en `service/domain.ts` y `grantSees` en `shared/subprojects.ts`, la configuración expuesta en `src/Assistants.tsx` (generada en `shared/mcpClientConfig.ts`) y pruebas de permisos. Si cambia la forma de una respuesta o entrada, sube `MCP_PROTOCOL_VERSION` en `shared/mcpProtocol.ts`.
 - Al añadir un tipo de referencia entre registros, valida que no cruce ámbitos en `Domain.normalize` y en `invalidScopes` de `service/workspaces.ts`.
 - Al cambiar empaquetado o ejecución de escritorio, revisa la configuración Tauri y los scripts de `scripts/`.

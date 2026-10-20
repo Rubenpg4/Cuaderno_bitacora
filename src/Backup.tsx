@@ -1,16 +1,20 @@
 import { useState } from 'react';
-import { Download, Upload, LockKeyhole } from 'lucide-react';
+import { Download, Upload, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { api, download } from './api';
 import { Button, Field, Notice } from './ui';
 import type { McpProfile } from '../shared/model';
+import { ASVS_VERSION } from '../shared/asvs';
+import type { AsvsConfig } from '../shared/asvsTracking';
 export default function Backup({
   refresh,
   projectId,
   mcpProfile,
+  asvsConfig,
 }: {
   refresh: () => Promise<void>;
   projectId: string;
   mcpProfile: McpProfile;
+  asvsConfig?: AsvsConfig;
 }) {
   const [password, setPassword] = useState(''),
     [currentPassword, setCurrentPassword] = useState(''),
@@ -22,6 +26,7 @@ export default function Backup({
     [error, setError] = useState(''),
     [message, setMessage] = useState(''),
     [selectedProfile, setSelectedProfile] = useState<McpProfile>(mcpProfile),
+    [asvsLevel, setAsvsLevel] = useState(String(asvsConfig?.level ?? '')),
     [busy, setBusy] = useState(false);
   async function changeProfile() {
     setError('');
@@ -30,6 +35,28 @@ export default function Backup({
       await api('mcp-profile', { profile: selectedProfile });
       await refresh();
       setMessage('Perfil guardado. Se han revocado los permisos MCP y las propuestas pendientes.');
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function saveAsvs() {
+    setError('');
+    setBusy(true);
+    try {
+      await api('asvs-configure', {
+        projectId,
+        expectedConfigVersion: asvsConfig?.version ?? 0,
+        catalogVersion: asvsConfig?.catalogVersion ?? ASVS_VERSION,
+        level: asvsLevel ? Number(asvsLevel) : null,
+      });
+      await refresh();
+      setMessage(
+        asvsLevel
+          ? `ASVS activado en nivel L${asvsLevel}.`
+          : 'ASVS desactivado. Se conservan sus datos por si lo reactivas.',
+      );
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -123,6 +150,31 @@ export default function Backup({
           onClick={() => void changeProfile()}
         >
           Guardar perfil
+        </Button>
+      </section>
+      <section className="form-section">
+        <h3>
+          <ShieldCheck size={18} /> Verificación ASVS
+        </h3>
+        <Field label="Verificación ASVS de este cuaderno">
+          <select value={asvsLevel} onChange={(event) => setAsvsLevel(event.target.value)}>
+            <option value="">Desactivada</option>
+            <option value="1">L1 — 70 requisitos</option>
+            <option value="2">L2 — 253 requisitos</option>
+            <option value="3">L3 — 345 requisitos</option>
+          </select>
+        </Field>
+        <p className="muted">
+          {asvsLevel
+            ? 'Muestra la vista Verificación ASVS, los requisitos en las tareas y las herramientas ASVS de los asistentes.'
+            : 'Desactivada, ASVS no aparece en la interfaz ni lo revisan los asistentes MCP. Se conservan evaluaciones, historial y vínculos por si lo reactivas.'}
+        </p>
+        <Button
+          variant="secondary"
+          disabled={busy || asvsLevel === String(asvsConfig?.level ?? '')}
+          onClick={() => void saveAsvs()}
+        >
+          Guardar ASVS
         </Button>
       </section>
       <Notice>

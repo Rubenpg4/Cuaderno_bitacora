@@ -107,7 +107,8 @@ describe('API y permisos MCP de revalidación y remediación', () => {
     expect(query.config).not.toHaveProperty('catalogBaseline');
     expect(query.config).not.toHaveProperty('contextReason');
     const signals = await post('/api/weekly-signals');
-    expect(signals.data.some((s: { kind: string }) => s.kind === 'asvs')).toBe(true);
+    // ASVS keeps its own view; the weekly review does not repeat its backlog.
+    expect(signals.data.some((s: { kind: string }) => s.kind === 'asvs')).toBe(false);
     const selected = await post('/api/grant', {
       provider: 'claude',
       scope: 'selected',

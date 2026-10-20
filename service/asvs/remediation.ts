@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { GrantInfo, Snapshot, Task } from '../../shared/model.js';
 import { grantSees } from '../../shared/subprojects.js';
+import { asvsSpanishText } from './guidance.js';
 import { asvsOverview } from './tracking.js';
 import { authorizeAsvsProject } from './revalidation.js';
 
@@ -10,10 +11,21 @@ export const asvsRemediationInput = z
     category: z
       .enum(['revalidation', 'failed', 'consultation', 'partial', 'pending', 'unassigned'])
       .optional(),
-    offset: z.number().int().nonnegative().safe().default(0),
+    offset: z.number().int().nonnegative().default(0),
     limit: z.number().int().min(1).max(10).default(5),
   })
   .strict();
+
+const actionGuidance = {
+  'reuse-task':
+    'Reutiliza o amplía una tarea existente en lugar de crear otra; propón el cambio con proponer_cambios.',
+  'review-pending-proposal':
+    'Ya propusiste una tarea para este requisito: espera la revisión humana antes de proponer otra.',
+  revalidate:
+    'Revalida las fuentes y el alcance y propón una nueva evaluación con proponer_evaluacion_asvs.',
+  'consider-task':
+    'Si aplica, propón una tarea con proponer_cambios y patch.asvsLinks con motivo, alcance, criterio y método.',
+} as const;
 
 export function planAsvsRemediation(state: Snapshot, grant: GrantInfo, input: unknown) {
   const request = asvsRemediationInput.parse(input);
@@ -80,9 +92,17 @@ export function planAsvsRemediation(state: Snapshot, grant: GrantInfo, input: un
             (l) => l && typeof l === 'object' && (l as { reqId?: string }).reqId === gap.reqId,
           ),
       ).length;
+      const action = existing.length
+        ? 'reuse-task'
+        : pendingCreations
+          ? 'review-pending-proposal'
+          : gap.category === 'revalidation'
+            ? 'revalidate'
+            : 'consider-task';
       return {
         reference: gap.reference,
         reqId: gap.reqId,
+        es: asvsSpanishText(gap.reqId),
         category: gap.category,
         nextStep: gap.nextStep,
         relatedTaskCount: gapTasks.length,
@@ -90,13 +110,8 @@ export function planAsvsRemediation(state: Snapshot, grant: GrantInfo, input: un
         existingTasks: existing.slice(0, 10),
         existingTaskCount: existing.length,
         pendingCreationCount: pendingCreations,
-        action: existing.length
-          ? 'reuse-task'
-          : pendingCreations
-            ? 'review-pending-proposal'
-            : gap.category === 'revalidation'
-              ? 'revalidate'
-              : 'consider-task',
+        action,
+        actionGuidance: actionGuidance[action],
         priority: 'Por determinar',
         priorityReason:
           gap.category === 'failed'

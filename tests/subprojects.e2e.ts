@@ -244,7 +244,12 @@ test('barra lateral: cabe en 1080p y 2K escalados aunque haya muchos subproyecto
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     expect(await sidebarFits()).toBe(true);
-    await expect(page.getByRole('button', { name: 'Verificación ASVS' })).toBeInViewport();
+    // ASVS is hidden while disabled, so «Buenas prácticas» is the last main view.
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Navegación principal' })
+        .getByRole('button', { name: 'Buenas prácticas' }),
+    ).toBeInViewport();
     await expect(page.getByRole('button', { name: 'Gestionar subproyectos' })).toBeInViewport();
     await expect(page.getByRole('button', { name: 'Bloquear bitácora' })).toBeInViewport();
   }

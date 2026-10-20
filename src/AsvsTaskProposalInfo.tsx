@@ -1,42 +1,44 @@
-import { asvsCatalog } from '../shared/asvsCatalog';
 import type { AsvsTaskLink } from '../shared/asvsTracking';
 import type { Proposal, Snapshot } from '../shared/model';
+import { AsvsRequirementContext } from './AsvsProposalDetails';
 
 export default function AsvsTaskProposalInfo({
   proposal,
-  records,
+  snapshot,
 }: {
   proposal: Proposal;
-  records: Snapshot['records'];
+  snapshot: Snapshot;
 }) {
   if (proposal.kind !== 'task' || !Array.isArray(proposal.patch.asvsLinks)) return null;
   return (
-    <section aria-label="Asociaciones ASVS propuestas">
-      {(proposal.patch.asvsLinks as AsvsTaskLink[]).map((link) => {
-        const r = asvsCatalog.requirements.find(
-          (item) => item.reqId === link.reqId || item.canonicalRef === link.reqId,
-        );
-        const similar = records.filter(
-          (item) =>
-            item.kind === 'task' &&
-            item.id !== proposal.targetId &&
-            item.project === proposal.projectId &&
-            item.asvsLinks?.some((l) => l.reqId === r?.reqId),
-        );
-        return (
-          <div key={link.reqId}>
-            <strong>{r?.canonicalRef ?? link.reqId}</strong>
-            <p lang="en">{r?.description}</p>
-            <p>Motivo: {link.reason}</p>
-            <p>
-              Alcance: {link.scope} · Criterio: {link.criterion} · Método: {link.method}
-            </p>
-            <p>
-              Posibles tareas relacionadas: {similar.map((t) => t.title).join('; ') || 'Ninguna'}
-            </p>
-          </div>
-        );
-      })}
+    <section aria-label="Asociaciones ASVS propuestas" className="asvs-proposal-change">
+      {(proposal.patch.asvsLinks as AsvsTaskLink[]).map((link) => (
+        <div key={link.reqId}>
+          <AsvsRequirementContext
+            reference={link.reqId}
+            snapshot={snapshot}
+            excludeTaskId={proposal.targetId}
+          />
+          <dl className="asvs-change">
+            <div>
+              <dt>Por qué aplica</dt>
+              <dd>{link.reason}</dd>
+            </div>
+            <div>
+              <dt>Alcance en la tarea</dt>
+              <dd>{link.scope}</dd>
+            </div>
+            <div>
+              <dt>Criterio de aceptación</dt>
+              <dd>{link.criterion}</dd>
+            </div>
+            <div>
+              <dt>Cómo se verificará</dt>
+              <dd>{link.method}</dd>
+            </div>
+          </dl>
+        </div>
+      ))}
     </section>
   );
 }

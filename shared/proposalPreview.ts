@@ -39,12 +39,21 @@ function checkChange(proposal: Proposal, record?: RecordItem): PreviewChange[] {
     : [{ field: `check:${current.practiceId}`, before, after: proposed }];
 }
 
+/** The person sees the meeting sources a mention will add before accepting it. */
+function meetingSourcesChange(proposal: Proposal, record?: RecordItem) {
+  if (proposal.kind !== 'meeting' || !proposal.meetingSourceIds?.length) return undefined;
+  const current = record?.kind === 'meeting' ? record.sourceIds : [];
+  return [...new Set([...current, ...proposal.meetingSourceIds])];
+}
+
 export function proposalChanges(proposal: Proposal, record?: RecordItem): PreviewChange[] {
   if (proposal.operation === 'check') return checkChange(proposal, record);
   if (proposal.operation === 'delete')
     return [{ field: 'delete', before: record?.title ?? 'Registro', after: 'Se eliminará' }];
+  const sources = meetingSourcesChange(proposal, record);
   return Object.entries(proposal.patch)
     .filter(([field]) => !hiddenFields.has(field))
+    .concat(sources ? [['sourceIds', sources]] : [])
     .flatMap(([field, after]) => {
       const before =
         field === 'state' && proposal.previousTaskState

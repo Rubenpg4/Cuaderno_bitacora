@@ -64,6 +64,18 @@ async function openBoardGroup(page: Page, title: string) {
   }
 }
 
+async function setAsvsFromSettings(page: Page, level: '' | '1' | '2' | '3') {
+  await page.getByRole('button', { name: 'Ajustes y copias' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Ajustes y copias' });
+  await dialog.getByLabel('Verificación ASVS de este cuaderno').selectOption(level);
+  await dialog.getByRole('button', { name: 'Guardar ASVS' }).click();
+  await expect(
+    dialog.getByText(level ? `ASVS activado en nivel L${level}.` : 'ASVS desactivado.', {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cerrar', exact: true }).click();
+}
 async function asvsIntegrationSetup() {
   const snapshot = await call('snapshot');
   const projectId = snapshot.records.find((r: { kind: string }) => r.kind === 'project').id;
@@ -144,14 +156,17 @@ test('ASVS informe: selecciona contenido, descarga Markdown y CSV y ofrece ayuda
   await page.getByLabel('Buscar requisito ASVS').fill(requirement.canonicalRef);
   const article = page.getByRole('article', { name: requirement.canonicalRef });
   const help = (await import('../shared/asvsHelp')).asvsHelpLinks(requirement)!;
-  await expect(
-    article.getByRole('link', { name: `Fuente oficial ASVS ${requirement.canonicalRef}` }),
-  ).toHaveAttribute('href', help.source);
-  await expect(article.getByRole('link', { name: 'Guía OWASP por ASVS' })).toHaveAttribute(
+  await expect(article.getByRole('link', { name: 'Texto oficial', exact: true })).toHaveAttribute(
+    'href',
+    help.source,
+  );
+  await expect(article.getByRole('link', { name: 'Guía OWASP', exact: true })).toHaveAttribute(
     'href',
     help.guide,
   );
-  await expect(article).toContainText('son ayudas sujetas a revisión humana');
+  await expect(page.locator('.asvs-attribution')).toContainText(
+    'el original inglés es la referencia',
+  );
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await article
     .getByRole('button', { name: `Copiar referencia ${requirement.canonicalRef}` })
@@ -160,6 +175,7 @@ test('ASVS informe: selecciona contenido, descarga Markdown y CSV y ofrece ayuda
     page.getByText(`Referencia copiada: ${requirement.canonicalRef}`, { exact: true }),
   ).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(requirement.canonicalRef);
+  await page.getByRole('button', { name: 'Ajustes y herramientas' }).click();
   const report = page.locator('.asvs-report');
   await report.locator('summary').first().click();
   await report.getByRole('button', { name: 'Limpiar selección' }).click();
@@ -220,6 +236,11 @@ test('ASVS informe: selecciona contenido, descarga Markdown y CSV y ofrece ayuda
   }
   await page.getByRole('button', { name: 'Activar modo oscuro' }).click();
   await page.setViewportSize({ width: 390, height: 844 });
+  // Wait for the theme transition so contrast is measured on final colours.
+  await expect(report.getByRole('button', { name: 'Limpiar selección' })).toHaveCSS(
+    'background-color',
+    'rgb(29, 42, 59)',
+  );
   expect((await new AxeBuilder({ page }).include('.asvs-report').analyze()).violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
@@ -241,6 +262,7 @@ test('ASVS informe: exige revisar de nuevo si cambian los estados tras previsual
     .getByRole('navigation', { name: 'Navegación principal' })
     .getByRole('button', { name: 'Verificación ASVS', exact: true })
     .click();
+  await page.getByRole('button', { name: 'Ajustes y herramientas' }).click();
   const report = page.locator('.asvs-report');
   await report.locator('summary').first().click();
   await report.getByRole('button', { name: 'Previsualizar informe ASVS' }).click();
@@ -272,7 +294,7 @@ test('ASVS informe: exige revisar de nuevo si cambian los estados tras previsual
   await expect(preview.getByRole('button', { name: 'Descargar informe ASVS' })).toBeDisabled();
 });
 
-test('ASVS seguimiento: revalida fuentes, muestra cobertura y conserva señales descartadas', async ({
+test('ASVS seguimiento: revalida fuentes, enfoca lo que requiere atención y no satura el plan semanal', async ({
   page,
 }) => {
   test.setTimeout(60000);
@@ -312,9 +334,14 @@ test('ASVS seguimiento: revalida fuentes, muestra cobertura y conserva señales 
   const nav = page.getByRole('navigation', { name: 'Navegación principal' });
   await nav.getByRole('button', { name: 'Verificación ASVS', exact: true }).click();
   await expect(page.getByText('2 de 70 requisitos aplicables verificados')).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Cobertura y lagunas ASVS' })).toContainText(
-    '68 lagunas',
+  const focus = page.getByRole('group', { name: 'Enfoque de requisitos ASVS' });
+  await expect(focus.getByRole('button', { name: 'Todos 70' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
   );
+  await expect(focus.getByRole('button', { name: 'Sin planificar 68' })).toBeVisible();
+  await expect(focus.getByRole('button', { name: 'Verificados 2' })).toBeVisible();
+  await expect(page.locator('.asvs-chapter[data-open="true"]')).toHaveCount(0);
   await call('save', {
     kind: 'entry',
     id: local.id,
@@ -324,6 +351,14 @@ test('ASVS seguimiento: revalida fuentes, muestra cobertura y conserva señales 
   await page.reload();
   await nav.getByRole('button', { name: 'Verificación ASVS', exact: true }).click();
   await expect(page.getByText('1 de 70 requisitos aplicables verificados')).toBeVisible();
+  // Stale evidence without a task makes the view open on what needs attention.
+  await expect(focus.getByRole('button', { name: 'Requiere atención 1' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.locator('.asvs-req')).toHaveCount(1);
+  await page.screenshot({ path: '.tmp/asvs-focus.png', fullPage: true });
+  await page.getByRole('button', { name: 'Ajustes y herramientas' }).click();
   await page.getByText('Revalidar una revisión externa', { exact: true }).click();
   const form = page.getByRole('form', { name: 'Registrar revisión externa' });
   await expect(
@@ -334,34 +369,24 @@ test('ASVS seguimiento: revalida fuentes, muestra cobertura y conserva señales 
   await form.getByLabel('Motivo de revalidación').fill('Cambió el módulo evaluado');
   await form.getByRole('button', { name: 'Registrar cambio de revisión' }).click();
   await expect(page.getByText('0 de 70 requisitos aplicables verificados')).toBeVisible();
-  await page.getByLabel('Filtrar lagunas ASVS').selectOption('revalidation');
-  await expect(page.getByRole('region', { name: 'Cobertura y lagunas ASVS' })).toContainText(
-    '2 lagunas',
-  );
+  await expect(focus.getByRole('button', { name: 'Requiere atención 2' })).toBeVisible();
   await page.getByLabel('Buscar requisito ASVS').fill(overview.items[1].assessment.reqId);
   const article = page.getByRole('article', {
     name: asvsCatalog.requirements.find((r) => r.reqId === overview.items[1].assessment.reqId)!
       .canonicalRef,
     exact: true,
   });
+  await expect(article.locator('.asvs-req-head')).toContainText('Desactualizado');
   await expect(article).toContainText('Revisión externa modificada');
+  await expect(article).toContainText('Siguiente paso: Revalidar las fuentes');
   await article
     .getByRole('button', { name: `Historial de ${overview.items[1].assessment.reqId}` })
     .click();
   await expect(article.locator('.asvs-history')).toContainText('commit-1');
+  // ASVS follow-up lives in its own view; the weekly review no longer repeats the backlog.
   await nav.getByRole('button', { name: 'Plan semanal', exact: true }).click();
-  const signal = page
-    .locator('.review-card')
-    .filter({ hasText: 'revalidaciones pendientes' })
-    .first();
-  await expect(signal).toBeVisible();
-  const signalTitle = await signal.locator('h3').innerText();
-  await signal.getByRole('button', { name: 'Descartar', exact: true }).click();
-  await expect(page.getByRole('heading', { name: signalTitle, exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Terminar revisión', exact: true }).click();
-  await nav.getByRole('button', { name: 'Verificación ASVS', exact: true }).click();
-  await nav.getByRole('button', { name: 'Plan semanal', exact: true }).click();
-  await expect(page.getByRole('heading', { name: signalTitle, exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Terminar revisión', exact: true })).toBeVisible();
+  await expect(page.locator('.review-card', { hasText: 'ASVS' })).toHaveCount(0);
   const proposed = await mcp('asvs-revision-propose', {
     projectId,
     expectedConfigVersion: 1,
@@ -374,19 +399,16 @@ test('ASVS seguimiento: revalida fuentes, muestra cobertura y conserva señales 
   await nav.getByRole('button', { name: 'Verificación ASVS', exact: true }).click();
   await page.reload();
   await nav.getByRole('button', { name: 'Verificación ASVS', exact: true }).click();
-  await page.getByText('Revalidar una revisión externa', { exact: true }).click();
+  const pendingRevision = page.getByText(
+    'Hay una revisión externa propuesta por un asistente pendiente de confirmar.',
+  );
+  await expect(pendingRevision).toBeVisible();
+  await page.getByRole('button', { name: 'Revisar propuestas', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'Revisión externa propuesta por codex' }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Confirmar nueva revisión', exact: true }).click();
-  await nav.getByRole('button', { name: 'Plan semanal', exact: true }).click();
-  await expect(page.getByRole('heading', { name: signalTitle, exact: true })).toBeVisible();
-  await page
-    .locator('.review-card')
-    .filter({ hasText: signalTitle })
-    .getByRole('button', { name: 'Abrir requisito ASVS' })
-    .click();
-  await expect(page.getByLabel('Buscar requisito ASVS')).not.toHaveValue('');
+  await expect(pendingRevision).toHaveCount(0);
   const AxeBuilder = (await import('@axe-core/playwright')).default;
   expect((await new AxeBuilder({ page }).include('.asvs-view').analyze()).violations).toEqual([]);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -483,6 +505,7 @@ test('ASVS seguimiento: previsualiza y confirma catálogo sin trasladar ticks ni
     .check();
   await confirm.click();
   await expect(page.getByText('0 de 70 requisitos aplicables verificados')).toBeVisible();
+  await page.getByRole('button', { name: 'Ajustes y herramientas' }).click();
   await page.getByText('Evaluaciones de catálogos anteriores', { exact: true }).click();
   await page.getByText(`ASVS 4.0.3 · ${a.reqId} · Cumplido`, { exact: true }).click();
   await expect(
@@ -663,7 +686,8 @@ test('ASVS integración: crea, verifica y retira asociaciones desde el editor', 
     .click();
   await page.getByLabel('Buscar requisito ASVS').fill(requirement.canonicalRef);
   const article = page.getByRole('article', { name: requirement.canonicalRef, exact: true });
-  await article.getByRole('button', { name: /Tarea ASVS: Tarea con requisito ASVS/ }).click();
+  await expect(article.locator('.asvs-req-head')).toContainText('1 tarea');
+  await article.getByRole('button', { name: 'Tarea con requisito ASVS · Por hacer' }).click();
   const reopened = page.getByRole('dialog', { name: 'Editar tarea' });
   await reopened
     .getByText(`Revisar verificación de tarea ${requirement.reqId}`, { exact: true })
@@ -804,6 +828,11 @@ test('ASVS integración: revisa tareas propuestas con texto, motivo y duplicados
   await card.getByRole('button', { name: 'Aceptar cambios' }).first().click();
   const preview = page.getByRole('dialog', { name: 'Vista previa de aceptación' });
   await expect(preview).toContainText(requirement.description);
+  await expect(preview).toContainText(
+    asvsDisplayRequirements.find((r) => r.reqId === requirement.reqId)!.description,
+  );
+  await expect(preview).toContainText('Criterio de aceptación');
+  await expect(preview).toContainText('Estado actual en el proyecto');
   await expect(preview).toContainText(link.reason);
   await expect(preview).toContainText('Tarea similar ASVS');
   await preview.getByRole('button', { name: 'Aceptar 1 propuesta' }).click();
@@ -897,40 +926,40 @@ test('ASVS: activa niveles, navega por teclado, busca, filtra y conserva aislami
 }) => {
   test.setTimeout(60000);
   await unlock(page);
+  const nav = page.getByRole('navigation', { name: 'Navegación principal' });
   await expect(
-    page.getByRole('button', { name: 'Buenas prácticas', exact: true }).locator('svg'),
+    nav.getByRole('button', { name: 'Buenas prácticas', exact: true }).locator('svg'),
   ).toHaveClass(/lucide-list-checks/);
+  // ASVS is disabled by default: no view until it is activated in «Ajustes y copias».
+  await expect(nav.getByRole('button', { name: 'Verificación ASVS' })).toHaveCount(0);
+  await setAsvsFromSettings(page, '1');
   await expect(
-    page.getByRole('button', { name: 'Verificación ASVS', exact: true }).locator('svg'),
+    nav.getByRole('button', { name: 'Verificación ASVS', exact: true }).locator('svg'),
   ).toHaveClass(/lucide-shield-check/);
-  const navigate = () =>
-    page
-      .getByRole('navigation', { name: 'Navegación principal' })
-      .getByRole('button', { name: 'Verificación ASVS' })
-      .click();
+  const navigate = () => nav.getByRole('button', { name: 'Verificación ASVS' }).click();
   await navigate();
-  await expect(page.getByLabel('Nivel objetivo ASVS')).toHaveValue('');
-  await expect(page.locator('.asvs-tree > details[open]')).toHaveCount(0);
-  await page.getByLabel('Nivel objetivo ASVS').selectOption('1');
-  await page.getByRole('button', { name: 'Guardar configuración ASVS' }).click();
   await expect(page.getByText('0 de 70 requisitos aplicables verificados')).toBeVisible();
-  const chapter = page.locator('.asvs-tree > details').first();
-  await chapter.locator(':scope > summary').focus();
+  await expect(page.locator('.asvs-chapter[data-open="true"]')).toHaveCount(0);
+  const chapter = page.locator('.asvs-chapter').first();
+  const chapterToggle = chapter.locator('.asvs-chapter-head');
+  await chapterToggle.focus();
   await page.keyboard.press('Enter');
-  await expect(chapter).toHaveAttribute('open', '');
-  const section = chapter.locator('details').first();
-  await expect(section).not.toHaveAttribute('open', '');
-  await section.locator(':scope > summary').focus();
+  await expect(chapterToggle).toHaveAttribute('aria-expanded', 'true');
+  const row = chapter.locator('.asvs-req-head').first();
+  await expect(row).toHaveAttribute('aria-expanded', 'false');
+  await row.focus();
   await page.keyboard.press('Enter');
-  await expect(section).toHaveAttribute('open', '');
+  await expect(row).toHaveAttribute('aria-expanded', 'true');
+  await expect(chapter.locator('.asvs-req-body').first()).toBeVisible();
   const requirement = asvsCatalog.requirements.find((r) => r.minLevel === 1)!;
   await page.getByLabel('Buscar requisito ASVS').fill(requirement.canonicalRef);
   const article = page.getByRole('article', { name: requirement.canonicalRef, exact: true });
   await expect(article).toBeVisible();
   const displayed = asvsDisplayRequirements.find((r) => r.reqId === requirement.reqId)!;
-  await expect(article.locator(':scope > .asvs-description')).toHaveText(displayed.description);
+  const description = article.locator('.asvs-req-body > .asvs-description');
+  await expect(description).toHaveText(displayed.description);
   if (asvsTranslationProvider) {
-    await expect(article.locator(':scope > .asvs-description')).toHaveAttribute('lang', 'es');
+    await expect(description).toHaveAttribute('lang', 'es');
     await article.getByText('Ver original oficial en inglés', { exact: true }).click();
     await expect(article.locator('.asvs-original .asvs-description')).toHaveText(
       requirement.description,
@@ -943,26 +972,24 @@ test('ASVS: activa niveles, navega por teclado, busca, filtra y conserva aislami
   }
   await page.getByLabel('Buscar requisito ASVS').fill(requirement.description.slice(0, 40));
   await expect(article).toBeVisible();
-  await page.getByLabel('Nivel de consulta').selectOption('3');
-  await expect(page.getByLabel('Nivel objetivo ASVS')).toHaveValue('1');
+  // Focus chips only filter the list; they never change configuration or assessments.
+  await page.getByLabel('Buscar requisito ASVS').fill('');
+  const focus = page.getByRole('group', { name: 'Enfoque de requisitos ASVS' });
+  await focus.getByRole('button', { name: 'Verificados 0' }).click();
+  await expect(
+    page.getByText('Todavía no hay requisitos verificados con evidencia vigente.'),
+  ).toBeVisible();
+  await focus.getByRole('button', { name: 'Sin planificar 70' }).click();
+  await expect(page.locator('.asvs-chapter[data-open="false"]')).toHaveCount(0);
   expect((await call('snapshot')).asvs.config.level).toBe(1);
-  await page.getByLabel('Filtrar estado ASVS').selectOption('Cumplido');
-  await expect(
-    page.getByText('No hay requisitos con estos filtros.', { exact: false }),
-  ).toBeVisible();
-  await page.getByLabel('Filtrar estado ASVS').selectOption('all');
-  await page.getByLabel('Filtrar aplicabilidad ASVS').selectOption('Aplicable');
-  await expect(
-    page.getByText('No hay requisitos con estos filtros.', { exact: false }),
-  ).toBeVisible();
-  await page.getByLabel('Filtrar aplicabilidad ASVS').selectOption('all');
+  await focus.getByRole('button', { name: 'Todos 70' }).click();
   await page.getByLabel('Buscar requisito ASVS').fill(requirement.canonicalRef);
   const { default: AxeBuilder } = await import('@axe-core/playwright');
   expect((await new AxeBuilder({ page }).include('.asvs-view').analyze()).violations).toEqual([]);
   await page.screenshot({ path: '.tmp/asvs-light.png', fullPage: true });
   await page.getByRole('button', { name: 'Activar modo oscuro' }).click();
   await expect(
-    article.getByRole('button', { name: `Revisar ${requirement.reqId}`, exact: true }),
+    article.getByRole('button', { name: `Historial de ${requirement.reqId}`, exact: true }),
   ).toHaveCSS('background-color', 'rgb(29, 42, 59)');
   expect((await new AxeBuilder({ page }).include('.asvs-view').analyze()).violations).toEqual([]);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -978,6 +1005,8 @@ test('ASVS: activa niveles, navega por teclado, busca, filtra y conserva aislami
   await page.reload();
   await page.getByRole('button', { name: 'Abrir navegación' }).click();
   await navigate();
+  await expect(page.getByLabel('Nivel objetivo ASVS')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Ajustes y herramientas' }).click();
   await expect(page.getByLabel('Nivel objetivo ASVS')).toHaveValue('1');
   await page.getByLabel('Nivel objetivo ASVS').selectOption('2');
   await page.getByRole('button', { name: 'Guardar configuración ASVS' }).click();
@@ -989,8 +1018,7 @@ test('ASVS: activa niveles, navega por teclado, busca, filtra y conserva aislami
   await page.getByLabel('Contraseña', { exact: true }).fill('Segunda contraseña de prueba ASVS');
   await page.getByLabel('Repite la contraseña').fill('Segunda contraseña de prueba ASVS');
   await page.getByRole('button', { name: 'Crear mi bitácora' }).click();
-  await navigate();
-  await expect(page.getByLabel('Nivel objetivo ASVS')).toHaveValue('');
+  await expect(nav.getByRole('button', { name: 'Verificación ASVS' })).toHaveCount(0);
   expect((await call('snapshot')).asvs).toBeUndefined();
 });
 
@@ -1009,17 +1037,14 @@ test('ASVS: revisa evidencia, cobertura parcial, exclusión humana e historial',
     },
   });
   await page.reload();
-  await page
-    .getByRole('navigation', { name: 'Navegación principal' })
-    .getByRole('button', { name: 'Verificación ASVS' })
-    .click();
-  await page.getByLabel('Nivel objetivo ASVS').selectOption('1');
-  await page.getByRole('button', { name: 'Guardar configuración ASVS' }).click();
+  const nav = page.getByRole('navigation', { name: 'Navegación principal' });
+  await setAsvsFromSettings(page, '1');
+  await nav.getByRole('button', { name: 'Verificación ASVS' }).click();
   await expect(page.getByText('0 de 70 requisitos aplicables verificados')).toBeVisible();
   const requirement = asvsCatalog.requirements.find((r) => r.minLevel === 1)!;
   await page.getByLabel('Buscar requisito ASVS').fill(requirement.canonicalRef);
   const article = page.getByRole('article', { name: requirement.canonicalRef, exact: true });
-  await article.getByRole('button', { name: `Revisar ${requirement.reqId}`, exact: true }).click();
+  await article.getByRole('button', { name: `Evaluar ${requirement.reqId}`, exact: true }).click();
   let form = article.getByRole('form');
   await expect(form.getByLabel('Aplicabilidad', { exact: true })).toBeFocused();
   await form.getByLabel('Aplicabilidad', { exact: true }).selectOption('Aplicable');
@@ -1038,10 +1063,10 @@ test('ASVS: revisa evidencia, cobertura parcial, exclusión humana e historial',
     .fill('tests/security.test.ts — caso satisfactorio');
   await form.getByLabel('Revisión o versión 1').fill('commit de prueba 1');
   await form.getByRole('button', { name: 'Guardar revisión' }).click();
-  await expect(article.getByText('Cumplido vigente')).toBeVisible();
+  await expect(article.locator('.asvs-req-head')).toContainText('Verificado');
   await expect(page.getByText('1 de 70 requisitos aplicables verificados')).toBeVisible();
   await expect(
-    article.getByRole('button', { name: `Revisar ${requirement.reqId}`, exact: true }),
+    article.getByRole('button', { name: `Evaluar ${requirement.reqId}`, exact: true }),
   ).toBeFocused();
   await article.getByRole('button', { name: 'Ver fuente: Evidencia local ASVS de prueba' }).click();
   await expect(
@@ -1053,16 +1078,16 @@ test('ASVS: revisa evidencia, cobertura parcial, exclusión humana e historial',
     .click();
   await expect(article.locator('.asvs-history')).toContainText('Pendiente → Cumplido');
   await expect(article.locator('.asvs-history')).toContainText('commit de prueba 1');
-  await article.getByRole('button', { name: `Revisar ${requirement.reqId}`, exact: true }).click();
+  await article.getByRole('button', { name: `Evaluar ${requirement.reqId}`, exact: true }).click();
   form = article.getByRole('form');
   await form.getByLabel('Alcance evaluado').selectOption('component');
   await form.getByLabel('Componente o alcance cubierto').fill('API de prueba');
   await form.getByLabel('Alcance pendiente del proyecto').fill('Interfaz de prueba');
   await form.getByRole('button', { name: 'Guardar revisión' }).click();
   await expect(article.getByText('Cobertura parcial:', { exact: false })).toBeVisible();
-  await expect(article.getByText('Cumplido vigente')).toHaveCount(0);
+  await expect(article.locator('.asvs-req-head')).toContainText('Parcial');
   await expect(page.getByText('0 de 70 requisitos aplicables verificados')).toBeVisible();
-  await article.getByRole('button', { name: `Revisar ${requirement.reqId}`, exact: true }).click();
+  await article.getByRole('button', { name: `Evaluar ${requirement.reqId}`, exact: true }).click();
   form = article.getByRole('form');
   await form.getByLabel('Aplicabilidad', { exact: true }).selectOption('No aplicable');
   await form
@@ -1073,15 +1098,28 @@ test('ASVS: revisa evidencia, cobertura parcial, exclusión humana e historial',
   await form.getByRole('button', { name: 'Guardar revisión' }).click();
   await expect(page.getByText('0 de 69 requisitos aplicables verificados')).toBeVisible();
   await expect(article.getByText('Excluido del denominador', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Ajustes y herramientas' }).click();
   await page.getByLabel('Nivel objetivo ASVS').selectOption('2');
   await page.getByRole('button', { name: 'Guardar configuración ASVS' }).click();
   await expect(article.getByText('Evidencia desactualizada:', { exact: false })).toBeVisible();
   await expect(page.getByText('0 de 253 requisitos aplicables verificados')).toBeVisible();
+  // Disabling hides ASVS everywhere and returns to «Hoy»; data stays for reactivation.
   await page.getByLabel('Nivel objetivo ASVS').selectOption('');
   await page.getByRole('button', { name: 'Guardar configuración ASVS' }).click();
   await expect(
-    article.getByRole('button', { name: `Revisar ${requirement.reqId}`, exact: true }),
-  ).toBeDisabled();
+    page.getByText('ASVS desactivado. Puedes reactivarlo en Ajustes y copias.'),
+  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Un día más, un paso adelante.' })).toBeVisible();
+  await expect(nav.getByRole('button', { name: 'Verificación ASVS' })).toHaveCount(0);
+  await nav.getByRole('button', { name: 'Tablero', exact: true }).click();
+  await page.getByRole('button', { name: 'Nueva tarea', exact: true }).click();
+  const newTask = page.getByRole('dialog', { name: 'Nueva tarea' });
+  await expect(newTask.getByLabel('Título', { exact: true })).toBeVisible();
+  await expect(newTask.getByText(/Requisitos ASVS de esta tarea/)).toHaveCount(0);
+  await newTask.getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await setAsvsFromSettings(page, '1');
+  await nav.getByRole('button', { name: 'Verificación ASVS' }).click();
+  await page.getByLabel('Buscar requisito ASVS').fill(requirement.canonicalRef);
   await article
     .getByRole('button', { name: `Historial de ${requirement.reqId}`, exact: true })
     .click();
@@ -3787,6 +3825,7 @@ test('puede abrir una sesión MCP para el cuaderno activo', async ({ page }) => 
   await page.getByLabel('Permitir que este asistente complete tareas').check();
   await page.getByRole('button', { name: 'Crear sesión para este cuaderno' }).click();
   await expect(page.getByText('Cuaderno: Proyecto conectado.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Sin uso todavía', { exact: false })).toBeVisible();
   const snapshot = await call('snapshot');
   expect(snapshot.grants).toContainEqual(
     expect.objectContaining({
@@ -3804,12 +3843,30 @@ test('puede abrir una sesión MCP para el cuaderno activo', async ({ page }) => 
   ).toHaveLength(1);
   await page.getByLabel('Cliente').selectOption('claude');
   await page.getByRole('button', { name: 'Crear sesión para este cuaderno' }).click();
-  const config = JSON.parse(await page.locator('pre.config').innerText());
+  const config = JSON.parse(await page.locator('pre.config').first().innerText());
   expect(config.mcpServers.bitacora.env).toEqual({
     BITACORA_PROVIDER: 'claude',
     BITACORA_DATA_DIR: dir,
   });
   expect(JSON.stringify(config)).not.toContain('BITACORA_GRANT_TOKEN');
+  const install = await page.getByLabel('Comando de instalación').innerText();
+  expect(install).toContain('claude mcp add bitacora --scope user -e BITACORA_PROVIDER=claude');
+  expect(install).toContain(`"BITACORA_DATA_DIR=${dir}"`);
+  expect(install).not.toContain('token');
+  // The session list tells whether the client really connected.
+  const { readFileSync: readGrant } = await import('node:fs');
+  const claudeGrant = JSON.parse(readGrant(join(dir, 'mcp-grant-claude.json'), 'utf8'));
+  await fetch(`${url}/mcp`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${claudeGrant.token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'session', input: {} }),
+  });
+  await page.getByRole('button', { name: 'Renovar sesión para este cuaderno' }).click();
+  await expect(
+    page.getByText('Último uso hace menos de 1 min (estado_sesion)', { exact: false }),
+  ).toBeVisible();
+  await page.getByText('Solución de problemas de conexión').click();
+  await expect(page.getByText('«Bitácora está bloqueada»')).toBeVisible();
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: url });
   await page.getByRole('button', { name: 'Copiar skill portátil (SKILL.md)' }).click();
   const { readFileSync } = await import('node:fs');
@@ -3878,6 +3935,55 @@ test('MCP propone eliminar una entrada y solo se borra al aceptar', async ({ pag
   expect((await call('snapshot')).records.some((r: { id: string }) => r.id === entry.id)).toBe(
     false,
   );
+});
+
+test('MCP: ASVS desactivado no aparece en herramientas ni guía y vuelve al activarlo', async ({
+  page,
+}) => {
+  await unlock(page);
+  const project = (await call('snapshot')).records.find(
+    (record: { kind: string }) => record.kind === 'project',
+  );
+  await call('settings', { companyAuthorized: true, universityStructure: '' });
+  await call('grant', { provider: 'codex', scope: 'projects', projectIds: [project.id] });
+  const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+  const { StdioClientTransport } = await import('@modelcontextprotocol/sdk/client/stdio.js');
+  const client = new Client({ name: 'test-asvs-off', version: '1.0.0' });
+  await client.connect(
+    new StdioClientTransport({
+      command: process.execPath,
+      args: [resolve('dist-service/mcp.cjs')],
+      env: {
+        ...(process.env as Record<string, string>),
+        BITACORA_DATA_DIR: dir,
+        BITACORA_PROVIDER: 'codex',
+      },
+    }),
+  );
+  const asvsTools = async () =>
+    (await client.listTools()).tools.map((t) => t.name).filter((name) => name.includes('asvs'));
+  const guide = async () =>
+    JSON.stringify(await client.callTool({ name: 'consultar_guia', arguments: {} }));
+  expect(await asvsTools()).toEqual([]);
+  expect(await guide()).not.toContain('consultar_asvs');
+  await call('asvs-configure', {
+    projectId: project.id,
+    expectedConfigVersion: 0,
+    catalogVersion: asvsCatalog.version,
+    level: 1,
+  });
+  await client.callTool({ name: 'estado_sesion', arguments: {} });
+  expect(await asvsTools()).toContain('consultar_asvs');
+  expect(await guide()).toContain('consultar_asvs');
+  await call('asvs-configure', {
+    projectId: project.id,
+    expectedConfigVersion: 1,
+    catalogVersion: asvsCatalog.version,
+    level: null,
+  });
+  await client.callTool({ name: 'estado_sesion', arguments: {} });
+  expect(await asvsTools()).toEqual([]);
+  await client.close();
 });
 
 test('MCP desde los tres clientes: solo el cuaderno activo y propuestas revisadas', async ({
@@ -4061,7 +4167,7 @@ test('MCP desde los tres clientes: solo el cuaderno activo y propuestas revisada
     await client.close();
   }
   await page.getByRole('button', { name: 'Asistentes', exact: false }).click();
-  await page.getByRole('button', { name: /Propuestas/ }).click();
+  await page.locator('.assistants .tabbar button').last().click();
   await page.getByRole('button', { name: /Entradas/ }).click();
   await expect(page.locator('.proposal')).toHaveCount(3);
   await page.getByRole('button', { name: 'Aceptar cambios' }).first().click();

@@ -200,3 +200,10 @@ export interface AsvsGap {
     state: import('./model.js').Task['state'];
   }[];
 }
+
+/** ASVS without configuration or level is hidden from the interface and from assistants. */
+export function asvsActive(data?: Pick<AsvsData, 'config'> | null) {
+  return !!data?.config.level;
+}
+export const ASVS_DISABLED_MESSAGE =
+  'ASVS está desactivado en este cuaderno: no consultes, asocies ni propongas nada de ASVS.';

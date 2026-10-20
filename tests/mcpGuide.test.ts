@@ -26,6 +26,13 @@ describe('guía canónica de MCP y skill portátil', () => {
     expect(MCP_GUIDE_TEXT).toContain('Cumplido');
   });
 
+  it('la guía y la skill describen la lectura ASVS por lotes y los errores de sesión', () => {
+    const skill = readFileSync('.agents/skills/bitacora-mcp/SKILL.md', 'utf8');
+    expect(MCP_GUIDE_TEXT).toContain('lee hasta `limit` requisitos por página');
+    expect(skill).toContain('hasta `limit` por página');
+    for (const text of [MCP_GUIDE_TEXT, skill]) expect(text).toContain('causa y el paso siguiente');
+  });
+
   it('la skill fuente cubre los contratos MCP de consulta y acción', () => {
     const skill = readFileSync('.agents/skills/bitacora-mcp/SKILL.md', 'utf8');
     expect(skill).toMatch(/^---\nname: bitacora-mcp\n/);
@@ -63,7 +70,8 @@ describe('guía canónica de MCP y skill portátil', () => {
     expect(skill).toContain('Para un cambio acotado');
     expect(MCP_GUIDE_TEXT).toContain('Para varias historias');
     expect(skill).toContain('Para varias historias');
-    expect(MCP_GUIDE_TEXT.length).toBeLessThan(15_000);
+    // At least 1,000 characters below the original 15,000 cap.
+    expect(MCP_GUIDE_TEXT.length).toBeLessThan(14_000);
   });
 
   it('guía la selección heurística y la convergencia ASVS sin ampliar autoridad', () => {

@@ -131,9 +131,7 @@ function SignalActions({
           ? 'Acuerdo sin seguimiento'
           : signal.kind === 'evidence'
             ? 'Resultado sin evidencia'
-            : signal.kind === 'asvs'
-              ? 'Seguimiento ASVS'
-              : 'Tarea estancada'}
+            : 'Tarea estancada'}
       </strong>
       <p>{signal.explanation}</p>
       <div className="review-followup-actions">
@@ -143,9 +141,7 @@ function SignalActions({
             ? 'reunión'
             : signal.kind === 'evidence'
               ? 'entrada'
-              : signal.kind === 'asvs'
-                ? 'requisito ASVS'
-                : 'tarea'}
+              : 'tarea'}
         </button>
         {signal.kind === 'agreement' && (
           <button type="button" onClick={() => createFollowUp(signal)}>

@@ -12,27 +12,45 @@ no una prueba firmada. Cambiar de perfil revoca permisos, extractos y propuestas
 
 El usuario confirma la autorización de empresa en `src/Assistants.tsx`. Para Claude, Codex o Antigravity puede abrir una sesión del cuaderno activo con duración configurable (entre 15 minutos y 8 horas; por defecto, una hora) y renovar su vigencia. Cada cliente tiene como máximo una sesión: si ya existe una vigente, el botón pasa a «Renovar sesión para este cuaderno» y `Domain.grant` reutiliza esa sesión (mismo ID, token nuevo en el archivo del conector) con la duración, los ámbitos y el permiso de cierre marcados. «Renovar sesión» en la lista de sesiones activas también sustituye los ámbitos por los marcados en el formulario, que al elegir un cliente con sesión se rellena con sus ámbitos y permiso actuales. El servicio impide conceder o ampliar acceso a otro proyecto. La configuración generada inicia `service/mcp.ts`; el conector habla con `/mcp` en el servicio local. `service/domain.ts` comprueba el proveedor, el cuaderno activo y la vigencia en cada llamada. Al bloquear Bitácora se revocan las sesiones y se retiran los permisos locales.
 
-| Herramienta                    | Alcance y respuesta                                                                                                                                                                                                                                                   |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `buscar_contexto`              | Busca en títulos y contenido autorizado. Devuelve solo ID, tipo, versión y título de hasta diez coincidencias por página; por defecto, cinco. No entrega el contenido.                                                                                                |
-| `leer_elementos`               | Lee por ID los registros del cuaderno activo. Devuelve hasta diez por página y limita el texto a 12.000 caracteres. `nextOffset` continúa con otros registros; `nextExcerptOffset` permite continuar el texto de un registro grande con su ID y `excerptOffset`.      |
-| `consultar_criterios`          | Lee prácticas asociadas a una tarea autorizada, solo si esas prácticas también están autorizadas. Permite evaluar requisitos de calidad al formular tareas y verificar su estado antes de completarlas. Devuelve hasta cinco por página, con `offset` para continuar. |
-| `proponer_cambios`             | Guarda una propuesta de creación, actualización o comprobación. Permite actualizar especificaciones de proyectos autorizados. No modifica el registro hasta que el usuario la acepte en la interfaz.                                                                  |
-| `proponer_eliminacion`         | Propone eliminar una tarea, entrada, incidencia, idea, práctica, decisión o reunión con `kind`, `targetId`, `expectedVersion` y `rationale` obligatorio. Exige que el registro esté en un ámbito autorizado de la sesión. Nada se borra hasta que la persona acepta la propuesta.                  |
-| `completar_tarea`              | Con permiso explícito de la sesión, acepta en una transacción las propuestas propias de verificación y cierre de una tarea. Exige evidencia para todos sus criterios asociados y valida de nuevo versiones y reglas de dominio.                                       |
-| `consultar_propuestas`         | Devuelve identificadores, estados y fechas de hasta veinte propuestas del proveedor con acceso vigente al objetivo.                                                                                                                                                   |
-| `consultar_guia`               | Devuelve la guía técnica canónica de integración: qué es Bitácora, flujo recomendado, ciclo de vida de propuestas y tipos de registros. No requiere sesión previa.                                                                                                    |
-| `estado_sesion`                | Confirma la conexión, el proveedor, la caducidad, los proyectos y los ámbitos autorizados («General» o subproyectos). No lee contenido.                                                                                                                                                                          |
-| `filtrar_registros`            | Filtra metadatos por proyecto, ámbito (`subprojectId` o `general`), tipo y fecha; en tareas también por estado y prioridad. Diez resultados por página como máximo. Requiere sesión de proyectos.                                                                                                          |
-| `resumir_proyecto`             | Cuenta registros por tipo, tareas por estado y tareas vencidas de un proyecto autorizado. No incluye textos.                                                                                                                                                          |
-| `diagnosticar_tareas`          | Cuenta cinco señales de calidad en tareas abiertas y devuelve una página de ID, título, versión, categoría y motivo breve. Admite `projectId`, `category`, `offset` y `limit` (máximo diez). No lee descripciones ni modifica datos.                                  |
-| `consultar_relaciones`         | Muestra registros vinculados en ambos sentidos, solo si ambos son visibles, con paginación de diez. No entrega contenido.                                                                                                                                             |
-| `preparar_martes`              | Es una plantilla de petición: pide buscar y leer las fuentes necesarias y crear un informe como propuesta de reunión. No se ejecuta por sí sola.                                                                                                                      |
-| `sincronizar_especificaciones` | Es una plantilla de petición: pide revisar a fondo el repositorio actual sin datos sensibles y proponer actualizar las especificaciones del proyecto en Bitácora. No se ejecuta por sí sola.                                                                          |
+Este documento describe la arquitectura y la seguridad del acceso MCP. El contrato operativo para los asistentes es la guía canónica (`shared/mcpGuide.ts`, servida por `consultar_guia` y `bitacora://guia`). La skill portátil (`.agents/skills/bitacora-mcp/SKILL.md`) resume el flujo de trabajo. Cuando cambie un contrato, actualiza los tres documentos.
 
-Cada sesión de proyectos lleva una selección explícita de ámbitos: «General» y/o subproyectos activos del cuaderno abierto. `Domain.grantRecords` aplica ese filtro antes de todas las consultas anteriores, incluidos recuentos, relaciones y estados de propuestas; las prácticas generales son visibles para cualquier ámbito. Las creaciones propuestas deben indicar un destino autorizado con `patch.subprojectId` y las actualizaciones no pueden cambiarlo. ASVS del proyecto requiere el ámbito «General». Véase [Subproyectos](subproyectos.md).
+### Herramientas
 
-El transporte `/mcp` responde con 401 para sesiones ausentes o caducadas, 405 para métodos distintos de POST y 400 para entradas o reglas de dominio inválidas. Los errores de análisis JSON y del sistema se presentan sin fragmentos de la petición ni rutas locales.
+Cada herramienta publica `title` y anotaciones. Las de propuesta llevan `idempotentHint`: reenviar una propuesta pendiente idéntica devuelve la existente. Las herramientas ASVS solo aparecen con ASVS activo.
+
+| Herramienta | Alcance y respuesta |
+| --- | --- |
+| `estado_sesion` | Confirma conexión, proveedor, caducidad (`expiresAt`, `expiresInMinutes`), bloqueo previsto por inactividad (`idleLockAt`, `idleLockInMinutes`), proyectos y ámbitos autorizados. No lee contenido. |
+| `buscar_contexto` | Busca en títulos y contenido autorizado. Devuelve solo ID, tipo, versión y título; hasta diez por página (cinco por defecto). |
+| `leer_elementos` | Lee hasta diez registros por ID. Un registro que cabe entero llega como objeto en `fields`; uno que no cabe, como texto en `excerpt` con `nextExcerptOffset`, que se continúa con su único ID y `excerptOffset`. `nextOffset` pagina otros registros. Rechaza parámetros desconocidos. |
+| `consultar_criterios` | Prácticas autorizadas asociadas a una tarea, cinco por página. |
+| `filtrar_registros` | Metadatos por proyecto, ámbito (`subprojectId` o `general`), tipo y fecha; en tareas, también estado y prioridad. Diez por página. |
+| `resumir_proyecto` | Recuentos por tipo y estado y tareas vencidas, sin textos. |
+| `diagnosticar_tareas` | Cinco señales de calidad en tareas abiertas, con recuentos y una página de ID, título, versión, categoría y motivo. |
+| `consultar_relaciones` | Registros vinculados en ambos sentidos, solo si ambos son visibles, con `direction` y `relation`: `dependency`, `criterion`, `link` (vínculo de una entrada), `source` (fuente de reunión) u `objective` (con `role`). Diez por página. |
+| `proponer_cambios` | Propuesta de creación, actualización o verificación (`check`); no cambia nada hasta que se acepta. |
+| `proponer_eliminacion` | Propuesta de borrado con `kind`, `targetId`, `expectedVersion` y `rationale`. |
+| `consultar_propuestas` | Propuestas propias, de la más reciente a la más antigua, con `status`, `kind`, `operation`, `targetId` y `title`. Filtra por `status` o `targetId`; hasta veinte por página con `offset`/`nextOffset`. |
+| `completar_tarea` | Con permiso de cierre, acepta en una transacción las verificaciones y el cierre propios de una tarea. |
+| `consultar_guia` | Guía canónica; no requiere sesión. |
+| `consultar_asvs`, `leer_referencias_asvs`, `consultar_criterios_asvs`, `planificar_remediacion_asvs` | Consultas ASVS (véase más abajo). |
+| `proponer_evaluacion_asvs`, `proponer_verificacion_asvs`, `proponer_revision_asvs` | Propuestas ASVS pendientes de revisión humana. |
+
+Las definiciones publicadas ocupan unos 16.300 caracteres con ASVS activo y unos 8.300 sin él. `tests/mcpConnector.test.ts` fija un máximo de 16.500 caracteres. Unos 1.600 los añade el SDK (`$schema` y `execution` en cada herramienta) y no dependen de Bitácora.
+
+### Prompts
+
+| Prompt | Uso |
+| --- | --- |
+| `guia_uso` | Primeros pasos: comprobar la sesión y consultar la guía. |
+| `preparar_martes` | Pide buscar y leer las fuentes necesarias y proponer un informe de reunión que cite cada fuente con `@[tipo:id]` en el texto. |
+| `sincronizar_especificaciones` | Pide revisar el repositorio sin datos sensibles y proponer actualizar las especificaciones del proyecto. |
+
+Los prompts son plantillas de petición y no se ejecutan por sí solos.
+
+Cada sesión de proyectos lleva una selección explícita de ámbitos: «General» y/o subproyectos activos del cuaderno abierto. `Domain.grantRecords` aplica ese filtro antes de todas las consultas anteriores, incluidos recuentos, relaciones y estados de propuestas; las prácticas generales son visibles para cualquier ámbito. Las creaciones propuestas deben indicar un destino autorizado con `patch.subprojectId`; un valor vacío o `general` equivale a «General». Las actualizaciones no pueden cambiar el ámbito. ASVS del proyecto requiere el ámbito «General». Véase [Subproyectos](subproyectos.md).
+
+El transporte `/mcp` responde con 401 para sesiones ausentes o caducadas, 405 para métodos distintos de POST, 409 si el conector declara otra versión de protocolo y 400 para entradas o reglas de dominio inválidas. En `/mcp`, un error de validación nombra hasta cinco campos con su motivo («Revisa los campos: recordIds: …»); la interfaz conserva su mensaje resumido. El 401 indica la causa y el paso siguiente: cuaderno bloqueado, sesión caducada, acceso de asistentes desactivado, perfil MCP cambiado u organización de Claude distinta. Esos detalles solo se dan a un token que coincide con una sesión; cualquier otro recibe «Sesión revocada o no reconocida». `Domain.authorize` rechaza todos esos casos antes de leer datos. Los errores de análisis JSON y del sistema se presentan sin fragmentos de la petición ni rutas locales.
 
 `diagnosticar_tareas` evalúa solo los cuadernos incluidos en la sesión vigente. Sus categorías son `sin_siguiente_paso` (campo vacío), `dependencia_pendiente` (alguna tarea previa sin completar), `vencimiento` (fecha superada o en los próximos siete días, contando hoy), `criterio_obligatorio_pendiente` (criterio obligatorio vigente sin resolver, desactualizado o aplicable aún sin asociar) y `cierre_pendiente` (propuesta de cierre pendiente). Excluye tareas completadas, ocurrencias canceladas y, como la revisión semanal, muestra únicamente la siguiente ocurrencia abierta de cada serie. Una tarea puede aparecer en varias categorías. Los recuentos cubren todas las categorías del alcance autorizado; `category` filtra la página de resultados, que usa `nextOffset` para continuar. El motivo no incorpora texto libre, notas ni datos de propuestas; el ID permite consultar el detalle autorizado con `leer_elementos`. El cálculo de vencimientos y dependencias comparte reglas con la revisión semanal.
 
@@ -60,24 +78,31 @@ Las propuestas de creación de tareas, incidencias, ideas, decisiones y reunione
 
 En las propuestas de entradas, los campos `activity`, `result`, `learning`, `blocker` y `nextStep` admiten menciones `@Título del registro` o `@[tipo:id]` a tareas, incidencias, decisiones e ideas autorizadas del mismo proyecto. Al proponer, el servicio convierte los nombres inequívocos a menciones con ID y conserva los vínculos autorizados para la revisión. Si varios registros comparten el mismo nombre, debe usarse `@[tipo:id]`. Al aceptar, el servicio añade esos IDs a `taskIds` o `linkedIds`; la IA no puede enviar esos campos reservados. Los vínculos aparecen en Diario y Detalles.
 
+Las reuniones propuestas enlazan sus fuentes del mismo modo (decisión «Las reuniones propuestas por MCP enlazan sus fuentes con menciones»). En `body`, `@[tipo:id]` o un `@Título` inequívoco de una entrada, tarea, incidencia, decisión o idea se resuelve al proponer, solo entre los registros visibles en la sesión, del mismo proyecto y del ámbito de la reunión. Una mención canónica a un registro fuera de ese conjunto rechaza la propuesta. El texto guardado muestra `@Título` y los IDs quedan en `Proposal.meetingSourceIds`. La revisión enseña el cambio de «Fuentes de la reunión», y al aceptar se añaden a `sourceIds` tras comprobar que siguen en el proyecto. `sourceIds` sigue siendo reservado.
+
 Las tareas usan seis prioridades ordenadas: **Crítica**, **Muy alta**, **Alta**, **Media**, **Baja** y **Muy baja**. Al proponer una tarea nueva, el asistente debe valorar el impacto, la urgencia y el alcance para elegir una prioridad defendible; no debe crear tareas sin una necesidad concreta ni asignar prioridad por inercia. Reserva Crítica para situaciones excepcionales con impacto inmediato y usa los niveles inferiores según disminuya la urgencia o el impacto. Asigna además la fase correspondiente del ciclo de vida (`Descubrimiento`, `Diseño`, `Implementación`, `Validación` o `Documentación`) y una fecha límite (`due`) razonable.
 
 Al formular la creación de tareas por MCP, el asistente debe evitar descripciones escuetas o de una sola frase. El servicio exige que la propuesta indique explícitamente título, proyecto, fase, prioridad, fecha límite, descripción y siguiente paso; para ideas e incidencias exige título, proyecto, fecha y descripción. La guía del asistente añade un estándar de calidad: objetivo concreto, contexto y comportamiento esperado, y criterios de aceptación numerados y verificables. También exige consultar las prácticas vigentes del proyecto (`consultar_criterios` o filtrando prácticas) e indicar cuáles aplican y cómo, o justificar las que no apliquen. El servicio valida campos y permisos, pero no certifica por sí solo la calidad de la especificación.
 
 ### Consultas y propuestas ASVS
 
-`planificar_remediacion_asvs({ projectId, category?, offset?, limit? })` resume la cobertura del nivel objetivo y pagina hasta diez lagunas con siguientes pasos, tareas relacionadas/similares y recuento de creaciones propias pendientes. No entrega notas privadas de evaluación ni crea trabajo. El asistente lee referencias/prácticas pertinentes y propone un conjunto acotado mediante `proponer_cambios`, justificando impacto, exposición, evidencia y dependencias de tareas aceptadas. La prioridad queda por determinar y el nivel mínimo ASVS no se interpreta como severidad.
+`planificar_remediacion_asvs({ projectId, category?, offset?, limit? })` resume la cobertura del nivel objetivo y pagina hasta diez lagunas con texto español (`es`), siguientes pasos, acción recomendada (`action` y `actionGuidance`), tareas relacionadas/similares y recuento de creaciones propias pendientes. No entrega notas privadas de evaluación ni crea trabajo. El asistente lee referencias/prácticas pertinentes y propone un conjunto acotado mediante `proponer_cambios`, justificando impacto, exposición, evidencia y dependencias de tareas aceptadas. La prioridad queda por determinar y el nivel mínimo ASVS no se interpreta como severidad.
 
 `proponer_revision_asvs({ projectId, expectedConfigVersion, expectedVersion, reference, revision, reason })` propone un cambio de revisión de una fuente externa ya usada como evidencia. La versión del aviso es 0 inicialmente; `leer_referencias_asvs` y `consultar_criterios_asvs` devuelven las revisiones señaladas de sus fuentes. La propuesta permanece pendiente hasta confirmar/rechazar en Verificación ASVS. El permiso de cierre no la acepta. Las herramientas requieren proyecto autorizado y no vigilan código externo ni cambian catálogo/configuración. `consultar_propuestas` incluye estados propios de estos avisos; cambiar perfil rechaza los pendientes.
 
 El ciclo de cada tarea incluye revisión ASVS proactiva cuando está activo. `leer_elementos`,
 `consultar_criterios` y la respuesta de creación de una tarea incluyen contexto `asvs`: activación,
-nivel objetivo y parámetros para consultar candidatos con `consultar_asvs`. No seleccionan enlaces
+nivel objetivo y parámetros para consultar candidatos con `consultar_asvs`. En `leer_elementos` el
+contexto aparece una vez por página, junto a `items`, si la página incluye tareas; `criteria.taskId`
+nombra la tarea solo cuando hay una. No seleccionan enlaces
 por el título ni sustituyen las asociaciones manuales. `consultar_criterios_asvs({ taskId, offset?,
 limit? })` devuelve configuración, versión de tarea y asociaciones con sus verificaciones,
 evidencias, vigencia y versión esperada (0 inicialmente); pagina hasta diez asociaciones.
-Con alcance `selected` no se entrega contexto de proyecto ASVS. Con ASVS desactivado se mantiene el
-recorrido previo sin evaluaciones adicionales.
+Con alcance `selected` no se entrega contexto de proyecto ASVS. Con ASVS desactivado no se revisa
+nada de ASVS: `estado_sesion` indica `asvs.enabled: false`, el conector retira las herramientas ASVS
+de la lista y su sección de la guía, las respuestas omiten el contexto `asvs` y los `asvsLinks`, y el
+servicio rechaza las acciones ASVS, `asvsIds` y `patch.asvsLinks`. Véase
+[Verificación ASVS](verificacion-asvs.md).
 
 Antes de planificar, el asistente consulta candidatos del nivel objetivo y referencias pertinentes,
 justifica selección/omisión por impacto técnico y propone vínculos y criterios observables en la
@@ -104,7 +129,7 @@ contra el contenido final; cualquier fallo revierte prácticas, ASVS, cierre e h
 `description` y se registra el resultado en `solution`. El cierre humano habitual exige los vínculos
 que la persona marcó obligatorios; nunca exige todo el catálogo.
 
-Con `scope: projects`, `consultar_asvs` lee configuración, recuentos y páginas de hasta diez metadatos, con filtros de nivel acumulativo, capítulo, sección, estado aceptado, aplicabilidad y vigencia. `leer_referencias_asvs` lee una referencia concreta con texto, versión, jerarquía, evaluación/evidencias aceptadas, propuestas propias pendientes y tareas relacionadas. Se pagina cada referencia con `offset/nextOffset` y sus relaciones con `taskOffset/nextTaskOffset` y `proposalOffset/nextProposalOffset`. Las referencias sin versión usan exclusivamente la versión fijada por el cuaderno; referencias ambiguas, inexistentes o de otra versión exigen aclaración. El alcance de extractos seleccionados no permite acceder a este contexto global.
+Con `scope: projects`, `consultar_asvs` lee configuración, recuentos y páginas de hasta diez metadatos, con filtros de nivel acumulativo, capítulo, sección, estado aceptado, aplicabilidad y vigencia. La cobertura y los capítulos solo llegan en la primera página (`offset: 0`); las siguientes conservan configuración y recuentos del filtro. `leer_referencias_asvs` lee hasta `limit` referencias por página (diez como máximo y siempre al menos una) dentro de un límite de 11.800 caracteres, con texto, versión, jerarquía, evaluación/evidencias aceptadas, propuestas propias pendientes y tareas relacionadas. Añade `es` (capítulo, sección y descripción traducidos con DeepL como ayuda; el inglés sigue siendo la autoridad y la base de las huellas) y `next`, una acción concreta (`plan-or-evaluate`, `plan-fix`, `continue-task`, `revalidate`, `consult`, `await-review`, `excluded`, `none` o `inactive`) con su explicación, para reducir llamadas exploratorias. Las referencias restantes continúan con `offset/nextOffset`; las relaciones de una referencia, con `taskOffset/nextTaskOffset` y `proposalOffset/nextProposalOffset`, que leen solo la referencia de `offset`. Las referencias sin versión usan exclusivamente la versión fijada por el cuaderno; referencias ambiguas, inexistentes o de otra versión exigen aclaración. El alcance de extractos seleccionados no permite acceder a este contexto global.
 
 Para proponer trabajo ASVS, el asistente consulta requisito, configuración, prácticas vigentes y tareas similares. `patch.asvsLinks` en una tarea admite `{ catalogVersion, reqId, reason, scope, criterion, method }` sin obligatoriedad ni evaluación implícita. La vista previa muestra requisito, motivo y posibles tareas relacionadas; solo la aceptación crea tarea y asociaciones en una transacción.
 
@@ -148,7 +173,27 @@ Las herramientas MCP de Bitácora no limitan otras herramientas de archivos, ter
 
 La pantalla de Asistentes genera una configuración estable para Claude, Codex y Antigravity con `BITACORA_PROVIDER`, la ruta del conector y la carpeta de datos local. Al crear una sesión, el servicio guarda el permiso temporal en `mcp-grant-claude.json`, `mcp-grant-codex.json` o `mcp-grant-antigravity.json`, según el cliente, dentro de esa carpeta y fuera del repositorio. El conector lee el permiso vigente en cada llamada; renovar la sesión no requiere cambiar el bloque de configuración ni copiar un token. Cada cliente mantiene una única sesión; crearla de nuevo la renueva y reescribe su archivo con un token nuevo, que el conector lee en la siguiente llamada. Revocar esa sesión, desactivar la autorización, bloquear la aplicación o cerrar el servicio retira el archivo; el servicio también verifica vigencia y alcance en cada petición. El archivo temporal debe permanecer privado para el usuario local.
 
-Claude, Codex y Antigravity cargan las definiciones de herramientas al iniciar una conversación o recargar la configuración MCP (`config.toml` para Codex, `mcp_config.json` para Antigravity). Si el servidor ya estaba cargado, las llamadas existentes leen el permiso renovado sin reiniciar. `estado_sesion` sirve para comprobar la conexión sin enviar contenido del cuaderno.
+Claude, Codex y Antigravity cargan las definiciones de herramientas al iniciar una conversación o recargar la configuración MCP (`config.toml` para Codex, `mcp_config.json` para Antigravity). Si el servidor ya estaba cargado, las llamadas existentes leen el permiso renovado sin reiniciar. `estado_sesion` sirve para comprobar la conexión sin enviar contenido del cuaderno. Las llamadas MCP no cuentan como actividad (decisión «La actividad MCP no retrasa el bloqueo por inactividad»): el cuaderno se bloquea si la interfaz sigue sin uso, y `estado_sesion` devuelve `idleLockAt` e `idleLockInMinutes` para que el asistente avise a tiempo.
+
+Además del bloque, Asistentes ofrece un comando de instalación para los clientes con CLI (`shared/mcpClientConfig.ts`): `claude mcp add bitacora --scope user -e … -- <node> <mcp.cjs>` y `codex mcp add bitacora --env … -- <node> <mcp.cjs>`, con la sintaxis de la ayuda de cada CLI. Las variables van como argumentos separados entre comillas, no como JSON, para que funcione igual en PowerShell, cmd y shells POSIX. Antigravity no tiene CLI y usa solo el bloque. El comando no contiene tokens.
+
+Cada sesión guarda su último uso (`lastUsedAt` y `lastTool`, el nombre de la herramienta de una lista cerrada, nunca parámetros ni contenido). La lista de sesiones activas muestra «Sin uso todavía» o «Último uso hace N min (herramienta)», lo que confirma si el cliente llegó a conectar.
+
+El conector y el servicio comparten `MCP_PROTOCOL_VERSION` (`shared/mcpProtocol.ts`), que se sube cuando cambia la forma de una respuesta o una entrada. El servicio la publica en `connection.json` y el conector la envía en `X-Bitacora-Mcp-Protocol`. Si no coinciden, el conector no llama o el servicio responde 409 sin ejecutar la acción, y el asistente recibe «reinicia el cliente MCP». Los conectores anteriores a la versión 2 no envían la cabecera y no se detectan. La versión del servidor MCP se deriva de la misma constante.
+
+### Solución de problemas de conexión
+
+| Mensaje del conector | Causa | Paso siguiente |
+| --- | --- | --- |
+| «Bitácora no está abierta» | No existe `connection.json`. | Abrir la aplicación y desbloquear el cuaderno. |
+| «Bitácora no responde» o «no respondió a tiempo» | El servicio se cerró o tardó más de diez segundos. | Comprobar que sigue abierta y repetir. |
+| «No hay una sesión MCP para este cliente» | Falta el archivo de permiso del cliente (bloqueo, revocación o nunca creada). | Crear o renovar la sesión en Asistentes. |
+| «Bitácora está bloqueada» | Bloqueo manual o por inactividad. | Desbloquear y renovar la sesión. |
+| «Sesión caducada» o «Sesión revocada o no reconocida» | La sesión venció o se sustituyó. | Renovar la sesión en Asistentes. |
+| «El conector MCP y Bitácora son de versiones distintas» | Cliente con un conector anterior tras actualizar. | Reiniciar el cliente MCP o abrir otra conversación. |
+| «BITACORA_PROVIDER no es válido» | Configuración copiada de forma incompleta. | Copiar de nuevo el bloque o el comando de Asistentes. |
+
+Asistentes muestra la misma tabla resumida en «Solución de problemas de conexión».
 
 Las configuraciones anteriores de Claude con `BITACORA_GRANT_TOKEN` siguen admitidas. Sustituirlas por el bloque nuevo evita copiar el token al crear o renovar sesiones.
 

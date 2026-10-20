@@ -53,6 +53,7 @@ import {
   type Subproject,
   type WorkspaceStatus,
 } from '../shared/model';
+import { asvsActive } from '../shared/asvsTracking';
 import {
   GENERAL_SCOPE,
   findSubproject,
@@ -137,7 +138,10 @@ function proposalNotices(snapshot: Snapshot): ProposalNotice[] {
           'Propuesta de cambios',
       ),
     })),
-    ...(snapshot.asvs?.proposals ?? []).map((p) => ({ ...p, title: `ASVS ${p.reference}` })),
+    ...(asvsActive(snapshot.asvs) ? (snapshot.asvs?.proposals ?? []) : []).map((p) => ({
+      ...p,
+      title: `ASVS ${p.reference}`,
+    })),
   ];
 }
 export default function App() {
@@ -154,7 +158,6 @@ export default function App() {
     projectId: string;
     signals: WeeklySignal[];
   }>();
-  const [asvsReference, setAsvsReference] = useState('');
   const [day, rawSetDay] = useState(madridDate());
   const [selected, setSelected] = useState('');
   const [dialog, setDialog] = useState<Dialog>();
@@ -425,6 +428,13 @@ export default function App() {
       window.removeEventListener('keydown', activity);
     };
   }, [!!snapshot]);
+  const asvsEnabled = asvsActive(snapshot?.asvs);
+  useEffect(() => {
+    // Disabling ASVS hides its view; reactivation lives in «Ajustes y copias».
+    if (!snapshot || asvsEnabled || view !== 'Verificación ASVS') return;
+    rawSetView('Hoy');
+    setToast('ASVS desactivado. Puedes reactivarlo en Ajustes y copias.');
+  }, [asvsEnabled, view, !!snapshot]);
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(''), 4000);
@@ -945,9 +955,7 @@ export default function App() {
     currentDay,
   ).filter(
     (signal) =>
-      (signal.kind === 'asvs'
-        ? scope === 'all' || scope === GENERAL_SCOPE
-        : records.some((record) => record.id === signal.recordId)) &&
+      records.some((record) => record.id === signal.recordId) &&
       (!search ||
         `${signal.title} ${signal.explanation}`.toLowerCase().includes(search.toLowerCase())),
   );
@@ -1079,22 +1087,24 @@ export default function App() {
           </strong>
         </div>
         <nav aria-label="Navegación principal">
-          {navigation.map((n) => (
-            <button
-              key={n.name}
-              className={view === n.name ? 'active' : ''}
-              aria-current={view === n.name ? 'page' : undefined}
-              onClick={() => {
-                setView(n.name);
-                setMobileNav(false);
-                setSearch('');
-              }}
-            >
-              <n.icon size={19} />
-              <span>{n.name}</span>
-              {n.name === 'Hoy' && <span className="nav-dot" />}
-            </button>
-          ))}
+          {navigation
+            .filter((n) => asvsEnabled || n.name !== 'Verificación ASVS')
+            .map((n) => (
+              <button
+                key={n.name}
+                className={view === n.name ? 'active' : ''}
+                aria-current={view === n.name ? 'page' : undefined}
+                onClick={() => {
+                  setView(n.name);
+                  setMobileNav(false);
+                  setSearch('');
+                }}
+              >
+                <n.icon size={19} />
+                <span>{n.name}</span>
+                {n.name === 'Hoy' && <span className="nav-dot" />}
+              </button>
+            ))}
         </nav>
         <div className="projects-heading">
           <span>Mis proyectos</span>
@@ -1713,11 +1723,6 @@ export default function App() {
                 previousReviewDay={snapshot.weeklyReview?.baseline?.day}
                 finishReview={finishWeeklyReview}
                 openSignal={(signal) => {
-                  if (signal.kind === 'asvs') {
-                    setAsvsReference(signal.itemId ?? '');
-                    setView('Verificación ASVS');
-                    return;
-                  }
                   const source = snapshot.records.find((record) => record.id === signal.recordId);
                   if (source) openRecord(source, signal.kind === 'evidence');
                 }}
@@ -2023,7 +2028,6 @@ export default function App() {
                   records={snapshot.records}
                   openRecord={openRecord}
                   data={snapshot.asvs}
-                  initialReference={asvsReference}
                   onChanged={() =>
                     void refresh().catch((cause) => setError((cause as Error).message))
                   }
@@ -2158,7 +2162,12 @@ export default function App() {
               toggleProposalSound={toggleProposalSound}
             />
           ) : dialog.type === 'backup' ? (
-            <Backup refresh={refresh} projectId={project} mcpProfile={snapshot.mcpProfile} />
+            <Backup
+              refresh={refresh}
+              projectId={project}
+              mcpProfile={snapshot.mcpProfile}
+              asvsConfig={snapshot.asvs?.config}
+            />
           ) : (
             <Export initial={dialog.body} />
           )}

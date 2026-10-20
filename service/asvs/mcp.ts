@@ -2,21 +2,25 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { ASVS_VERSION, resolveAsvsReference } from '../../shared/asvs.js';
 import { asvsCatalog } from '../../shared/asvsCatalog.js';
-import type { AsvsProposal } from '../../shared/asvsTracking.js';
+import { asvsActive, type AsvsProposal } from '../../shared/asvsTracking.js';
 import type { GrantInfo, Snapshot, Task } from '../../shared/model.js';
 import { sameProposalValue } from '../../shared/proposalReview.js';
 import { GENERAL_SCOPE, effectiveGrantScopes, grantSees } from '../../shared/subprojects.js';
+import { asvsNextAction, asvsSpanishText } from './guidance.js';
 import { linkedAsvsTasks } from './links.js';
 import { asvsReviewInput } from './requests.js';
 import { assessmentStatus, asvsOverview, asvsRecordFingerprint, reviewAsvs } from './tracking.js';
 import { asvsTaskReviewInput, reviewAsvsTask, taskVerificationStatus } from './taskVerification.js';
 
-const project = z.string().trim().min(1).max(240);
-const offset = z.number().int().nonnegative().safe().default(0);
-const limit = z.number().int().min(1).max(10).default(10);
+// Factories: a shared Zod instance is published to MCP clients as a $ref.
+const project = () => z.string().trim().min(1).max(240);
+const offset = () => z.number().int().nonnegative().default(0);
+const limit = () => z.number().int().min(1).max(10).default(10);
+/** Characters of one ASVS read page, aligned with the record read budget. */
+const READ_BUDGET = 11800;
 export const asvsQueryInput = z
   .object({
-    projectId: project,
+    projectId: project(),
     level: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
     chapterId: z.string().max(30).optional(),
     sectionId: z.string().max(30).optional(),
@@ -26,18 +30,18 @@ export const asvsQueryInput = z
     applicability: z.enum(['Por determinar', 'Aplicable', 'No aplicable']).optional(),
     freshness: z.enum(['current', 'stale']).optional(),
     query: z.string().max(200).optional(),
-    offset,
-    limit,
+    offset: offset(),
+    limit: limit(),
   })
   .strict();
 export const asvsReadInput = z
   .object({
-    projectId: project,
+    projectId: project(),
     references: z.array(z.string().min(1).max(240)).min(1).max(10),
-    offset,
-    taskOffset: offset,
-    proposalOffset: offset,
-    limit,
+    offset: offset(),
+    taskOffset: offset(),
+    proposalOffset: offset(),
+    limit: limit(),
   })
   .strict();
 export const asvsProposeInput = asvsReviewInput
@@ -90,8 +94,21 @@ export function taskAsvsContext(
   };
 }
 
+/** Task context for assistants; absent while ASVS is disabled so it is never reviewed. */
+export function asvsMcpContext(
+  state: Snapshot,
+  grant: GrantInfo,
+  projectId: string,
+  taskId?: string,
+) {
+  return asvsActive(state.asvs) ? { asvs: taskAsvsContext(state, grant, projectId, taskId) } : {};
+}
+
 export function taskAsvsCriteria(state: Snapshot, grant: GrantInfo, input: unknown) {
-  const request = z.object({ taskId: z.string().uuid(), offset, limit }).strict().parse(input);
+  const request = z
+    .object({ taskId: z.string().uuid(), offset: offset(), limit: limit() })
+    .strict()
+    .parse(input);
   const task = state.records.find((r): r is Task => r.kind === 'task' && r.id === request.taskId);
   if (!task) throw Error('Tarea no autorizada.');
   authorizeAsvs(state, grant, task.project, task);
@@ -225,31 +242,34 @@ export function queryAsvs(state: Snapshot, grant: GrantInfo, input: unknown) {
   const config = state.asvs?.config;
   if (catalogVersion !== ASVS_VERSION) throw Error('Catálogo ASVS fijado no disponible.');
   const items = asvsCatalog.requirements
-    .filter((r) => {
-      const m = metadata(state, r.reqId, grant.provider);
-      return (
+    .filter(
+      (r) =>
         (!request.level || r.minLevel <= request.level) &&
         (!request.chapterId || request.chapterId === r.chapterId) &&
         (!request.sectionId || request.sectionId === r.sectionId) &&
-        (!request.state || request.state === m.state) &&
-        (!request.applicability || request.applicability === m.applicability) &&
-        (!request.freshness ||
-          (request.freshness === 'stale' ? !!m.status?.stale : !!m.status && !m.status.stale)) &&
         (!request.query ||
           `${r.canonicalRef} ${r.description} ${r.chapterName} ${r.sectionName}`
             .toLocaleLowerCase()
-            .includes(request.query.toLocaleLowerCase()))
-      );
-    })
+            .includes(request.query.toLocaleLowerCase())),
+    )
+    // The page-level catalogVersion applies to every item.
     .map((r) => ({
       reference: r.canonicalRef,
-      catalogVersion,
       reqId: r.reqId,
       minLevel: r.minLevel,
       chapterId: r.chapterId,
       sectionId: r.sectionId,
       ...metadata(state, r.reqId, grant.provider),
-    }));
+    }))
+    .filter(
+      (m) =>
+        (!request.state || request.state === m.state) &&
+        (!request.applicability || request.applicability === m.applicability) &&
+        (!request.freshness ||
+          (request.freshness === 'stale' ? !!m.status?.stale : !!m.status && !m.status.stale)),
+    );
+  // Coverage and chapter counts do not change between pages: send them on the first one.
+  const firstPage = request.offset === 0;
   return {
     config: config
       ? {
@@ -261,8 +281,7 @@ export function queryAsvs(state: Snapshot, grant: GrantInfo, input: unknown) {
           contextRevision: config.contextRevision,
         }
       : null,
-    coverage: coverage.summary,
-    chapters: coverage.chapters,
+    ...(firstPage && { coverage: coverage.summary, chapters: coverage.chapters }),
     catalogVersion,
     total: items.length,
     counts: {
@@ -279,11 +298,30 @@ export function queryAsvs(state: Snapshot, grant: GrantInfo, input: unknown) {
 export function readAsvs(state: Snapshot, grant: GrantInfo, input: unknown) {
   const request = asvsReadInput.parse(input);
   authorizeAsvs(state, grant, request.projectId);
-  // Read one concrete requirement at a time and page related metadata separately.
   const requirements = request.references.map((ref) => requirementFor(state, ref));
-  const requirement = requirements[request.offset];
-  if (!requirement) return { items: [], nextOffset: null };
+  // Task and proposal cursors continue the requirement at `offset` only.
+  const count = request.taskOffset || request.proposalOffset ? 1 : request.limit;
+  // Up to `count` requirements per page while they fit the budget; the first always fits.
+  const items: ReturnType<typeof readRequirement>[] = [];
+  let budget = READ_BUDGET;
+  for (const requirement of requirements.slice(request.offset, request.offset + count)) {
+    const item = readRequirement(state, grant, requirement, request);
+    const size = JSON.stringify(item).length;
+    if (items.length && size > budget) break;
+    items.push(item);
+    budget -= size;
+  }
+  const next = request.offset + items.length;
+  return { items, nextOffset: next < requirements.length ? next : null };
+}
+function readRequirement(
+  state: Snapshot,
+  grant: GrantInfo,
+  requirement: NonNullable<ReturnType<typeof resolveAsvsReference>>,
+  request: z.infer<typeof asvsReadInput>,
+) {
   const assessment = state.asvs?.assessments.find((a) => a.reqId === requirement.reqId);
+  const status = assessment ? assessmentStatus(state, state.asvs!.config, assessment) : null;
   const tasks = linkedAsvsTasks(state, requirement.reqId).filter((task) =>
     grantSees(grant, task, state.records),
   );
@@ -294,41 +332,37 @@ export function readAsvs(state: Snapshot, grant: GrantInfo, input: unknown) {
       p.before.reqId === requirement.reqId,
   );
   return {
-    items: [
-      {
-        ...requirement,
-        resolvedAgainst: state.asvs!.config.catalogVersion,
-        evaluation: assessment
-          ? { assessment, status: assessmentStatus(state, state.asvs!.config, assessment) }
-          : null,
-        sourceRevisions: (state.asvs?.sourceRevisions ?? [])
-          .filter((r) =>
-            assessment?.evidence.some((e) => !e.recordId && e.reference === r.reference),
-          )
-          .map(({ reference, revision, version }) => ({ reference, revision, version })),
-        pendingProposals: proposals
-          .slice(request.proposalOffset, request.proposalOffset + request.limit)
-          .map((p) => ({
-            id: p.id,
-            state: p.request.state,
-            scope: p.request.scope,
-            status: p.status,
-          })),
-        relatedTasks: tasks
-          .slice(request.taskOffset, request.taskOffset + request.limit)
-          .map((t) => ({ id: t.id, title: t.title, version: t.version, state: t.state })),
-        relatedTaskCount: tasks.length,
-        nextTaskOffset:
-          request.taskOffset + request.limit < tasks.length
-            ? request.taskOffset + request.limit
-            : null,
-        nextProposalOffset:
-          request.proposalOffset + request.limit < proposals.length
-            ? request.proposalOffset + request.limit
-            : null,
-      },
-    ],
-    nextOffset: request.offset + 1 < requirements.length ? request.offset + 1 : null,
+    ...requirement,
+    resolvedAgainst: state.asvs!.config.catalogVersion,
+    es: asvsSpanishText(requirement.reqId),
+    next: asvsNextAction({
+      assessment,
+      status,
+      openTaskCount: tasks.filter((t) => t.state !== 'Completada').length,
+      pendingProposalCount: proposals.length,
+    }),
+    evaluation: assessment ? { assessment, status } : null,
+    sourceRevisions: (state.asvs?.sourceRevisions ?? [])
+      .filter((r) => assessment?.evidence.some((e) => !e.recordId && e.reference === r.reference))
+      .map(({ reference, revision, version }) => ({ reference, revision, version })),
+    pendingProposals: proposals
+      .slice(request.proposalOffset, request.proposalOffset + request.limit)
+      .map((p) => ({
+        id: p.id,
+        state: p.request.state,
+        scope: p.request.scope,
+        status: p.status,
+      })),
+    relatedTasks: tasks
+      .slice(request.taskOffset, request.taskOffset + request.limit)
+      .map((t) => ({ id: t.id, title: t.title, version: t.version, state: t.state })),
+    relatedTaskCount: tasks.length,
+    nextTaskOffset:
+      request.taskOffset + request.limit < tasks.length ? request.taskOffset + request.limit : null,
+    nextProposalOffset:
+      request.proposalOffset + request.limit < proposals.length
+        ? request.proposalOffset + request.limit
+        : null,
   };
 }
 export function proposeAsvs(state: Snapshot, grant: GrantInfo, input: unknown) {

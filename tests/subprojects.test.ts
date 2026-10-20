@@ -431,7 +431,7 @@ describe('permisos MCP por ámbito', () => {
         rationale: 'Dependencia ajena',
       }),
     ).toThrow('no está autorizada');
-    expect(domain.proposalStatus(session)).toHaveLength(1);
+    expect(domain.proposalStatus(session).items).toHaveLength(1);
   });
 
   it('actualiza los ámbitos al renovar y limita las eliminaciones al ámbito del registro', () => {

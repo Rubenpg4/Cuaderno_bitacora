@@ -2,8 +2,306 @@
   min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 18px;
+  gap: 16px;
   color: var(--ink);
+}
+.asvs-view .muted,
+.asvs-view .field > small {
+  color: var(--asvs-muted);
+}
+.asvs-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+}
+.asvs-head p {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+}
+.asvs-progress {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.asvs-progress p {
+  margin: 0;
+}
+.asvs-progress-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.asvs-bar {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+.asvs-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green);
+}
+.asvs-bar.small {
+  width: 72px;
+  height: 6px;
+  flex: none;
+}
+.asvs-inline-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.asvs-panel,
+.asvs-config {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.asvs-panel > p,
+.asvs-config p,
+.asvs-attribution {
+  margin: 0;
+  max-width: 78ch;
+}
+.asvs-settings {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.asvs-settings .field {
+  flex: 1 1 240px;
+}
+.asvs-tool {
+  min-width: 0;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+/* Closed <details> must not be a grid: Chromium keeps gaps for its hidden content. */
+.asvs-tool[open] > :not(summary) + *,
+.asvs-tool[open] > summary + * {
+  margin-top: 12px;
+}
+.asvs-tool > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.asvs-toolbar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+.asvs-toolbar .field {
+  flex: 1 1 260px;
+}
+.asvs-focus {
+  flex: 0 1 auto;
+}
+.asvs-message,
+.asvs-results {
+  margin: 0;
+}
+.asvs-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.asvs-tree {
+  display: grid;
+  gap: 10px;
+}
+.asvs-chapter {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.asvs-chapter h2 {
+  margin: 0;
+  font-size: inherit;
+}
+.asvs-chapter-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.asvs-chapter-head:hover {
+  background: color-mix(in srgb, var(--blue) 6%, transparent);
+}
+.asvs-chevron {
+  flex: none;
+  color: var(--asvs-muted);
+  transition: transform 0.15s ease;
+}
+.asvs-chapter[data-open='true'] .asvs-chevron {
+  transform: rotate(90deg);
+}
+.asvs-chapter-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+.asvs-chapter-count {
+  color: var(--asvs-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.asvs-section {
+  border-top: 1px solid var(--line);
+}
+.asvs-section h3 {
+  margin: 0;
+  padding: 10px 16px 4px;
+  color: var(--asvs-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.asvs-req {
+  margin: 0 8px;
+  border-radius: 8px;
+}
+.asvs-req[data-open='true'] {
+  margin-bottom: 8px;
+  background: color-mix(in srgb, var(--blue) 4%, transparent);
+  outline: 1px solid var(--line);
+}
+.asvs-req-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 9px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.asvs-req-head:hover {
+  background: color-mix(in srgb, var(--blue) 6%, transparent);
+}
+.asvs-req-id {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.asvs-req-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 14px;
+}
+.asvs-req[data-open='true'] .asvs-req-text {
+  display: none;
+}
+.asvs-req-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.asvs-req-body {
+  display: grid;
+  gap: 12px;
+  padding: 0 12px 14px 92px;
+  overflow-wrap: anywhere;
+}
+.asvs-req-body p,
+.asvs-req-body h4,
+.asvs-req-body ul,
+.asvs-req-body dl {
+  margin: 0;
+}
+.asvs-req-body h4 {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.asvs-description {
+  white-space: pre-wrap;
+  max-width: 78ch;
+}
+.asvs-original,
+.asvs-tool,
+.asvs-context details {
+  margin: 0;
+}
+.asvs-original > summary {
+  padding: 2px 0;
+  cursor: pointer;
+  color: var(--asvs-muted);
+  font-size: 13px;
+}
+.asvs-original .asvs-description {
+  padding-top: 6px;
+}
+.asvs-next {
+  border-left: 3px solid var(--blue);
+  padding-left: 10px;
+}
+.asvs-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  font-size: 14px;
+}
+.asvs-facts dt {
+  color: var(--asvs-muted);
+  font-size: 12px;
+}
+.asvs-facts dd {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.asvs-stale {
+  color: var(--amber);
+}
+.asvs-partial {
+  border-left: 3px solid var(--amber);
+  padding-left: 10px;
+}
+.asvs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.asvs-actions .button,
+.asvs-req-body .button {
+  min-width: 0;
+  white-space: normal;
+}
+.asvs-actions a,
+.asvs-attribution a {
+  color: var(--blue);
 }
 .asvs-report,
 .asvs-report fieldset {
@@ -20,16 +318,6 @@
 }
 .asvs-report legend {
   color: var(--ink);
-}
-.asvs-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-}
-.asvs-actions .button {
-  min-width: 0;
-  white-space: normal;
 }
 .asvs-report-options {
   display: grid;
@@ -50,138 +338,11 @@
   border: 1px solid var(--line);
   font-size: 13px;
 }
-.asvs-config {
-  min-width: 0;
-  display: grid;
-  gap: 16px;
-  padding: 24px;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-}
-.asvs-config h2 {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-.asvs-config p,
-.asvs-results,
-.asvs-attribution {
-  max-width: 78ch;
-}
-.asvs-view .field > small {
-  color: var(--ink);
-}
-.asvs-fields,
-.asvs-filters {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-.asvs-filters {
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-}
-.asvs-summary {
-  display: grid;
-  gap: 6px;
-  border-left: 4px solid var(--blue);
-  padding: 12px 18px;
-  background: var(--paper);
-}
-.asvs-table-scroll {
-  min-width: 0;
-  max-width: 100%;
-  overflow-x: auto;
-}
-.asvs-coverage-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-.asvs-coverage-table th,
-.asvs-coverage-table td {
-  padding: 8px;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-}
-.asvs-gap {
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
-  overflow-wrap: anywhere;
-}
-.asvs-tree > details {
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  margin-bottom: 12px;
-}
-.asvs-tree summary {
-  cursor: pointer;
-  padding: 14px 18px;
-}
-.asvs-tree summary strong {
-  margin-left: 8px;
-}
-.asvs-tree summary > span {
-  margin-left: 16px;
-  font-size: 14px;
-}
-.asvs-tree details details {
-  border-top: 1px solid var(--line);
-  margin-left: 20px;
-}
-.asvs-requirement {
-  border-top: 1px solid var(--line);
-  border-left: 3px solid var(--line);
-  margin: 0 18px 16px;
-  padding: 18px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-  overflow-wrap: anywhere;
-}
-.asvs-requirement .button {
-  min-width: 0;
-  white-space: normal;
-}
-.asvs-requirement-heading {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.asvs-state {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-}
-.asvs-state[data-state='fulfilled'] {
-  color: var(--green);
-}
-.asvs-state[data-state='excluded'],
-.asvs-stale {
-  color: var(--amber);
-}
-.asvs-partial {
-  border-left: 3px solid var(--blue);
-  padding-left: 12px;
-}
-.asvs-description {
-  white-space: pre-wrap;
-  max-width: 78ch;
-}
-.asvs-requirement .asvs-original {
-  margin-left: 0;
-}
-.asvs-original .asvs-description {
-  padding: 0 18px 14px;
-}
 .asvs-review {
   display: grid;
   gap: 16px;
   border-top: 1px solid var(--line);
-  padding-top: 18px;
+  padding-top: 16px;
 }
 .asvs-review fieldset {
   border: 1px solid var(--line);
@@ -193,7 +354,7 @@
 .asvs-review input:not([type='checkbox']),
 .asvs-review select,
 .asvs-review textarea,
-.asvs-view > .asvs-filters input,
+.asvs-view .field input,
 .asvs-view select {
   width: 100%;
 }
@@ -210,42 +371,132 @@
 }
 .asvs-history {
   border-top: 1px solid var(--line);
-  padding-top: 16px;
+  padding-top: 12px;
 }
 .asvs-history li {
-  margin: 12px 0;
+  margin: 10px 0;
 }
-.asvs-attribution a {
-  color: var(--blue);
-}
-@media (max-width: 900px) {
-  .asvs-filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.asvs-history p {
+  margin: 2px 0;
 }
 @media (max-width: 600px) {
-  .asvs-fields,
-  .asvs-filters {
+  .asvs-fields {
     grid-template-columns: 1fr;
   }
+  .asvs-panel,
   .asvs-config {
-    padding: 16px;
+    padding: 14px;
   }
-  .asvs-tree details details {
-    margin-left: 6px;
-  }
-  .asvs-tree summary {
-    padding: 12px;
-  }
-  .asvs-tree summary > span {
-    display: block;
-    margin-left: 20px;
-  }
-  .asvs-requirement {
-    margin: 0 6px 12px;
-    padding: 12px;
-  }
-  .asvs-requirement .row {
+  .asvs-chapter-head {
     flex-wrap: wrap;
+    padding: 12px;
   }
+  .asvs-chapter-name {
+    flex-basis: calc(100% - 30px);
+  }
+  .asvs-chapter-head > .badge {
+    margin-left: 26px;
+  }
+  .asvs-req {
+    margin: 0 4px;
+  }
+  .asvs-req-head {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .asvs-req-meta {
+    justify-content: flex-start;
+  }
+  .asvs-req-body {
+    padding: 0 8px 12px;
+  }
+}
+.asvs-focus {
+  flex-wrap: wrap;
+}
+/* The shared muted tone is below 4.5:1 on white; dense ASVS text needs a darker one. */
+.asvs-view,
+.asvs-proposal-change {
+  --asvs-muted: #586b80;
+}
+:root[data-theme='dark'] .asvs-view,
+:root[data-theme='dark'] .asvs-proposal-change {
+  --asvs-muted: var(--muted);
+}
+.asvs-proposal-change {
+  display: grid;
+  gap: 10px;
+}
+.asvs-proposal-change p {
+  margin: 0;
+}
+.asvs-proposal-change .muted {
+  color: var(--asvs-muted);
+}
+.asvs-context {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--blue);
+  background: color-mix(in srgb, var(--blue) 5%, transparent);
+  border-radius: 0 8px 8px 0;
+}
+.asvs-context p {
+  white-space: pre-wrap;
+}
+.asvs-context details > summary {
+  cursor: pointer;
+  font-size: 13px;
+}
+.asvs-change {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+}
+.asvs-change dt {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--asvs-muted);
+}
+.asvs-change dd {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+}
+.asvs-change del {
+  display: block;
+  color: var(--asvs-muted);
+}
+.asvs-change ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.asvs-proposal-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* The shared segmented tabs fall below 4.5:1 for counts; keep ASVS chips readable. */
+.asvs-focus button {
+  color: #475a70;
+}
+.asvs-focus .tab-pill-count {
+  color: #33465c;
+}
+.asvs-focus button.active .tab-pill-count {
+  color: #1d4fb8;
+}
+:root[data-theme='dark'] .asvs-focus button {
+  color: #a9bdd4;
+}
+:root[data-theme='dark'] .asvs-focus .tab-pill-count {
+  color: #b4c6da;
+}
+:root[data-theme='dark'] .asvs-focus button.active .tab-pill-count {
+  color: #8db6ff;
+}
+.asvs-panel > h2 {
+  margin: 0;
+  font-size: 16px;
 }

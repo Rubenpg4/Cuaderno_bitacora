@@ -6,6 +6,8 @@ import { Workspaces } from '../service/workspaces';
 import { blank, type Domain } from '../service/domain';
 import { validateAsvsState } from '../service/asvs/tracking';
 import { asvsCatalog } from '../shared/asvsCatalog';
+import { asvsDisplayRequirements } from '../shared/asvsCatalogEs';
+import { mcpGuideText } from '../shared/mcpGuide';
 import { ASVS_VERSION } from '../shared/asvs';
 import type { Task } from '../shared/model';
 const password = 'contraseña sintética integración ASVS';
@@ -129,10 +131,19 @@ describe('ciclo proactivo y cierre ASVS de tareas', () => {
       catalogVersion: ASVS_VERSION,
       level: null,
     });
-    expect(domain.propose(g, input)).toMatchObject({
-      id: first.id,
-      asvs: { enabled: false, candidates: null },
-    });
+    // Disabled ASVS disappears for assistants: no context, no links, no ASVS guide section.
+    const again = domain.propose(g, input);
+    expect(again.id).toBe(first.id);
+    expect(again).not.toHaveProperty('asvs');
+    expect(domain.sessionInfo(g).asvs).toMatchObject({ enabled: false });
+    expect(() =>
+      domain.propose(g, {
+        ...input,
+        patch: { ...input.patch, title: 'Con enlace', asvsLinks: [link] },
+      }),
+    ).toThrow('ASVS está desactivado');
+    expect(mcpGuideText(false)).not.toContain('consultar_asvs');
+    expect(mcpGuideText(true)).toContain('consultar_asvs');
   });
   it('pagina todos los criterios manuales y exige también los informativos para cierre autónomo', () => {
     const links = asvsCatalog.requirements
@@ -198,9 +209,19 @@ describe('ciclo proactivo y cierre ASVS de tareas', () => {
     });
     const administrative = task({ title: 'Ordenar agenda sintética', asvsLinks: [] });
     const read = domain.context(g, { recordIds: [auth.id] });
-    expect(read.items[0]).toMatchObject({
-      asvs: { enabled: true, candidates: { level: 1, tool: 'consultar_asvs' } },
+    expect(read).toMatchObject({
+      asvs: {
+        enabled: true,
+        candidates: { level: 1, tool: 'consultar_asvs' },
+        criteria: { taskId: auth.id },
+      },
     });
+    expect(read.items[0]).not.toHaveProperty('asvs');
+    // Several tasks share one context; the criteria hint no longer names a single task.
+    const both = domain.context(g, { recordIds: [auth.id, administrative.id] });
+    expect(both.items).toHaveLength(2);
+    expect(both).toMatchObject({ asvs: { enabled: true, criteria: { taskId: null } } });
+    expect(JSON.stringify(both).match(/"candidates"/g)).toHaveLength(1);
     expect(domain.context(g, { taskId: auth.id })).toMatchObject({ asvs: { enabled: true } });
     const criteria = domain.asvsTaskCriteria(g, { taskId: auth.id });
     expect(criteria).toMatchObject({
@@ -433,6 +454,14 @@ describe('asociaciones y propuestas ASVS', () => {
     });
     expect(read.items[0].relatedTasks.map((t) => t.id)).toEqual([first.id]);
     expect(read.items[0].relatedTaskCount).toBe(2);
+    expect(read.items[0].next.action).toBe('continue-task');
+    expect(read.items[0].next.guidance).toContain('proponer_verificacion_asvs');
+    if (read.items[0].es) {
+      expect(read.items[0].es.description).toBe(
+        asvsDisplayRequirements.find((r) => r.reqId === requirement.reqId)!.description,
+      );
+      expect(read.items[0].description).toBe(requirement.description);
+    }
     expect(read.items[0].nextTaskOffset).toBe(1);
     const next = domain.asvsRead(grant(), {
       projectId,
@@ -514,6 +543,14 @@ describe('asociaciones y propuestas ASVS', () => {
     expect(page.nextOffset).toBe(2);
     expect(JSON.stringify(page.items)).not.toContain('description');
     expect(JSON.stringify(page.items)).not.toContain('evidence');
+    expect(page.items[0]).not.toHaveProperty('catalogVersion');
+    expect(page).toMatchObject({ catalogVersion: ASVS_VERSION, coverage: {} });
+    expect(page.chapters?.length).toBeGreaterThan(0);
+    const second = domain.asvsQuery(g, { projectId, level: 1, limit: 2, offset: 2 });
+    expect(second).not.toHaveProperty('coverage');
+    expect(second).not.toHaveProperty('chapters');
+    expect(second.config).toEqual(page.config);
+    expect(second.items[0].reqId).not.toBe(page.items[0].reqId);
     const read = domain.asvsRead(g, { projectId, references: [requirement.reqId.slice(1)] });
     expect(read.items[0]).toMatchObject({
       canonicalRef: requirement.canonicalRef,
@@ -538,6 +575,40 @@ describe('asociaciones y propuestas ASVS', () => {
     ).toThrow('caducada');
     expect(() => domain.asvsQuery(g, { projectId: 'otro' })).toThrow();
     expect(() => domain.asvsQuery(g, { projectId, enforcement: 'obligatoria' })).toThrow();
+  });
+  it('lee varias referencias por página dentro del límite de tamaño', () => {
+    const g = grant();
+    const refs = asvsCatalog.requirements
+      .filter((r) => r.minLevel === 1)
+      .slice(0, 10)
+      .map((r) => r.reqId);
+    const paged = domain.asvsRead(g, { projectId, references: refs.slice(0, 6), limit: 2 });
+    expect(paged.items.map((item) => item.reqId)).toEqual(refs.slice(0, 2));
+    expect(paged.nextOffset).toBe(2);
+    expect(
+      domain.asvsRead(g, { projectId, references: refs.slice(0, 6), offset: 4, limit: 2 })
+        .nextOffset,
+    ).toBeNull();
+    // Following nextOffset reads every reference once, several per page and within budget.
+    const seen: string[] = [];
+    let offset: number | null = 0;
+    let pages = 0;
+    while (offset !== null) {
+      const page = domain.asvsRead(g, { projectId, references: refs, offset });
+      expect(page.items.length).toBeGreaterThan(0);
+      expect(JSON.stringify(page).length).toBeLessThanOrEqual(12000);
+      seen.push(...page.items.map((item) => item.reqId));
+      offset = page.nextOffset;
+      pages++;
+    }
+    expect(seen).toEqual(refs);
+    expect(pages).toBeLessThan(refs.length);
+    // Related-task cursors continue only the reference at offset.
+    expect(
+      domain
+        .asvsRead(g, { projectId, references: refs, offset: 1, taskOffset: 1 })
+        .items.map((item) => item.reqId),
+    ).toEqual([refs[1]]);
   });
   it('crea tareas con asociaciones solo al aceptar y hace idempotentes los reenvíos', () => {
     const g = grant();
@@ -589,7 +660,7 @@ describe('asociaciones y propuestas ASVS', () => {
     ).toThrow();
     domain.asvsReviewProposals({ ids: [p.id], accept: true });
     expect(domain.asvsList({ projectId }).summary.fulfilled).toBe(1);
-    expect(domain.proposalStatus(g)).toContainEqual(
+    expect(domain.proposalStatus(g).items).toContainEqual(
       expect.objectContaining({ id: p.id, status: 'accepted' }),
     );
   });

@@ -208,10 +208,8 @@ describe('cuadernos aislados', () => {
       'org-empresa',
     );
     expect(workspaces.domain!.authorize(verified.token, 'org-empresa').orgId).toBe('org-empresa');
-    expect(() => workspaces.domain!.authorize(verified.token)).toThrow('Sesión revocada');
-    expect(() => workspaces.domain!.authorize(verified.token, 'org-otra')).toThrow(
-      'Sesión revocada',
-    );
+    expect(() => workspaces.domain!.authorize(verified.token)).toThrow('organización');
+    expect(() => workspaces.domain!.authorize(verified.token, 'org-otra')).toThrow('organización');
     workspaces.domain!.setMcpProfile('personal');
     workspaces.domain!.settings({ companyAuthorized: true, universityStructure: '' });
     const grant = workspaces.domain!.grant('codex', [], 'projects', [corporateId]);

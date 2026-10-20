@@ -1200,12 +1200,16 @@ describe('frontera MCP', () => {
           },
           rationale: '',
         });
-        expect(d.proposalStatus(auth)).toContainEqual(expect.objectContaining({ id: created.id }));
+        expect(d.proposalStatus(auth).items).toContainEqual(
+          expect.objectContaining({ id: created.id }),
+        );
       }
-      expect(d.proposalStatus(auth)).toContainEqual(expect.objectContaining({ id: proposal.id }));
+      expect(d.proposalStatus(auth).items).toContainEqual(
+        expect.objectContaining({ id: proposal.id }),
+      );
       d.updateGrantProjects(g.id, [hidden.id]);
       expect(d.context(auth, { query: 'Proyecto elegido' }).items).toEqual([]);
-      expect(d.proposalStatus(auth)).not.toContainEqual(
+      expect(d.proposalStatus(auth).items).not.toContainEqual(
         expect.objectContaining({ id: proposal.id }),
       );
       d.revokeGrant(g.id);
@@ -1404,7 +1408,9 @@ describe('frontera MCP', () => {
         rationale: 'Duplicado',
       }),
     ).toThrow('propuesta de cierre pendiente');
-    expect(d.proposalStatus(auth)).toContainEqual(expect.objectContaining({ id: proposal.id }));
+    expect(d.proposalStatus(auth).items).toContainEqual(
+      expect.objectContaining({ id: proposal.id }),
+    );
     d.review(proposal.id, true);
     expect(d.require().records.find((record) => record.id === t.id)).toMatchObject({
       state: 'Completada',
@@ -1446,7 +1452,9 @@ describe('frontera MCP', () => {
       rationale: 'Trabajo terminado',
     });
     expect(d.context(auth, { recordIds: [t.id] }).items).toEqual([]);
-    expect(d.proposalStatus(auth)).toContainEqual(expect.objectContaining({ id: proposal.id }));
+    expect(d.proposalStatus(auth).items).toContainEqual(
+      expect.objectContaining({ id: proposal.id }),
+    );
   });
   it('la IA puede proponer actualizar especificaciones u objetivos de un proyecto autorizado', () => {
     const project = d.save('project', {
@@ -1483,7 +1491,9 @@ describe('frontera MCP', () => {
       rationale: 'Revisión técnica del repositorio sin secretos.',
     });
 
-    expect(d.proposalStatus(auth)).toContainEqual(expect.objectContaining({ id: proposal.id }));
+    expect(d.proposalStatus(auth).items).toContainEqual(
+      expect.objectContaining({ id: proposal.id }),
+    );
     expect((d.require().records.find((r) => r.id === project.id) as Project)?.specifications).toBe(
       'Versión inicial',
     );
@@ -2055,7 +2065,7 @@ describe('fecha real de finalización y entradas diarias', () => {
 
     expect(d.review(proposal.id, true).status).toBe('accepted');
     expect(d.require().records.some((r) => r.id === entry.id)).toBe(false);
-    expect(d.proposalStatus(auth)).toContainEqual(
+    expect(d.proposalStatus(auth).items).toContainEqual(
       expect.objectContaining({ id: proposal.id, status: 'accepted' }),
     );
   });

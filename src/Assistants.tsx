@@ -19,18 +19,30 @@ import {
   type Kind,
   type Proposal,
 } from '../shared/model';
+import { asvsActive } from '../shared/asvsTracking';
 import portableSkill from '../.agents/skills/bitacora-mcp/SKILL.md?raw';
 import { planProposalReview, taskCompletionReviewGroup } from '../shared/proposalReview';
 import { GENERAL_SCOPE, findSubproject, grantScopes, subprojectsOf } from '../shared/subprojects';
 import { attachmentSummary, batchPreview, proposalChanges } from '../shared/proposalPreview';
+import { mcpConfigBlock, mcpInstallCommand } from '../shared/mcpClientConfig';
 import { playProposalSound } from './app/proposalSound';
 import { api } from './api';
 import { Badge, Button, Empty, Field, Notice } from './ui';
 import CopyRecordId from './CopyRecordId';
 const AsvsProposals = lazy(() => import('./AsvsProposals'));
 const AsvsTaskProposalInfo = lazy(() => import('./AsvsTaskProposalInfo'));
+const AsvsProposalChange = lazy(() =>
+  import('./AsvsProposalDetails').then((m) => ({ default: m.AsvsProposalChange })),
+);
 
 const names = { claude: 'Claude', codex: 'Codex', antigravity: 'Antigravity' };
+/** Tells whether the client really connected, without showing what it read. */
+function lastUse(grant: Snapshot['grants'][number]) {
+  if (!grant.lastUsedAt) return 'Sin uso todavía';
+  const minutes = Math.round((Date.now() - Date.parse(grant.lastUsedAt)) / 60000);
+  const when = minutes < 1 ? 'hace menos de 1 min' : `hace ${minutes} min`;
+  return `Último uso ${when} (${grant.lastTool})`;
+}
 type ClaudeIdentityStatus =
   | { verified: true; orgId: string; orgName: string; subscriptionType: string }
   | { verified: false; error: string; policyPath: string };
@@ -60,6 +72,7 @@ const fieldNames: Record<string, string> = {
   specifications: 'Especificaciones técnicas',
   competency: 'Competencias',
   dependencyIds: 'Depende de estas tareas',
+  sourceIds: 'Fuentes de la reunión',
   asvsLinks: 'Requisitos ASVS asociados',
 };
 
@@ -76,7 +89,7 @@ function previewValue(field: string, value: unknown, records: Snapshot['records'
   if (field === 'attachments') return attachmentSummary(value);
   if (field === 'project' && typeof value === 'string')
     return records.find((record) => record.id === value)?.title || 'Cuaderno actual';
-  if (field === 'dependencyIds' && Array.isArray(value))
+  if ((field === 'dependencyIds' || field === 'sourceIds') && Array.isArray(value))
     return (
       value.map((id) => records.find((record) => record.id === id)?.title || id).join(', ') ||
       'Ninguna'
@@ -136,6 +149,7 @@ const kindDescriptions: Record<Kind, string> = {
 };
 
 function completionAsvsIds(proposals: Proposal[], snapshot: Snapshot) {
+  if (!asvsActive(snapshot.asvs)) return [];
   return (snapshot.asvs?.proposals ?? [])
     .filter(
       (p) =>
@@ -205,9 +219,10 @@ export default function Assistants({
       currentSubprojectId ? [GENERAL_SCOPE, currentSubprojectId] : [GENERAL_SCOPE],
     ),
     [config, setConfig] = useState(''),
+    [installCommand, setInstallCommand] = useState(''),
     [activeTab, setActiveTab] = useState<'connect' | 'proposals'>(() =>
       snapshot.proposals.some((p) => p.status === 'pending') ||
-      snapshot.asvs?.proposals?.some((p) => p.status === 'pending')
+      (asvsActive(snapshot.asvs) && snapshot.asvs?.proposals?.some((p) => p.status === 'pending'))
         ? 'proposals'
         : 'connect',
     ),
@@ -257,7 +272,11 @@ export default function Assistants({
       ? 'General'
       : (findSubproject(snapshot.records, scope)?.title ?? 'Subproyecto retirado');
   const pending = snapshot.proposals.filter((p) => p.status === 'pending');
-  const asvsPending = snapshot.asvs?.proposals?.filter((p) => p.status === 'pending') ?? [];
+  const asvsEnabled = asvsActive(snapshot.asvs);
+  // Disabled ASVS is not reviewed: pending ASVS proposals stay stored but hidden.
+  const asvsPending = asvsEnabled
+    ? (snapshot.asvs?.proposals?.filter((p) => p.status === 'pending') ?? [])
+    : [];
   useEffect(() => {
     if (asvsPending.some((p) => p.id === focusProposalId)) setActiveTab('proposals');
   }, [focusProposalId]);
@@ -406,36 +425,8 @@ export default function Assistants({
         durationMinutes: effectiveDuration,
         canCompleteTasks,
       });
-      let formattedConfig = '';
-      if (provider === 'codex') {
-        formattedConfig = [
-          '[mcp_servers.bitacora]',
-          `command = ${JSON.stringify(g.nodePath)}`,
-          `args = [${JSON.stringify(g.mcpPath)}]`,
-          '',
-          '[mcp_servers.bitacora.env]',
-          'BITACORA_PROVIDER = "codex"',
-          `BITACORA_DATA_DIR = ${JSON.stringify(g.dataDir)}`,
-        ].join('\n');
-      } else {
-        formattedConfig = JSON.stringify(
-          {
-            mcpServers: {
-              bitacora: {
-                command: g.nodePath,
-                args: [g.mcpPath],
-                env: {
-                  BITACORA_PROVIDER: provider,
-                  BITACORA_DATA_DIR: g.dataDir,
-                },
-              },
-            },
-          },
-          null,
-          2,
-        );
-      }
-      setConfig(formattedConfig);
+      setConfig(mcpConfigBlock(provider, g));
+      setInstallCommand(mcpInstallCommand(provider, g) ?? '');
       setMessage(
         `Sesión ${g.renewed ? 'renovada' : 'creada'} hasta las ${new Date(g.expiresAt).toLocaleTimeString('es-ES')}. Se revoca al bloquear Bitácora.`,
       );
@@ -670,8 +661,57 @@ export default function Assistants({
                       <FileText size={16} /> Copiar skill portátil (SKILL.md)
                     </Button>
                   </div>
+                  {installCommand && (
+                    <>
+                      <p>
+                        {`O instálalo con un solo comando en la terminal; queda disponible en todos los proyectos de ${names[provider]}:`}
+                      </p>
+                      <pre className="config" aria-label="Comando de instalación">
+                        {installCommand}
+                      </pre>
+                      <div className="row">
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            void navigator.clipboard
+                              .writeText(installCommand)
+                              .then(() => setMessage('Comando copiado.'))
+                          }
+                        >
+                          <Copy size={16} /> Copiar comando
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </section>
               )}
+              <section className="form-section">
+                <details>
+                  <summary>Solución de problemas de conexión</summary>
+                  <dl className="mcp-troubleshooting">
+                    <dt>«Bitácora no está abierta» o «Bitácora no responde»</dt>
+                    <dd>
+                      Abre la aplicación y desbloquea el cuaderno; después repite la consulta.
+                    </dd>
+                    <dt>«No hay una sesión MCP para este cliente» o «Sesión caducada»</dt>
+                    <dd>Crea o renueva la sesión de ese cliente en esta pantalla.</dd>
+                    <dt>«Bitácora está bloqueada»</dt>
+                    <dd>
+                      El cuaderno se bloqueó, a mano o por inactividad, y revocó las sesiones.
+                      Desbloquéalo y renueva la sesión. Las llamadas del asistente no cuentan como
+                      actividad.
+                    </dd>
+                    <dt>«El conector MCP y Bitácora son de versiones distintas»</dt>
+                    <dd>Reinicia el cliente MCP o abre una conversación nueva tras actualizar.</dd>
+                    <dt>Las herramientas no aparecen en el cliente</dt>
+                    <dd>
+                      Comprueba que el bloque o el comando de configuración se aplicó y abre una
+                      conversación nueva. «Último uso» en Sesiones activas confirma si el cliente
+                      llegó a conectar.
+                    </dd>
+                  </dl>
+                </details>
+              </section>
               <section className="form-section">
                 <h3>Sesiones activas</h3>
                 {snapshot.grants.map((g) => (
@@ -688,6 +728,7 @@ export default function Assistants({
                           : ''}
                         Caduca a las {new Date(g.expiresAt).toLocaleTimeString('es-ES')}
                         {g.canCompleteTasks ? ' · Puede completar tareas' : ''}
+                        {` · ${lastUse(g)}`}
                       </small>
                     </span>
                     <div className="row" style={{ gap: 8, alignItems: 'center' }}>
@@ -1132,7 +1173,9 @@ export default function Assistants({
                 )}
                 <div className="proposal-preview-records">
                   {reviewSelection.proposals
-                    .filter((p) => p.kind === 'task' && p.patch.state === 'Completada')
+                    .filter(
+                      (p) => asvsEnabled && p.kind === 'task' && p.patch.state === 'Completada',
+                    )
                     .map((closure) => {
                       const task = snapshot.records.find(
                         (r) => r.kind === 'task' && r.id === closure.targetId,
@@ -1169,10 +1212,7 @@ export default function Assistants({
                                   .map((e) => `${e.reference} (${e.revision})`)
                                   .join('; ') || 'Sin evidencia'}
                               </p>
-                              <p>
-                                La vigencia se comprueba contra el cierre final.{' '}
-                                {snapshot.asvs?.config.level ? '' : 'ASVS está desactivado.'}
-                              </p>
+                              <p>La vigencia se comprueba contra el cierre final.</p>
                             </section>
                           );
                         });
@@ -1185,32 +1225,20 @@ export default function Assistants({
                         key={id}
                         aria-label={`Verificación ASVS del cierre ${proposal.reference}`}
                       >
-                        <strong>{proposal.reference} · Verificación de tarea</strong>
-                        <p>
-                          {proposal.before.state} → {proposal.request.state}
-                        </p>
-                        <p>
-                          {proposal.request.scopeDetail} · {proposal.request.note}
-                        </p>
-                        <p>
-                          Método: {proposal.request.method} · Responsable:{' '}
-                          {proposal.request.responsible}
-                        </p>
-                        <p>
-                          Evidencias:{' '}
-                          {proposal.request.evidence
-                            .map((e) => `${e.reference} (${e.revision})`)
-                            .join('; ')}
-                        </p>
-                        <p>El cumplimiento global se revisa por separado.</p>
+                        <strong>Verificación ASVS de la tarea</strong>
+                        <Suspense fallback={<p>{proposal.reference}</p>}>
+                          <AsvsProposalChange proposal={proposal} snapshot={snapshot} />
+                        </Suspense>
                       </section>
                     );
                   })}
                   {reviewSelection.proposals
-                    .filter((p) => p.kind === 'task' && Array.isArray(p.patch.asvsLinks))
+                    .filter(
+                      (p) => asvsEnabled && p.kind === 'task' && Array.isArray(p.patch.asvsLinks),
+                    )
                     .map((proposal) => (
                       <Suspense key={proposal.id} fallback={<p>Cargando asociaciones ASVS…</p>}>
-                        <AsvsTaskProposalInfo proposal={proposal} records={snapshot.records} />
+                        <AsvsTaskProposalInfo proposal={proposal} snapshot={snapshot} />
                       </Suspense>
                     ))}
                   {preview.groups.map((group, index) => (

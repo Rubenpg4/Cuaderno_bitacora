@@ -334,3 +334,17 @@
   font-weight: 600;
   padding: 0 4px;
 }
+
+.mcp-troubleshooting {
+  margin: 12px 0 0;
+  display: grid;
+  gap: 4px;
+}
+.mcp-troubleshooting dt {
+  font-weight: 600;
+  margin-top: 8px;
+}
+.mcp-troubleshooting dd {
+  margin: 0;
+  color: var(--muted);
+}

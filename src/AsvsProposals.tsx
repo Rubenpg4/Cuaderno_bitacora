@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { asvsCatalog } from '../shared/asvsCatalog';
+import { asvsDisplayRequirements } from '../shared/asvsCatalogEs';
 import type { AsvsProposal } from '../shared/asvsTracking';
 import type { Snapshot } from '../shared/model';
 import { api } from './api';
-import { Button, Field, Notice } from './ui';
+import { AsvsProposalChange } from './AsvsProposalDetails';
+import { Badge, Button, Field, Notice } from './ui';
 
 function conflict(snapshot: Snapshot, p: AsvsProposal) {
   const data = snapshot.asvs;
@@ -104,14 +105,21 @@ export default function AsvsProposals({
             />
           </Field>
           <strong>
-            {p.reference} · {p.provider} · {p.request.state}
+            {p.reference} · {p.before.state} → {p.request.state}{' '}
+            <Badge>
+              {p.destination === 'task' ? 'Verificación de tarea' : 'Evaluación global'}
+            </Badge>
           </strong>
-          <p>{p.rationale}</p>
+          <p className="asvs-proposal-summary">
+            {asvsDisplayRequirements.find((r) => r.reqId === p.before.reqId)?.description}
+          </p>
+          <p className="muted">
+            {p.provider}: {p.rationale}
+          </p>
           {p.destination === 'task' && (
             <p>
-              Verificación de tarea:{' '}
-              {snapshot.records.find((r) => r.id === p.request.taskId)?.title}. Puede aceptarse
-              junto con su cierre en las propuestas de Tareas.
+              Tarea: {snapshot.records.find((r) => r.id === p.request.taskId)?.title}. Puede
+              aceptarse junto con su cierre en las propuestas de Tareas.
             </p>
           )}
           {conflict(snapshot, p) && (
@@ -139,75 +147,7 @@ export default function AsvsProposals({
             <h3>Revisión humana ASVS</h3>
             {preview.map((p) => (
               <section key={p.id} className="form-section">
-                <strong>{p.reference}</strong>
-                <p lang="en">
-                  {asvsCatalog.requirements.find((r) => r.reqId === p.before.reqId)?.description}
-                </p>
-                <p>{p.rationale}</p>
-                <dl className="diff">
-                  <div>
-                    <dt>Estado</dt>
-                    <dd>
-                      <del>{p.before.state}</del>
-                      <ins>{p.request.state}</ins>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Aplicabilidad</dt>
-                    <dd>
-                      <del>{p.before.applicability}</del>
-                      <ins>{p.request.applicability}</ins>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Alcance</dt>
-                    <dd>
-                      <del>
-                        {p.before.scope} · {p.before.scopeDetail}
-                      </del>
-                      <ins>
-                        {p.request.scope} · {p.request.scopeDetail} · Pendiente:{' '}
-                        {p.request.pendingScope || 'Ninguno declarado'}
-                      </ins>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Nota o hallazgo</dt>
-                    <dd>
-                      <del>{p.before.note || 'Sin nota'}</del>
-                      <ins>{p.request.note}</ins>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Método y responsable</dt>
-                    <dd>
-                      <del>
-                        {p.before.method} · {p.before.responsible}
-                      </del>
-                      <ins>
-                        {p.request.method} · {p.request.responsible}
-                      </ins>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Evidencias</dt>
-                    <dd>
-                      <del>
-                        {p.before.evidence
-                          .map((e) => `${e.reference} (${e.revision})`)
-                          .join('; ') || 'Sin evidencia'}
-                      </del>
-                      <ins>
-                        {p.request.evidence
-                          .map(
-                            (e) =>
-                              `${e.reference} (${e.revision})${e.recordId ? ` · Fuente: ${snapshot.records.find((r) => r.id === e.recordId)?.title ?? 'Eliminada'}` : ''}`,
-                          )
-                          .join('; ') || 'Sin evidencia'}
-                      </ins>
-                    </dd>
-                  </div>
-                </dl>
+                <AsvsProposalChange proposal={p} snapshot={snapshot} />
                 <p className="muted">
                   Versión de evaluación {p.request.expectedVersion} · Configuración{' '}
                   {p.request.expectedConfigVersion} · Catálogo OWASP ASVS {p.before.catalogVersion}

@@ -25,6 +25,69 @@ describe('API y MCP de asociaciones y propuestas ASVS', () => {
     });
     return { status: r.status, data: await r.json() };
   }
+  it('con ASVS desactivado el MCP no expone contexto, enlaces ni herramientas ASVS', async () => {
+    await post('/api/lock');
+    const created = await post('/api/create-project', {
+      title: 'ASVS desactivado sintético',
+      password: 'contraseña sintética desactivada',
+    });
+    const projectId = created.data.records.find((r: { kind: string }) => r.kind === 'project').id;
+    const configure = (expectedConfigVersion: number, level: number | null) =>
+      post('/api/asvs-configure', {
+        projectId,
+        expectedConfigVersion,
+        catalogVersion: ASVS_VERSION,
+        level,
+      });
+    await configure(0, 1);
+    const req = asvsCatalog.requirements.find((r) => r.minLevel === 1)!;
+    const work = (
+      await post('/api/save', {
+        kind: 'task',
+        data: {
+          ...blank('task'),
+          project: projectId,
+          title: 'Tarea con enlace conservado',
+          asvsLinks: [
+            {
+              catalogVersion: ASVS_VERSION,
+              reqId: req.reqId,
+              reason: 'Control sintético',
+              scope: 'Módulo',
+              criterion: 'Caso observable',
+              method: 'Prueba',
+            },
+          ],
+        },
+      })
+    ).data;
+    await configure(1, null);
+    await post('/api/settings', { companyAuthorized: true, universityStructure: '' });
+    const g = (
+      await post('/api/grant', { provider: 'codex', scope: 'projects', projectIds: [projectId] })
+    ).data;
+    const mcp = (action: string, input: unknown) => post('/mcp', { action, input }, g.token);
+    expect((await mcp('session', {})).data.asvs.enabled).toBe(false);
+    const page = (await mcp('read', { recordIds: [work.id] })).data;
+    const read = page.items[0];
+    expect(page).not.toHaveProperty('asvs');
+    expect(read).not.toHaveProperty('asvs');
+    expect(JSON.stringify(read)).not.toContain(req.reqId);
+    for (const [action, input] of [
+      ['asvs-query', { projectId }],
+      ['asvs-read', { projectId, references: [req.reqId] }],
+      ['asvs-task-criteria', { taskId: work.id }],
+      ['asvs-remediation', { projectId }],
+    ] as const) {
+      const rejected = await mcp(action, input);
+      expect(rejected.status).not.toBe(200);
+      expect(rejected.data.error).toContain('ASVS está desactivado');
+    }
+    // Data is kept: reactivating restores the link and the tools.
+    await configure(2, 1);
+    expect((await mcp('session', {})).data.asvs.enabled).toBe(true);
+    expect((await mcp('asvs-task-criteria', { taskId: work.id })).status).toBe(200);
+  });
   it('expone contexto proactivo, limita autoridad y revisa el cierre completo por HTTP', async () => {
     await post('/api/lock');
     const created = await post('/api/create-project', {
@@ -71,7 +134,7 @@ describe('API y MCP de asociaciones y propuestas ASVS', () => {
         },
       })
     ).data;
-    expect((await mcp('read', { recordIds: [work.id] })).data.items[0].asvs.enabled).toBe(true);
+    expect((await mcp('read', { recordIds: [work.id] })).data.asvs.enabled).toBe(true);
     const criteria = await mcp('asvs-task-criteria', { taskId: work.id });
     expect(criteria.status).toBe(200);
     expect(criteria.data.items[0].link.mandatory).toBe(true);

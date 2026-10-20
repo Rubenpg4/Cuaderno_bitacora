@@ -16,7 +16,7 @@ La sección «Seguimiento» del plan semanal muestra, en el cuaderno activo, qu�
 
 ## Primer conjunto de señales
 
-Con ASVS activo, `Domain.weeklySignals` añade grupos por capítulo y causa a partir de la cobertura del nivel objetivo. Las lagunas sin tarea abierta y las revalidaciones pendientes permiten abrir el requisito y su resumen, sin crear tareas automáticamente. Una tarea abierta evita otra señal de laguna para el mismo requisito; la revalidación permanece visible porque requiere revisar evidencia. Las decisiones ASVS se mantienen al terminar una revisión mientras la causa siga vigente. El cálculo y las decisiones se validan en el servicio y se conservan/restauran en el vault. Véase [Verificación ASVS](verificacion-asvs.md) para denominadores, revisiones externas y planes MCP acotados.
+La revisión semanal no genera señales ASVS: el catálogo pendiente no es un cambio de la semana y saturaba el seguimiento. Lo accionable de ASVS (incumplimientos, consultas y evidencias desactualizadas sin tarea) se consulta en el enfoque «Requiere atención» de [Verificación ASVS](verificacion-asvs.md). Las decisiones de señales ASVS guardadas por versiones anteriores dejan de estar vigentes y se eliminan al terminar la revisión o en la siguiente escritura.
 
 | Señal y condición | Causa visible | Acción directa y salida |
 | --- | --- | --- |

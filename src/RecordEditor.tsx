@@ -36,6 +36,7 @@ import {
   type Meeting,
   type AgreementItem,
 } from '../shared/model';
+import { asvsActive } from '../shared/asvsTracking';
 import { type RecurrenceRule } from '../shared/recurrence';
 import { Attachments } from './Attachments';
 import { blank } from './defaults';
@@ -607,7 +608,7 @@ export default function RecordEditor({
           {input('solution', true)}
           {input('blocked', true)}
           {input('nextStep', true)}
-          {(snapshot.asvs || data.asvsLinks?.length > 0) && (
+          {asvsActive(snapshot.asvs) && (
             <Suspense fallback={<p>Cargando requisitos ASVS…</p>}>
               <TaskAsvsFields
                 links={data.asvsLinks ?? []}

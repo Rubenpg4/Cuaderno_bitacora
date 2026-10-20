@@ -115,14 +115,16 @@ export const sourceRevisionSchema = z
   })
   .strict();
 export const sourceRevisionInput = projectRevisionInput();
+/** Published to MCP: fresh fields avoid $ref and keep version minimums at 0. */
 function projectRevisionInput() {
+  const mcpVersion = () => z.number().int().nonnegative();
   return z
     .object({
-      projectId: nonempty,
-      expectedConfigVersion: version,
-      expectedVersion: version,
+      projectId: short.trim().min(1),
+      expectedConfigVersion: mcpVersion(),
+      expectedVersion: mcpVersion(),
       reference: asvsEvidenceReference,
-      revision: nonempty,
+      revision: short.trim().min(1),
       reason: text.trim().min(1),
     })
     .strict();

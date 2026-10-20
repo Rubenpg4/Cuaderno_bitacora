@@ -276,6 +276,8 @@ export interface Proposal {
   previousTaskState?: Task['state'];
   patch: Record<string, unknown>;
   entryMentionIds?: { taskIds: string[]; linkedIds: string[] };
+  /** Meeting sources resolved from `@` mentions; acceptance adds them to `sourceIds`. */
+  meetingSourceIds?: string[];
   rationale: string;
   status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
@@ -298,6 +300,9 @@ export interface GrantInfo {
   /** Ámbitos autorizados: `general` y/o IDs de subproyectos activos. */
   scopes?: string[];
   canCompleteTasks?: boolean;
+  /** Last authorized MCP call and its tool; never its parameters or content. */
+  lastUsedAt?: string;
+  lastTool?: string;
 }
 export interface Snapshot {
   asvs?: import('./asvsTracking.js').AsvsData;

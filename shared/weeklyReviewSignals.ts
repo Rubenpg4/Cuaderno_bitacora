@@ -1,5 +1,4 @@
 import { addDays } from './recurrence.js';
-import type { AsvsGap } from './asvsTracking.js';
 import { nextRecurringTasks } from './taskAttention.js';
 import type {
   Entry,
@@ -11,7 +10,7 @@ import type {
 } from './model.js';
 
 export interface WeeklySignal {
-  kind: 'agreement' | 'evidence' | 'stagnant' | 'asvs';
+  kind: 'agreement' | 'evidence' | 'stagnant';
   key: string;
   cause: string;
   recordId: string;
@@ -66,7 +65,6 @@ export function weeklySignals(
   projectId: string,
   review: WeeklyReviewState | undefined,
   today: string,
-  asvsGaps: AsvsGap[] = [],
 ): WeeklySignal[] {
   const scoped = records.filter(
     (record) => record.project === projectId || record.id === projectId,
@@ -86,28 +84,6 @@ export function weeklySignals(
         evidenceLinkedEntryIds.add(link.sourceId);
     }
   const signals: WeeklySignal[] = [];
-  // One signal per chapter/category avoids hundreds of cards; a stable cause respects dismissals.
-  const asvsGroups = new Map<string, AsvsGap[]>();
-  for (const gap of asvsGaps) {
-    if (gap.tasks.some((task) => task.state !== 'Completada') && gap.category !== 'revalidation')
-      continue;
-    const key = `${gap.chapterId}-${gap.category}`;
-    asvsGroups.set(key, [...(asvsGroups.get(key) ?? []), gap]);
-  }
-  for (const [key, gaps] of asvsGroups)
-    signals.push({
-      kind: 'asvs',
-      key: `asvs:${projectId}:${key}`,
-      cause: JSON.stringify(gaps.map((g) => g.cause)),
-      recordId: projectId,
-      itemId: gaps[0].reference,
-      title: `ASVS ${gaps[0].chapterId} · ${gaps.length} ${gaps[0].category === 'revalidation' ? 'revalidaciones pendientes' : 'lagunas sin tarea abierta'}`,
-      explanation: `${gaps[0].nextStep} Abrir el resumen del capítulo para revisar ${gaps
-        .map((g) => g.reqId)
-        .slice(0, 3)
-        .join(', ')}${gaps.length > 3 ? '…' : ''}.`,
-    });
-
   for (const meeting of scoped) {
     if (meeting.kind !== 'meeting' || !meeting.closedAt) continue;
     for (const agreement of meeting.agreementItems ?? []) {
