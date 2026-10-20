@@ -13,7 +13,10 @@ import {
   FileText,
 } from 'lucide-react';
 import {
+  DEFAULT_IDLE_LOCK,
+  IDLE_LOCK_OPTIONS,
   mentionSummaryText,
+  type IdleLock,
   type Snapshot,
   type Provider,
   type Kind,
@@ -23,12 +26,20 @@ import { asvsActive } from '../shared/asvsTracking';
 import portableSkill from '../.agents/skills/bitacora-mcp/SKILL.md?raw';
 import { planProposalReview, taskCompletionReviewGroup } from '../shared/proposalReview';
 import { GENERAL_SCOPE, findSubproject, grantScopes, subprojectsOf } from '../shared/subprojects';
-import { attachmentSummary, batchPreview, proposalChanges } from '../shared/proposalPreview';
+import {
+  attachmentSummary,
+  batchPreview,
+  isTextChange,
+  proposalChanges,
+  type PreviewChange,
+} from '../shared/proposalPreview';
+import { inlineTextDiff } from '../shared/textDiff';
 import { mcpConfigBlock, mcpInstallCommand } from '../shared/mcpClientConfig';
 import { playProposalSound } from './app/proposalSound';
 import { api } from './api';
 import { Badge, Button, Empty, Field, Notice } from './ui';
 import CopyRecordId from './CopyRecordId';
+import { InlineDiff } from './TextDiff';
 const AsvsProposals = lazy(() => import('./AsvsProposals'));
 const AsvsTaskProposalInfo = lazy(() => import('./AsvsTaskProposalInfo'));
 const AsvsProposalChange = lazy(() =>
@@ -36,6 +47,16 @@ const AsvsProposalChange = lazy(() =>
 );
 
 const names = { claude: 'Claude', codex: 'Codex', antigravity: 'Antigravity' };
+const idleLockLabels: Record<IdleLock, string> = {
+  5: '5 minutos',
+  15: '15 minutos (predeterminado)',
+  30: '30 minutos',
+  60: '1 hora',
+  120: '2 horas',
+  240: '4 horas',
+  480: '8 horas',
+  never: 'Indefinido',
+};
 /** Tells whether the client really connected, without showing what it read. */
 function lastUse(grant: Snapshot['grants'][number]) {
   if (!grant.lastUsedAt) return 'Sin uso todavía';
@@ -109,6 +130,34 @@ function previewField(field: string, records: Snapshot['records']): string {
   const id = field.slice('check:'.length);
   const practice = records.find((record) => record.id === id);
   return `Criterio: ${practice?.title || 'Criterio asociado'}`;
+}
+
+/** Text edits highlight only the changed words; other values keep the full before/after. */
+function ChangeValue({
+  change,
+  kind,
+  showBefore,
+  records,
+}: {
+  change: PreviewChange;
+  kind: Kind;
+  showBefore: boolean;
+  records: Snapshot['records'];
+}) {
+  const display = (value: unknown) =>
+    kind === 'entry' && typeof value === 'string' && value
+      ? mentionSummaryText(value, records)
+      : previewValue(change.field, value, records);
+  const before = display(change.before);
+  const after = display(change.after);
+  const segments = showBefore && isTextChange(change) ? inlineTextDiff(before, after) : undefined;
+  if (segments) return <InlineDiff segments={segments} />;
+  return (
+    <>
+      {showBefore && <del>{before}</del>}
+      <ins>{after}</ins>
+    </>
+  );
 }
 
 const KIND_ORDER: Kind[] = [
@@ -237,6 +286,7 @@ export default function Assistants({
     [claudeIdentity, setClaudeIdentity] = useState<ClaudeIdentityStatus | null>(null);
 
   const corporate = snapshot.mcpProfile === 'corporativo';
+  const idleLock = snapshot.idleLock ?? DEFAULT_IDLE_LOCK;
   function checkClaudeIdentity() {
     setClaudeIdentity(null);
     void api<ClaudeIdentityStatus>('claude-identity')
@@ -507,6 +557,33 @@ export default function Assistants({
                   </small>
                 </span>
               </label>
+              <Field
+                label="Bloqueo por inactividad"
+                hint="Tiempo sin usar la interfaz antes de bloquear el cuaderno. Al bloquearse, a mano o por inactividad, se revocan las sesiones MCP."
+              >
+                <select
+                  value={String(idleLock)}
+                  onChange={(e) =>
+                    void run(() =>
+                      api('idle-lock', {
+                        idleLock: e.target.value === 'never' ? 'never' : Number(e.target.value),
+                      }),
+                    )
+                  }
+                >
+                  {IDLE_LOCK_OPTIONS.map((option) => (
+                    <option key={option} value={String(option)}>
+                      {idleLockLabels[option]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {idleLock === 'never' && (
+                <Notice error>
+                  Sin bloqueo por inactividad, el cuaderno y sus sesiones MCP siguen abiertos hasta
+                  que pulses Bloquear o cierres Bitácora. No dejes el equipo desatendido.
+                </Notice>
+              )}
               <div className="form-grid">
                 <Field label="Cliente">
                   <select
@@ -1053,28 +1130,12 @@ export default function Assistants({
                                                 {previewField(change.field, snapshot.records)}
                                               </dt>
                                               <dd>
-                                                {p.operation !== 'create' && (
-                                                  <del>
-                                                    {previewValue(
-                                                      change.field,
-                                                      change.before,
-                                                      snapshot.records,
-                                                    )}
-                                                  </del>
-                                                )}
-                                                <ins>
-                                                  {p.kind === 'entry' &&
-                                                  typeof change.after === 'string'
-                                                    ? mentionSummaryText(
-                                                        change.after,
-                                                        snapshot.records,
-                                                      )
-                                                    : previewValue(
-                                                        change.field,
-                                                        change.after,
-                                                        snapshot.records,
-                                                      )}
-                                                </ins>
+                                                <ChangeValue
+                                                  change={change}
+                                                  kind={p.kind}
+                                                  showBefore={p.operation !== 'create'}
+                                                  records={snapshot.records}
+                                                />
                                               </dd>
                                             </div>
                                           ))}
@@ -1249,14 +1310,12 @@ export default function Assistants({
                           <div key={change.field}>
                             <dt>{previewField(change.field, snapshot.records)}</dt>
                             <dd>
-                              {change.before !== undefined && (
-                                <del>
-                                  {previewValue(change.field, change.before, snapshot.records)}
-                                </del>
-                              )}
-                              <ins>
-                                {previewValue(change.field, change.after, snapshot.records)}
-                              </ins>
+                              <ChangeValue
+                                change={change}
+                                kind={group.kind}
+                                showBefore={change.before !== undefined}
+                                records={snapshot.records}
+                              />
                             </dd>
                           </div>
                         ))}

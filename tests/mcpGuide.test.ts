@@ -74,6 +74,15 @@ describe('guía canónica de MCP y skill portátil', () => {
     expect(MCP_GUIDE_TEXT.length).toBeLessThan(14_000);
   });
 
+  it('limita las propuestas de decisión a elecciones duraderas o pedidas', () => {
+    const skill = readFileSync('.agents/skills/bitacora-mcp/SKILL.md', 'utf8');
+    for (const source of [MCP_GUIDE_TEXT, skill]) {
+      expect(source).toMatch(/una tarea no implica una decisión/i);
+      expect(source).toContain('alternativas reales');
+      expect(source).toMatch(/la persona (la|lo) pid/);
+    }
+  });
+
   it('guía la selección heurística y la convergencia ASVS sin ampliar autoridad', () => {
     const skill = readFileSync('.agents/skills/bitacora-mcp/SKILL.md', 'utf8');
     for (const source of [MCP_GUIDE_TEXT, skill]) {

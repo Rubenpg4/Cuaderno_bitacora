@@ -53,7 +53,6 @@ export async function startServer(
     dir?: string;
     port?: number;
     uiDir?: string;
-    idleMs?: number;
     token?: string;
     exclusive?: boolean;
     claudeAuthStatus?: ClaudeAuthStatusReader;
@@ -61,7 +60,6 @@ export async function startServer(
 ) {
   const dir = options.dir || defaultDataDir(),
     workspaces = new Workspaces(dir);
-  const idleMs = options.idleMs || 15 * 60000;
   let domain = new Domain(new Vault(dir));
   const fileGrantProviders: Provider[] = ['claude', 'codex', 'antigravity'];
   const providerGrantPath = (provider: Provider) => join(dir, `mcp-grant-${provider}.json`);
@@ -201,12 +199,16 @@ export async function startServer(
           let result;
           if (d.action === 'session') {
             // MCP calls are not activity (decision D1): tell the assistant when the idle lock
-            // will end its session so it can warn the person in time.
-            const idleLockAt = domain.lastActivity + idleMs;
+            // will end its session so it can warn the person in time. With no idle lock, null.
+            const idleMs = domain.idleLockMs();
+            const idleLockAt = idleMs === undefined ? undefined : domain.lastActivity + idleMs;
             result = {
               ...domain.sessionInfo(grant),
-              idleLockAt: new Date(idleLockAt).toISOString(),
-              idleLockInMinutes: Math.max(0, Math.floor((idleLockAt - Date.now()) / 60000)),
+              idleLockAt: idleLockAt === undefined ? null : new Date(idleLockAt).toISOString(),
+              idleLockInMinutes:
+                idleLockAt === undefined
+                  ? null
+                  : Math.max(0, Math.floor((idleLockAt - Date.now()) / 60000)),
             };
           } else if (d.action === 'context') result = domain.context(grant, d.input, true);
           else if (d.action === 'read') result = domain.readRecords(grant, d.input);
@@ -487,6 +489,9 @@ export async function startServer(
             send(res, 200, domain.settings(d));
             if (!d.companyAuthorized) clearFileGrant();
             break;
+          case '/api/idle-lock':
+            send(res, 200, { idleLock: domain.setIdleLock(d.idleLock) });
+            break;
           case '/api/mcp-profile': {
             const profile = domain.setMcpProfile(d.profile);
             clearFileGrant();
@@ -702,7 +707,9 @@ export async function startServer(
         if (!grant || Date.parse(grant.expiresAt) <= Date.now()) clearFileGrant(p, id);
       } catch {}
     }
-    if (!lifecycleBusy && domain.unlocked && Date.now() - domain.lastActivity > idleMs) {
+    const idleMs = domain.unlocked ? domain.idleLockMs() : undefined;
+    // «Indefinido» only skips this check; manual lock and close() still lock and revoke.
+    if (!lifecycleBusy && idleMs !== undefined && Date.now() - domain.lastActivity > idleMs) {
       workspaces.lock();
       clearFileGrant();
     }

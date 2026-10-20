@@ -79,6 +79,9 @@ import {
   type ObjectiveLink,
   type Subproject,
   type WeeklyReviewState,
+  type IdleLock,
+  DEFAULT_IDLE_LOCK,
+  isIdleLock,
   madridDate,
   PRIORITIES,
   validDay,
@@ -1773,6 +1776,19 @@ export class Domain {
     });
     if (!parsed.companyAuthorized) this.grants.clear();
     return parsed;
+  }
+  /** Only the closed list is accepted; the client never sets the lock limit by itself. */
+  setIdleLock(value: unknown): IdleLock {
+    if (!isIdleLock(value)) throw Error('Tiempo de bloqueo por inactividad no permitido.');
+    this.transaction(() => {
+      this.require().idleLock = value;
+    });
+    return value;
+  }
+  /** Milliseconds of inactivity before locking, or `undefined` when it never locks by idle. */
+  idleLockMs() {
+    const idleLock = this.state?.idleLock ?? DEFAULT_IDLE_LOCK;
+    return idleLock === 'never' ? undefined : idleLock * 60000;
   }
   setMcpProfile(profile: unknown): McpProfile {
     const next = z.enum(['personal', 'corporativo']).parse(profile);

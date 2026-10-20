@@ -13,6 +13,7 @@ import {
 } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import {
+  isIdleLock,
   validDay,
   type McpProfile,
   type Project,
@@ -325,6 +326,7 @@ export class Workspaces {
       !['personal', 'corporativo'].includes(state.mcpProfile) ||
       !Number.isSafeInteger(state.mcpProfileVersion) ||
       state.mcpProfileVersion < 1 ||
+      (state.idleLock !== undefined && !isIdleLock(state.idleLock)) ||
       ids.size !== state.records.length ||
       state.records.filter((record) => record.kind === 'project').length !== 1 ||
       !state.records.some((record) => record.kind === 'project' && record.id === id) ||

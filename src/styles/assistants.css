@@ -272,7 +272,8 @@
 }
 .diff dt {
   font-size: 11px;
-  color: var(--muted);
+  /* Plain --muted falls just under 4.5:1 at this size. */
+  color: color-mix(in srgb, var(--muted) 80%, var(--ink));
   margin-bottom: 7px;
 }
 .diff dd {
@@ -287,12 +288,47 @@
 }
 .diff del {
   background: #fff0ef;
-  color: #aa6259;
+  color: #8d4038;
   margin-bottom: 5px;
 }
 .diff ins {
   background: #edf8f0;
   color: #416e53;
+}
+.diff-inline {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.diff .diff-inline {
+  padding: 9px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+.diff-inline del.diff-removed,
+.diff-inline ins.diff-added {
+  display: inline;
+  margin: 0;
+  padding: 1px 2px;
+  border-radius: 3px;
+}
+/* Strike-through and underline keep the change readable without relying on color. */
+.diff-inline del.diff-removed {
+  background: #fbd9d5;
+  color: #8a2f26;
+  text-decoration: line-through;
+}
+.diff-inline ins.diff-added {
+  background: #cfeedd;
+  color: #1d5534;
+  text-decoration: underline;
+}
+.diff-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .proposal-preview-backdrop {
   position: fixed;

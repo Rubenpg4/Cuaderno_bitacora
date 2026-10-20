@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Proposal, Task } from '../shared/model';
-import { attachmentSummary, batchPreview, proposalChanges } from '../shared/proposalPreview';
+import {
+  attachmentSummary,
+  batchPreview,
+  isTextChange,
+  proposalChanges,
+} from '../shared/proposalPreview';
 
 const task = {
   id: 'task-1',
@@ -87,6 +92,15 @@ describe('vista previa de propuestas', () => {
     ]);
     expect(preview.conflicts.get(conflict.id)).toContain('campo title');
     expect(preview.conflicts.get(stale.id)).toContain('versión actual es 3');
+    expect(preview.groups[0].kind).toBe('task');
+  });
+
+  it('compara por palabras solo los campos de texto libre', () => {
+    expect(isTextChange({ field: 'description', before: 'Antes', after: 'Después' })).toBe(true);
+    expect(isTextChange({ field: 'due', before: '2027-01-01', after: '2027-01-02' })).toBe(false);
+    expect(isTextChange({ field: 'state', before: 'Por hacer', after: 'En curso' })).toBe(false);
+    expect(isTextChange({ field: 'dependencyIds', before: ['a'], after: ['a', 'b'] })).toBe(false);
+    expect(isTextChange({ field: 'title', after: 'Nueva' })).toBe(false);
   });
 
   it('resume adjuntos sin incluir su contenido ni Base64', () => {

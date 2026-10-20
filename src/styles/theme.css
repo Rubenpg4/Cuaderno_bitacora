@@ -394,6 +394,14 @@
   background: #1b382f;
   color: #aee0cb;
 }
+:root[data-theme='dark'] .diff-inline .diff-removed {
+  background: #5b2731;
+  color: #ffd6dd;
+}
+:root[data-theme='dark'] .diff-inline .diff-added {
+  background: #1e4a3a;
+  color: #c9f3df;
+}
 :root[data-theme='dark'] .lock-illustration {
   background: #273c57;
   border-color: #526c8f;

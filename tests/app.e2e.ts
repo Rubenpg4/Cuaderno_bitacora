@@ -2085,6 +2085,83 @@ test('agrupa y acepta criterio y cierre de una misma tarea', async ({ page }) =>
   await expect(page.locator('.proposal-card')).toHaveCount(0);
 });
 
+test('resalta solo la palabra cambiada al revisar una actualización de texto', async ({ page }) => {
+  await unlock(page);
+  const { blank } = await import('../service/domain');
+  const project = (await call('snapshot')).records.find(
+    (record: { kind: string }) => record.kind === 'project',
+  );
+  const description = [
+    'Preparar la entrega del informe trimestral con las cifras revisadas.',
+    'La reunión de seguimiento será el lunes por la mañana con el equipo.',
+    'Después se archivarán las notas y se avisará a las personas implicadas.',
+  ].join('\n');
+  const task = await call('save', {
+    kind: 'task',
+    data: {
+      ...blank('task'),
+      project: project.id,
+      title: 'Tarea con descripción larga',
+      description,
+      due: '2027-12-30',
+    },
+  });
+  await call('settings', { companyAuthorized: true, universityStructure: '' });
+  const grant = await call('grant', {
+    provider: 'codex',
+    scope: 'projects',
+    projectIds: [project.id],
+  });
+  const response = await fetch(`${url}/mcp`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${grant.token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'propose',
+      input: {
+        operation: 'update',
+        kind: 'task',
+        targetId: task.id,
+        expectedVersion: task.version,
+        patch: { description: description.replace('lunes', 'martes'), due: '2027-12-31' },
+        rationale: 'Cambio de fecha de la reunión',
+      },
+    }),
+  });
+  expect(response.status, JSON.stringify(await response.clone().json())).toBe(200);
+  await page.reload();
+  await page.getByRole('button', { name: 'Asistentes', exact: false }).click();
+  await page.locator('.assistants .tabbar button').last().click();
+  await page.getByRole('button', { name: /Tareas/ }).click();
+  const card = page.locator('.proposal-card', { hasText: 'Tarea con descripción larga' });
+  await card.locator('.proposal-banner-toggle').click();
+
+  async function expectOneWordChanged(scope: typeof card) {
+    const inline = scope.locator('.diff-inline');
+    await expect(inline).toHaveCount(1);
+    await expect(inline.locator('del')).toHaveText(['lunes']);
+    await expect(inline.locator('ins')).toHaveText(['martes']);
+    await expect(inline).toContainText('las cifras revisadas.');
+    // The date is not free text, so it keeps the full before/after view.
+    await expect(scope.locator('.diff dd > del', { hasText: '2027-12-30' })).toHaveCount(1);
+    await expect(scope.locator('.diff dd > ins', { hasText: '2027-12-31' })).toHaveCount(1);
+  }
+
+  await expectOneWordChanged(card);
+  await card.getByRole('button', { name: 'Aceptar cambios' }).first().click();
+  const preview = page.getByRole('dialog', { name: 'Vista previa de aceptación' });
+  await expectOneWordChanged(preview);
+  const { default: AxeBuilder } = await import('@axe-core/playwright');
+  expect(
+    (await new AxeBuilder({ page }).include('.proposal-preview-dialog').analyze()).violations,
+  ).toEqual([]);
+  await preview.getByRole('button', { name: 'Aceptar 1 propuesta' }).click();
+  await expect(card).toHaveCount(0);
+  const updated = (await call('snapshot')).records.find(
+    (record: { id: string }) => record.id === task.id,
+  );
+  expect(updated.description).toContain('el martes por la mañana');
+});
+
 test('impide aceptar una vista previa cuando el registro cambia antes de confirmar', async ({
   page,
 }) => {
@@ -3874,6 +3951,28 @@ test('puede abrir una sesión MCP para el cuaderno activo', async ({ page }) => 
   expect(copiedSkill.replace(/\r\n/g, '\n')).toBe(
     readFileSync('.agents/skills/bitacora-mcp/SKILL.md', 'utf8').replace(/\r\n/g, '\n'),
   );
+});
+test('elige el bloqueo por inactividad, avisa de Indefinido y lo conserva al reabrir', async ({
+  page,
+}) => {
+  await unlock(page);
+  const projectId = (await call('snapshot')).records.find(
+    (record: { kind: string }) => record.kind === 'project',
+  ).id;
+  await page.getByRole('button', { name: 'Asistentes', exact: false }).click();
+  const idleLock = page.getByLabel('Bloqueo por inactividad');
+  await expect(idleLock).toHaveValue('15');
+  await idleLock.selectOption('never');
+  await expect(page.getByText('Sin bloqueo por inactividad', { exact: false })).toBeVisible();
+  expect((await call('snapshot')).idleLock).toBe('never');
+  await call('lock');
+  await call('unlock', { projectId, password: 'Prueba de bitácora segura' });
+  await page.reload();
+  await page.getByRole('button', { name: 'Asistentes', exact: false }).click();
+  await expect(page.getByLabel('Bloqueo por inactividad')).toHaveValue('never');
+  await page.getByLabel('Bloqueo por inactividad').selectOption('60');
+  await expect(page.getByText('Sin bloqueo por inactividad', { exact: false })).toHaveCount(0);
+  expect((await call('snapshot')).idleLock).toBe(60);
 });
 
 test('MCP propone eliminar una entrada y solo se borra al aceptar', async ({ page }) => {

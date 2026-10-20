@@ -26,6 +26,40 @@ const hiddenFields = new Set([
   'exceptionReason',
 ]);
 
+/** Free text worth comparing word by word; lists, dates and enumerations keep before/after. */
+const textFields = new Set([
+  'title',
+  'body',
+  'activity',
+  'result',
+  'learning',
+  'note',
+  'explanation',
+  'description',
+  'solution',
+  'nextStep',
+  'blocked',
+  'blocker',
+  'problem',
+  'decision',
+  'reason',
+  'alternatives',
+  'consequences',
+  'agreements',
+  'evidence',
+  'objective',
+  'specifications',
+  'competency',
+]);
+
+export function isTextChange(change: PreviewChange) {
+  return (
+    textFields.has(change.field) &&
+    typeof change.before === 'string' &&
+    typeof change.after === 'string'
+  );
+}
+
 function checkChange(proposal: Proposal, record?: RecordItem): PreviewChange[] {
   if (record?.kind !== 'task') return [];
   const current = (record as Task).checks.find(
@@ -69,12 +103,16 @@ export function proposalChanges(proposal: Proposal, record?: RecordItem): Previe
 
 export function batchPreview(proposals: Proposal[], records: RecordItem[]) {
   const plan = planProposalReview(proposals, records);
-  const groups = new Map<string, { title: string; changes: PreviewChange[] }>();
+  const groups = new Map<
+    string,
+    { title: string; kind: Proposal['kind']; changes: PreviewChange[] }
+  >();
   for (const proposal of plan.ordered) {
     const record = records.find((item) => item.id === proposal.targetId);
     const key = proposal.targetId || proposal.id;
     const group = groups.get(key) || {
       title: String(proposal.patch.title || record?.title || 'Nuevo registro'),
+      kind: proposal.kind,
       changes: [],
     };
     for (const change of proposalChanges(proposal, record)) {

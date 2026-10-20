@@ -2,6 +2,8 @@ import { asvsCatalog } from '../shared/asvsCatalog';
 import { asvsDisplayRequirements, asvsTranslationProvider } from '../shared/asvsCatalogEs';
 import type { AsvsAssessment, AsvsProposal, AsvsState } from '../shared/asvsTracking';
 import type { RecordItem, Snapshot, Task } from '../shared/model';
+import { inlineTextDiff } from '../shared/textDiff';
+import { InlineDiff } from './TextDiff';
 import { Badge } from './ui';
 
 const scopeLabels: Record<AsvsAssessment['scope'], string> = {
@@ -84,14 +86,31 @@ export function AsvsRequirementContext({
   );
 }
 
-function Change({ label, before, after }: { label: string; before?: string; after: string }) {
+function Change({
+  label,
+  before,
+  after,
+  text,
+}: {
+  label: string;
+  before?: string;
+  after: string;
+  text?: boolean;
+}) {
   const changed = before !== undefined && before !== after && before.trim();
+  const segments = changed && text ? inlineTextDiff(before, after) : undefined;
   return (
     <div>
       <dt>{label}</dt>
       <dd>
-        {changed && <del>{before}</del>}
-        <span>{after || '—'}</span>
+        {segments ? (
+          <InlineDiff segments={segments} />
+        ) : (
+          <>
+            {changed && <del>{before}</del>}
+            <span>{after || '—'}</span>
+          </>
+        )}
       </dd>
     </div>
   );
@@ -150,8 +169,9 @@ export function AsvsProposalChange({
           label="Alcance verificado"
           before={before.reviewedAt ? scope(before) : undefined}
           after={scope(request)}
+          text
         />
-        <Change label="Hallazgo o nota" before={before.note} after={request.note} />
+        <Change label="Hallazgo o nota" before={before.note} after={request.note} text />
         <Change
           label="Método y responsable"
           before={before.method && `${before.method} · ${before.responsible}`}
