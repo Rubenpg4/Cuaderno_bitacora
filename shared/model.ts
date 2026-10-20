@@ -334,7 +334,7 @@ export interface Snapshot {
 /** Minutes without activity before the notebook locks; `never` waits for a manual lock or close. */
 export const IDLE_LOCK_OPTIONS = [5, 15, 30, 60, 120, 240, 480, 'never'] as const;
 export type IdleLock = (typeof IDLE_LOCK_OPTIONS)[number];
-export const DEFAULT_IDLE_LOCK: IdleLock = 15;
+export const DEFAULT_IDLE_LOCK: IdleLock = 60;
 export const isIdleLock = (value: unknown): value is IdleLock =>
   IDLE_LOCK_OPTIONS.includes(value as IdleLock);
 export interface WorkspaceStatus {

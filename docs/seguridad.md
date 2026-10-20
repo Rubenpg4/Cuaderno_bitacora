@@ -24,7 +24,7 @@ Los adjuntos de tareas, incidencias, ideas, decisiones y reuniones se guardan co
 
 ### Bloqueo por inactividad
 
-El tiempo de bloqueo se elige por cuaderno en Asistentes: 5, 15, 30 o 60 minutos, 2, 4 u 8 horas, o «Indefinido». Se guarda cifrado en el estado del cuaderno (`idleLock`). Sin valor guardado se aplican 15 minutos, también en cuadernos existentes. Solo la interfaz marca actividad: cualquier petición `/api/*` salvo `/api/snapshot`, y `/api/activity`. El servicio acepta la preferencia únicamente desde `/api/idle-lock`, rechaza valores fuera de la lista cerrada y la revalida al abrir o restaurar el cuaderno.
+El tiempo de bloqueo se elige por cuaderno en Asistentes: 5, 15, 30 o 60 minutos, 2, 4 u 8 horas, o «Indefinido». Se guarda cifrado en el estado del cuaderno (`idleLock`). Sin valor guardado se aplica 1 hora, también en cuadernos existentes. Solo la interfaz marca actividad: cualquier petición `/api/*` salvo `/api/snapshot`, y `/api/activity`. El servicio acepta la preferencia únicamente desde `/api/idle-lock`, rechaza valores fuera de la lista cerrada y la revalida al abrir o restaurar el cuaderno.
 
 «Indefinido» solo desactiva el bloqueo por inactividad. El cuaderno se bloquea igualmente al pulsar Bloquear, al cerrar la aplicación o la PWA (el cierre del servicio bloquea) y al apagar el equipo. Riesgo aceptado: mientras siga abierto, cualquiera con acceso al equipo desatendido puede leer el cuaderno, y las sesiones MCP vigentes siguen funcionando hasta que caduquen. La interfaz lo advierte al elegirlo. Las sesiones MCP conservan su propia duración, de 15 minutos a 8 horas, y todo bloqueo, manual, por inactividad o por cierre, las revoca y retira sus archivos de permiso.
 

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { markdownToPlainText, parseInline, parseMarkdown } from '../shared/markdown';
+import {
+  markdownToPlainText,
+  parseInline,
+  parseMarkdown,
+  splitMarkdownTables,
+} from '../shared/markdown';
 
 describe('Markdown de los registros', () => {
   it('reconoce títulos, párrafos con saltos de línea y separadores', () => {
@@ -40,6 +45,48 @@ describe('Markdown de los registros', () => {
       align: ['left', 'right'],
       rows: [[[{ type: 'text', value: 'a | b' }], [{ type: 'text', value: '2' }]]],
     });
+  });
+
+  it('compila tablas con alineación, barras escapadas y filas irregulares', () => {
+    const [table] = parseMarkdown(
+      '| Campo | Estado | Total |\n| --- | :---: | ---: |\n| a \\| b | **ok** |\n| x | y | 3 | 4 |',
+    );
+    expect(table).toMatchObject({ type: 'table', align: [null, 'center', 'right'] });
+    if (table.type !== 'table') throw new Error('tabla esperada');
+    expect(table.rows[0]).toEqual([
+      [{ type: 'text', value: 'a | b' }],
+      [{ type: 'strong', children: [{ type: 'text', value: 'ok' }] }],
+      [],
+    ]);
+    // Las celdas sobrantes se conservan en la última columna.
+    expect(table.rows[1][2]).toEqual([{ type: 'text', value: '3 | 4' }]);
+  });
+
+  it('muestra como texto las tablas mal formadas', () => {
+    for (const source of [
+      '| Uno | Dos |\n| --- |\n| a | b |',
+      '| Uno | Dos |\n| a | b |',
+      '| Uno | Dos |\n| --- | -x- |',
+    ]) {
+      const blocks = parseMarkdown(source);
+      expect(blocks.map((b) => b.type)).toEqual(['paragraph']);
+      expect(markdownToPlainText(source)).toContain('Uno | Dos');
+    }
+  });
+
+  it('separa las tablas para exportar sin tocar el resto del texto', () => {
+    const source =
+      '## Datos\nIntro\n| Campo | Valor |\n| :-- | --: |\n| `ruta` | a \\| b |\n\n```md\n| x | y |\n| - | - |\n```';
+    expect(splitMarkdownTables(source)).toEqual([
+      { type: 'lines', lines: ['## Datos', 'Intro'] },
+      {
+        type: 'table',
+        align: ['left', 'right'],
+        head: ['Campo', 'Valor'],
+        rows: [['ruta', 'a | b']],
+      },
+      { type: 'lines', lines: ['', '```md', '| x | y |', '| - | - |', '```'] },
+    ]);
   });
 
   it('conserva literalmente el código y las citas', () => {

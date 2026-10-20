@@ -4016,7 +4016,7 @@ test('elige el bloqueo por inactividad, avisa de Indefinido y lo conserva al rea
   ).id;
   await page.getByRole('button', { name: 'Asistentes', exact: false }).click();
   const idleLock = page.getByLabel('Bloqueo por inactividad');
-  await expect(idleLock).toHaveValue('15');
+  await expect(idleLock).toHaveValue('60');
   await idleLock.selectOption('never');
   await expect(page.getByText('Sin bloqueo por inactividad', { exact: false })).toBeVisible();
   expect((await call('snapshot')).idleLock).toBe('never');

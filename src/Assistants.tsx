@@ -49,9 +49,9 @@ const AsvsProposalChange = lazy(() =>
 const names = { claude: 'Claude', codex: 'Codex', antigravity: 'Antigravity' };
 const idleLockLabels: Record<IdleLock, string> = {
   5: '5 minutos',
-  15: '15 minutos (predeterminado)',
+  15: '15 minutos',
   30: '30 minutos',
-  60: '1 hora',
+  60: '1 hora (predeterminado)',
   120: '2 horas',
   240: '4 horas',
   480: '8 horas',

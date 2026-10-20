@@ -27,6 +27,11 @@ export type MarkdownBlock =
       rows: MarkdownInline[][][];
     };
 
+/** Tabla de primer nivel con el texto plano de cada celda, para exportarla. */
+export type MarkdownTable = { align: MarkdownAlign[]; head: string[]; rows: string[][] };
+export type MarkdownSegment =
+  { type: 'lines'; lines: string[] } | ({ type: 'table' } & MarkdownTable);
+
 const FENCE = /^ {0,3}(`{3,}|~{3,})\s*([\w+#.-]*)/;
 const HEADING = /^ {0,3}(#{1,6})(?:\s+(.*?))?(?:\s+#+)?\s*$/;
 const RULE = /^ {0,3}([-*_])(?:\s*\1){2,}\s*$/;
@@ -97,6 +102,28 @@ function startsTable(lines: string[], index: number) {
   );
 }
 
+/** Ajusta una fila al número de columnas de la cabecera sin perder celdas sobrantes. */
+function fitRow(cells: string[], width: number) {
+  if (cells.length <= width) return [...cells, ...Array<string>(width - cells.length).fill('')];
+  return [...cells.slice(0, width - 1), cells.slice(width - 1).join(' | ')];
+}
+
+function readTable(lines: string[], start: number) {
+  const head = splitRow(lines[start]);
+  const align = splitRow(lines[start + 1]).map((cell): MarkdownAlign => {
+    const left = cell.startsWith(':');
+    const right = cell.endsWith(':');
+    return left && right ? 'center' : right ? 'right' : left ? 'left' : null;
+  });
+  const rows: string[][] = [];
+  let index = start + 2;
+  while (index < lines.length && lines[index].trim() && lines[index].includes('|')) {
+    rows.push(fitRow(splitRow(lines[index]), head.length));
+    index++;
+  }
+  return { table: { align, head, rows }, next: index };
+}
+
 function parseBlocks(lines: string[]): MarkdownBlock[] {
   const blocks: MarkdownBlock[] = [];
   let index = 0;
@@ -150,20 +177,14 @@ function parseBlocks(lines: string[]): MarkdownBlock[] {
       continue;
     }
     if (startsTable(lines, index)) {
-      const head = splitRow(line);
-      const align = splitRow(lines[index + 1]).map((cell): MarkdownAlign => {
-        const left = cell.startsWith(':');
-        const right = cell.endsWith(':');
-        return left && right ? 'center' : right ? 'right' : left ? 'left' : null;
+      const { table, next } = readTable(lines, index);
+      blocks.push({
+        type: 'table',
+        align: table.align,
+        head: table.head.map((cell) => parseInline(cell)),
+        rows: table.rows.map((row) => row.map((cell) => parseInline(cell))),
       });
-      const rows: MarkdownInline[][][] = [];
-      index += 2;
-      while (index < lines.length && lines[index].trim() && lines[index].includes('|')) {
-        const cells = splitRow(lines[index]);
-        rows.push(head.map((_, column) => parseInline(cells[column] ?? '')));
-        index++;
-      }
-      blocks.push({ type: 'table', align, head: head.map((cell) => parseInline(cell)), rows });
+      index = next;
       continue;
     }
     const paragraph = [line.trim()];
@@ -441,4 +462,42 @@ export function markdownToPlainText(source: string): string {
     }
   };
   return parseMarkdown(source).map(blockText).filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Separa las tablas de primer nivel del resto del texto, que se conserva línea a
+ * línea. Las tablas dentro de bloques de código siguen siendo texto literal.
+ */
+export function splitMarkdownTables(source: string): MarkdownSegment[] {
+  const lines = source.replace(/\r\n?/g, '\n').split('\n');
+  const segments: MarkdownSegment[] = [];
+  const text = (line: string) => {
+    const last = segments.at(-1);
+    if (last?.type === 'lines') last.lines.push(line);
+    else segments.push({ type: 'lines', lines: [line] });
+  };
+  const plain = (cell: string) => inlineText(parseInline(cell)).trim();
+  let fence = '';
+  let index = 0;
+  while (index < lines.length) {
+    const line = lines[index];
+    const marker = FENCE.exec(line)?.[1];
+    if (fence) {
+      if (line.trimStart().startsWith(fence)) fence = '';
+    } else if (marker) fence = marker;
+    else if (!startsBlock(line) && startsTable(lines, index)) {
+      const { table, next } = readTable(lines, index);
+      segments.push({
+        type: 'table',
+        align: table.align,
+        head: table.head.map(plain),
+        rows: table.rows.map((row) => row.map(plain)),
+      });
+      index = next;
+      continue;
+    }
+    text(line);
+    index++;
+  }
+  return segments;
 }

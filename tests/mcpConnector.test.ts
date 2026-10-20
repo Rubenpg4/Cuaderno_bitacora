@@ -103,8 +103,8 @@ describe('conector MCP por stdio', () => {
     const session = JSON.parse((await tool('estado_sesion')).text);
     expect(app.domain.lastActivity).toBe(before);
     expect(session.expiresInMinutes).toBeGreaterThan(0);
-    expect(session.idleLockAt).toBe(new Date(before + 15 * 60000).toISOString());
-    expect(session.idleLockInMinutes).toBeLessThanOrEqual(15);
+    expect(session.idleLockAt).toBe(new Date(before + 60 * 60000).toISOString());
+    expect(session.idleLockInMinutes).toBeLessThanOrEqual(60);
   });
   it('registra el último uso de la sesión sin guardar parámetros', async () => {
     const work = await (

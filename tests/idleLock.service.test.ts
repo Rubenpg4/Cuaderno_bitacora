@@ -51,12 +51,13 @@ afterAll(async () => {
 });
 
 describe('bloqueo por inactividad configurable', () => {
-  it('mantiene 15 minutos por defecto y revoca las sesiones MCP al bloquear', async () => {
+  it('mantiene 1 hora por defecto y revoca las sesiones MCP al bloquear', async () => {
     expect((await (await post('/api/snapshot')).json()).idleLock).toBeUndefined();
     const { token } = await grant();
     const session = await (await post('/mcp', { action: 'session' }, token)).json();
-    expect(session.idleLockInMinutes).toBeLessThanOrEqual(15);
-    await advance(14);
+    expect(session.idleLockInMinutes).toBeGreaterThan(15);
+    expect(session.idleLockInMinutes).toBeLessThanOrEqual(60);
+    await advance(59);
     expect(app.domain.unlocked).toBe(true);
     await advance(2);
     expect(app.domain.unlocked).toBe(false);
@@ -69,16 +70,16 @@ describe('bloqueo por inactividad configurable', () => {
     expect(app.domain.require().idleLock).toBeUndefined();
   });
   it('aplica el valor elegido y lo conserva al reabrir el cuaderno', async () => {
-    const response = await post('/api/idle-lock', { idleLock: 60 });
-    expect(await response.json()).toEqual({ idleLock: 60 });
+    const response = await post('/api/idle-lock', { idleLock: 120 });
+    expect(await response.json()).toEqual({ idleLock: 120 });
     await post('/api/lock');
     await unlock();
-    expect((await (await post('/api/snapshot')).json()).idleLock).toBe(60);
+    expect((await (await post('/api/snapshot')).json()).idleLock).toBe(120);
     const { token } = await grant();
     const session = await (await post('/mcp', { action: 'session' }, token)).json();
-    expect(session.idleLockInMinutes).toBeGreaterThan(15);
-    expect(session.idleLockInMinutes).toBeLessThanOrEqual(60);
-    await advance(30);
+    expect(session.idleLockInMinutes).toBeGreaterThan(60);
+    expect(session.idleLockInMinutes).toBeLessThanOrEqual(120);
+    await advance(90);
     expect(app.domain.unlocked).toBe(true);
     await advance(31);
     expect(app.domain.unlocked).toBe(false);
