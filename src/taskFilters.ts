@@ -53,9 +53,29 @@ const PRIORITY_ORDER: Record<Task['priority'], number> = {
   'Muy baja': 1,
 };
 
+const SEQUENCE_PATTERN = /^\s*(\d+)\.(?:\s|$)/;
+
+export function taskSequenceNumber(title: string): number | undefined {
+  const match = SEQUENCE_PATTERN.exec(title);
+  return match ? Number(match[1]) : undefined;
+}
+
+// Las tareas numeradas («1. Preparar script») siguen su número y van antes que las demás.
+export function compareTaskSequence(a: Task, b: Task): number {
+  const aSequence = taskSequenceNumber(a.title);
+  const bSequence = taskSequenceNumber(b.title);
+  if (aSequence === undefined || bSequence === undefined) {
+    return Number(aSequence === undefined) - Number(bSequence === undefined);
+  }
+  return aSequence - bSequence;
+}
+
 export function compareBoardTasks(a: Task, b: Task): number {
   const dueComparison = (a.due || '').localeCompare(b.due || '');
   if (dueComparison !== 0) return dueComparison;
+
+  const sequenceComparison = compareTaskSequence(a, b);
+  if (sequenceComparison !== 0) return sequenceComparison;
 
   const priorityDiff = (PRIORITY_ORDER[b.priority] ?? 0) - (PRIORITY_ORDER[a.priority] ?? 0);
   if (priorityDiff !== 0) return priorityDiff;

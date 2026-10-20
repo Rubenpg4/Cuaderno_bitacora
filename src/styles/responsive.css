@@ -100,10 +100,6 @@
   .breadcrumb-scope {
     max-width: 34vw;
   }
-  .project-list {
-    max-height: none;
-    overflow: visible;
-  }
   .search input {
     width: 105px;
     font-size: 11px;

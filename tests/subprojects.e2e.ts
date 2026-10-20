@@ -219,6 +219,65 @@ for (const narrow of [false, true]) {
   });
 }
 
+test('barra lateral: cabe en 1080p y 2K escalados aunque haya muchos subproyectos', async ({
+  page,
+}) => {
+  const sidebarFits = () =>
+    page.locator('.sidebar').evaluate((e) => e.scrollHeight <= e.clientHeight + 1);
+  // 1080p al 125 % y 2K al 150 % descontando la barra de título de la ventana.
+  const viewports = [
+    { width: 1536, height: 834 },
+    { width: 1707, height: 930 },
+    { width: 2560, height: 1392 },
+  ];
+  await unlock(page);
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    expect(await sidebarFits()).toBe(true);
+  }
+
+  for (let index = 1; index <= 14; index++) {
+    await call('subproject-save', { data: { title: `Módulo ${index}` } });
+  }
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Un día más, un paso adelante.' })).toBeVisible();
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    expect(await sidebarFits()).toBe(true);
+    await expect(page.getByRole('button', { name: 'Verificación ASVS' })).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Gestionar subproyectos' })).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Bloquear bitácora' })).toBeInViewport();
+  }
+
+  // Solo la lista de ámbitos se desplaza y el ámbito elegido queda a la vista.
+  await page.setViewportSize(viewports[0]);
+  const scroller = page.locator('.scope-scroll');
+  expect(await scroller.evaluate((e) => e.scrollHeight > e.clientHeight)).toBe(true);
+  await expect(scroller).toHaveClass(/more-below/);
+  const filter = page.getByLabel('Buscar subproyecto');
+  await filter.fill('modulo 14');
+  await expect(page.locator('.scope-item')).toHaveCount(1);
+  await scopeButton(page, 'Módulo 14').click();
+  await filter.fill('');
+  await expect(scopeButton(page, 'Módulo 14')).toBeInViewport();
+
+  // El plegado se recuerda en este equipo.
+  await page.getByRole('button', { name: 'Plegar subproyectos de Proyecto conectado' }).click();
+  await expect(page.locator('.scope-item')).toHaveCount(0);
+  await page.reload();
+  await expect(
+    page.getByRole('button', { name: 'Desplegar subproyectos de Proyecto conectado' }),
+  ).toHaveAttribute('aria-expanded', 'false');
+  await page.getByRole('button', { name: 'Desplegar subproyectos de Proyecto conectado' }).click();
+  await expect(scopeButton(page, 'General')).toBeVisible();
+
+  await page.screenshot({ path: '.tmp/sidebar-1080p.png' });
+  await page.getByRole('button', { name: 'Activar modo oscuro' }).click();
+  await page.screenshot({ path: '.tmp/sidebar-1080p-dark.png' });
+  await page.setViewportSize(viewports[1]);
+  await page.screenshot({ path: '.tmp/sidebar-2k-dark.png' });
+});
+
 test('subproyectos: la selección se descarta al bloquear', async ({ page }) => {
   await unlock(page);
   await call('subproject-save', { data: { title: 'API' } });

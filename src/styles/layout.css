@@ -3,7 +3,18 @@
   grid-template-columns: 218px minmax(0, 1fr);
   min-height: 100vh;
 }
+/*
+ * Vertical rhythm follows the window height: generous on tall screens, compact on
+ * 1080p with Windows scaling. Only the scope list scrolls; the whole sidebar scrolls
+ * only when not even its minimum fits.
+ */
 .sidebar {
+  --sidebar-pad-top: clamp(14px, 2.6vh, 28px);
+  --sidebar-pad-bottom: clamp(10px, 1.5vh, 16px);
+  --nav-item-pad: clamp(6px, 0.9vh, 11px);
+  --nav-gap: clamp(1px, 0.45vh, 5px);
+  --sidebar-section-gap: clamp(12px, 2.6vh, 30px);
+  --footer-item-pad: clamp(6px, 0.9vh, 9px);
   background: #fff;
   border-right: 1px solid var(--line);
   display: flex;
@@ -13,7 +24,10 @@
   height: 100dvh;
   overflow-y: auto;
   z-index: 30;
-  padding: 28px 15px 16px;
+  padding: var(--sidebar-pad-top) 15px var(--sidebar-pad-bottom);
+}
+.sidebar > * {
+  flex-shrink: 0;
 }
 .brand {
   display: flex;
@@ -21,6 +35,7 @@
   gap: 10px;
   color: var(--ink);
   padding: 0 10px;
+  margin-bottom: var(--sidebar-section-gap);
 }
 .brand > svg {
   color: #3e6fbc;
@@ -39,38 +54,10 @@
   color: var(--muted);
   margin-top: 6px;
 }
-.workspace-chip {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: #f9fbfd;
-  padding: 10px 9px;
-  margin: 29px 0 20px;
-  font-size: 12px;
-}
-.workspace-chip small {
-  display: block;
-  color: var(--muted);
-  font-size: 10.5px;
-}
-.avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 29px;
-  height: 29px;
-  background: #e9f0fc;
-  color: var(--blue);
-  font-size: 15px;
-  font-weight: 600;
-  border-radius: 5px;
-}
 nav {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--nav-gap);
 }
 nav button {
   display: flex;
@@ -79,7 +66,7 @@ nav button {
   border: 0;
   background: none;
   text-align: left;
-  padding: 11px 12px;
+  padding: var(--nav-item-pad) 12px;
   color: #68798d;
   font-size: 14px;
   border-radius: 6px;
@@ -108,16 +95,14 @@ nav button.active svg {
   justify-content: space-between;
   font-size: 12px;
   color: #8a98a9;
-  margin: 30px 7px 8px;
+  margin: var(--sidebar-section-gap) 7px 6px;
 }
+/* The tree is the sidebar's flexible zone; see `.project-tree`. */
 .project-list {
-  overflow: auto;
-  max-height: 26vh;
-  /* The subproject tree must not collapse; a short sidebar scrolls as a whole. */
-  flex-shrink: 0;
+  display: contents;
 }
 .project-list > button,
-.project-nav > button:first-child {
+.project-nav > button:nth-child(2) {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -125,7 +110,7 @@ nav button.active svg {
   border: 0;
   background: none;
   color: #68798d;
-  padding: 8px 9px;
+  padding: 7px 4px;
   font-size: 12.5px;
   min-width: 0;
   overflow-wrap: anywhere;
@@ -139,10 +124,55 @@ nav button.active svg {
   color: #91a0af;
   margin: 10px;
 }
+/*
+ * Grows into the free space and lends it to `.scope-scroll`. Its floor keeps the
+ * header, up to three scope rows and the manage button visible.
+ */
+.project-tree {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: calc(var(--scope-rows, 0) * 30px + 72px);
+}
+.project-tree.filterable:not(.collapsed) {
+  min-height: calc(var(--scope-rows, 0) * 30px + 112px);
+}
+.project-tree > :not(.scope-scroll) {
+  flex-shrink: 0;
+}
 .project-nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 2px;
+}
+.project-nav > button:nth-child(2) {
+  flex: 1;
+}
+.project-name {
+  min-width: 0;
+}
+.project-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: #8a98a9;
+  padding: 0;
+}
+.project-toggle:hover {
+  background: #e9eff6;
+  color: var(--ink);
+}
+.project-toggle > svg {
+  transition: transform 0.15s;
+}
+.project-toggle[aria-expanded='true'] > svg {
+  transform: rotate(90deg);
 }
 .project-dot {
   width: 7px;
@@ -150,6 +180,52 @@ nav button.active svg {
   border-radius: 2px;
   background: #7d9cc6;
   flex-shrink: 0;
+}
+.scope-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 4px 12px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: #8a98a9;
+}
+.scope-filter > input {
+  border: 0;
+  background: transparent;
+  padding: 6px 0;
+  font-size: 12px;
+}
+.scope-filter:focus-within {
+  border-color: #7fa6eb;
+}
+/* Shrinks before anything else; fades at the edge that hides more scopes. */
+.scope-scroll {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.scope-scroll.more-below {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent);
+}
+.scope-scroll.more-above {
+  mask-image: linear-gradient(to top, #000 calc(100% - 26px), transparent);
+}
+.scope-scroll.more-above.more-below {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 26px,
+    #000 calc(100% - 26px),
+    transparent
+  );
+}
+.scope-empty {
+  font-size: 12px;
+  color: #91a0af;
+  margin: 6px 0 6px 29px;
 }
 .scope-tree {
   list-style: none;
@@ -196,6 +272,7 @@ nav button.active svg {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
   border: 0;
   background: none;
   color: #7a8a9c;
@@ -215,15 +292,15 @@ nav button.active svg {
 }
 .sidebar-bottom {
   margin-top: auto;
-  padding-top: 20px;
+  padding-top: clamp(8px, 1.6vh, 20px);
 }
-.sidebar-bottom > button {
+.sidebar-bottom button {
   border: 0;
   background: none;
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 9px 10px;
+  padding: var(--footer-item-pad) 10px;
   font-size: 12.5px;
   color: #67798f;
   width: 100%;
@@ -235,25 +312,46 @@ nav button.active svg {
 .sidebar-bottom .badge {
   margin-left: auto;
 }
+/* Lock action and encryption status share one row. */
 .local-status {
   display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: space-between;
+  gap: 6px;
   border-top: 1px solid var(--line);
-  padding: 20px 5px 6px;
+  padding-top: clamp(4px, 0.9vh, 10px);
+  margin-top: clamp(6px, 1.2vh, 14px);
+}
+.sidebar-bottom .lock-button {
+  width: auto;
+  font-size: 11px;
+  gap: 8px;
+  padding: 8px 5px;
+  white-space: nowrap;
+}
+.sidebar-bottom .lock-button:hover {
+  color: var(--ink);
+}
+.local-status-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 10.5px;
   color: #788b9a;
-  margin-top: 18px;
+  white-space: nowrap;
 }
-.local-status > span {
+.local-status-label > span[aria-hidden] {
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: #49a18b;
 }
-.sidebar-bottom .lock-button {
-  font-size: 11px;
-  padding: 8px 5px;
+.local-status-detail {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 .workspace {
   grid-column: 2;

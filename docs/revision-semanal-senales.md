@@ -3,9 +3,9 @@
 
 ## Alcance y estado actual
 
-La revisión semanal calcula grupos y carga a partir de tareas en `src/weeklyReview.ts`, presenta las tarjetas en `src/views/WeeklyReviewView.tsx` y guarda fecha y siguiente paso mediante la API desde `src/App.tsx`. `Meeting.agreements` conserva el texto libre anterior y `Meeting.agreementItems` añade acuerdos individuales con seguimiento explícito. `Entry.result` y `Entry.evidence` siguen siendo campos independientes. `Snapshot.weeklyReview` guarda el último corte confirmado y las decisiones de señales dentro del vault. `updatedAt` y `version` no acreditan avance por sí solos.
+El plan semanal calcula la carga por día, las atrasadas y la propuesta de reparto en `src/weeklyReview.ts`, presenta la semana y la sección «Seguimiento» en `src/views/WeeklyReviewView.tsx` y guarda los cambios de fecha mediante la API desde `src/App.tsx`. `Meeting.agreements` conserva el texto libre anterior y `Meeting.agreementItems` añade acuerdos individuales con seguimiento explícito. `Entry.result` y `Entry.evidence` siguen siendo campos independientes. `Snapshot.weeklyReview` guarda el último corte confirmado y las decisiones de señales dentro del vault. `updatedAt` y `version` no acreditan avance por sí solos.
 
-La vista muestra, en el cuaderno activo, qué merece seguimiento desde la última revisión confirmada. Conserva «Atender», «Desbloquear» y «Planificar», sin crear otra tarjeta para una tarea que ya figure en uno de esos grupos. Las señales de acuerdos y resultados aparecen en «Seguimiento»; las de tareas se añaden a su tarjeta existente o aparecen una sola vez en esa sección si la tarea no estaba agrupada.
+La sección «Seguimiento» del plan semanal muestra, en el cuaderno activo, qué merece seguimiento desde la última revisión confirmada. Cada señal aparece una sola vez como tarjeta propia, también las de tareas estancadas; el reparto de fechas de la semana no crea, descarta ni pospone señales.
 
 ## Corte de revisión y comparación
 

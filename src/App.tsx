@@ -92,14 +92,14 @@ import DayDetails from './views/DayDetails';
 import PracticesView from './views/PracticesView';
 const AsvsView = lazy(() => import('./views/AsvsView'));
 import TaskFilters from './views/TaskFilters';
-import WeeklyReviewView from './views/WeeklyReviewView';
-import { weeklyReview } from './weeklyReview';
+import WeeklyReviewView, { type TaskReschedule } from './views/WeeklyReviewView';
 import { visibleWeeklySignals, type WeeklySignal } from '../shared/weeklyReviewSignals';
 import { objectiveCoverage } from '../shared/objectiveCoverage';
 import {
   BOARD_FILTERS_KEY,
   LIST_FILTERS_KEY,
   TODAY_FILTERS_KEY,
+  compareTaskSequence,
   emptyTaskFilters,
   filterBoardTasks,
   filterTasks,
@@ -290,7 +290,7 @@ export default function App() {
     return () => clearInterval(id);
   }, [!!snapshot, refresh]);
   useEffect(() => {
-    if (!snapshot || view !== 'Revisión semanal' || !project) return;
+    if (!snapshot || view !== 'Plan semanal' || !project) return;
     let disposed = false;
     void api<WeeklySignal[]>('weekly-signals')
       .then((signals) => {
@@ -782,10 +782,44 @@ export default function App() {
       movingTaskIds.current.delete(task.id);
     }
   }
-  async function updateReviewTask(task: Task, patch: Partial<Pick<Task, 'due' | 'nextStep'>>) {
-    await saveRecord('task', { ...task, ...patch }, task);
-    await refresh();
-    setToast('Tarea actualizada.');
+  // Aplica varios cambios de fecha del plan semanal con una sola recarga del cuaderno.
+  async function rescheduleTasks(changes: TaskReschedule[]) {
+    const pending = changes.filter(
+      ({ task, due }) => task.due !== due && !movingTaskIds.current.has(task.id),
+    );
+    if (!pending.length) return false;
+    pending.forEach(({ task }) => movingTaskIds.current.add(task.id));
+    setError('');
+    try {
+      await flushAll();
+      const allTasks = snapshot?.records.filter((r): r is Task => r.kind === 'task') || [];
+      for (const { task, due } of pending) {
+        const hasPendingCompletion = Boolean(
+          snapshot?.proposals.some(
+            (p) =>
+              p.status === 'pending' && p.targetId === task.id && p.patch.state === 'Completada',
+          ),
+        );
+        const nextChange = resolveTaskMoveChange(task, { due }, madridDate(), {
+          allTasks,
+          hasPendingCompletionProposal: hasPendingCompletion,
+        });
+        await saveRecord('task', { ...task, ...nextChange }, task);
+      }
+      await refresh();
+      setToast(
+        pending.length === 1
+          ? `Tarea movida al ${taskDateLabel(pending[0].due)}.`
+          : `${pending.length} tareas recolocadas.`,
+      );
+      return true;
+    } catch (e) {
+      setError((e as Error).message);
+      await refresh().catch(() => {});
+      return false;
+    } finally {
+      pending.forEach(({ task }) => movingTaskIds.current.delete(task.id));
+    }
   }
   function startIncidentDrag(event: DragEvent<HTMLElement>, incident: Incident) {
     event.dataTransfer.setData('text/plain', incident.id);
@@ -905,13 +939,6 @@ export default function App() {
   const projectTaskCount = nextTasks.filter((task) => !project || task.project === project).length;
   const visibleTasks = view === 'Tablero' ? boardTasks : view === 'Hoy' ? todayTasks : scopedTasks;
   const currentDay = madridDate();
-  const reviewItems = weeklyReview(tasks, project, currentDay).filter(
-    ({ task }) =>
-      !search ||
-      `${task.title} ${task.description} ${task.nextStep}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-  );
   const reviewSignals = visibleWeeklySignals(
     weeklySignalPage?.projectId === project ? weeklySignalPage.signals : [],
     snapshot.weeklyReview,
@@ -960,6 +987,8 @@ export default function App() {
     .filter((t) => t.due > day && t.state !== 'Completada')
     .sort((a, b) => {
       if (a.due !== b.due) return a.due.localeCompare(b.due);
+      const sequence = compareTaskSequence(a, b);
+      if (sequence) return sequence;
       const pA = priorityOrder[a.priority] ?? 99;
       const pB = priorityOrder[b.priority] ?? 99;
       if (pA !== pB) return pA - pB;
@@ -1049,12 +1078,6 @@ export default function App() {
             bitácora<span>Tu cuaderno de prácticas</span>
           </strong>
         </div>
-        <div className="workspace-chip">
-          <span className="avatar">B</span>
-          <span>
-            Mi espacio de trabajo<small>Prácticas profesionales</small>
-          </span>
-        </div>
         <nav aria-label="Navegación principal">
           {navigation.map((n) => (
             <button
@@ -1106,11 +1129,14 @@ export default function App() {
             <Database size={18} /> Ajustes y copias
           </button>
           <div className="local-status">
-            <span /> Datos cifrados en este equipo
+            <button className="lock-button" onClick={() => void lock()}>
+              <LockKeyhole size={15} /> Bloquear bitácora
+            </button>
+            <span className="local-status-label" title="Datos cifrados en este equipo">
+              <span aria-hidden="true" /> Cifrado
+              <span className="local-status-detail"> en este equipo</span>
+            </span>
           </div>
-          <button className="lock-button" onClick={() => void lock()}>
-            <LockKeyhole size={15} /> Bloquear bitácora
-          </button>
         </div>
       </aside>
       <div className="workspace">
@@ -1675,15 +1701,14 @@ export default function App() {
                 moveIncident={(incident, change) => void moveIncident(incident, change)}
               />
             )}
-            {view === 'Revisión semanal' && (
+            {view === 'Plan semanal' && (
               <WeeklyReviewView
-                items={reviewItems}
                 tasks={tasks}
                 projectId={project}
                 today={currentDay}
                 search={search}
                 openTask={openRecord}
-                updateTask={updateReviewTask}
+                rescheduleTasks={rescheduleTasks}
                 signals={reviewSignals}
                 previousReviewDay={snapshot.weeklyReview?.baseline?.day}
                 finishReview={finishWeeklyReview}

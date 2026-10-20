@@ -4,7 +4,7 @@ import {
   GraduationCap,
   List,
   NotebookPen,
-  ClipboardList,
+  CalendarRange,
   ListChecks,
   ShieldCheck,
   Sun,
@@ -13,7 +13,7 @@ import type { Kind } from '../../shared/model';
 
 export const navigation = [
   { name: 'Hoy', icon: Sun },
-  { name: 'Revisión semanal', icon: ClipboardList },
+  { name: 'Plan semanal', icon: CalendarRange },
   { name: 'Tablero', icon: Columns3 },
   { name: 'Lista', icon: List },
   { name: 'Diario', icon: NotebookPen },
@@ -32,9 +32,9 @@ export const pageCopy: Record<string, [string, string]> = {
     'Un día más, un paso adelante.',
     'Tu trabajo de hoy construye la historia de tus prácticas.',
   ],
-  'Revisión semanal': [
-    'Decide qué sigue esta semana.',
-    'Atiende lo urgente, abre los bloqueos y concreta los próximos pasos.',
+  'Plan semanal': [
+    'Tu semana, a tu medida.',
+    'Arrastra las tareas entre días, recoloca lo atrasado y equilibra la carga.',
   ],
   Tablero: [
     'Del siguiente paso al resultado.',

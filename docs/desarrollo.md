@@ -29,10 +29,11 @@ El servidor guarda los datos fuera del repositorio en `BITACORA_DATA_DIR` si est
 
 ## Acceso directo local
 
-`scripts/crear-acceso-directo.ps1` crea `Bitácora` en el escritorio con el icono `public/favicon.ico`. El acceso directo ejecuta `scripts/lanzador.ps1`, que:
+`scripts/crear-acceso-directo.ps1` crea `Bitácora` en el escritorio y en el menú Inicio con el icono `public/favicon.ico`; desde el menú Inicio se puede anclar a la barra de tareas. Si ya existe un `Bitácora.lnk` que abre otro programa instalado, lo conserva. El acceso directo ejecuta `scripts/lanzador.ps1`, que:
 
-- Usa la versión compilada (`dist/` y `dist-service/server.cjs`). Si faltan o son anteriores a `src`, `service`, `shared`, `public` o la configuración, ejecuta solo `vite build` y `scripts/build-service.mjs`; la verificación completa sigue siendo `pnpm run build`.
-- Arranca el servicio oculto con `BITACORA_PARENT_PID` apuntando al lanzador, lee `{port, token}` de su salida y abre `http://127.0.0.1:<port>/#session=<token>` en una ventana `--app` de Brave con perfil propio (`%LOCALAPPDATA%\Bitacora\brave-perfil`).
+- Usa la versión compilada (`dist/` y `dist-service/server.cjs`), nunca Vite. Si faltan o son anteriores a `src`, `service`, `shared`, `public` o la configuración, ejecuta solo `vite build` y `scripts/build-service.mjs`; la verificación completa sigue siendo `pnpm run build`.
+- Arranca el servicio oculto con `BITACORA_PARENT_PID` apuntando al lanzador, lee `{port, token}` de su salida y abre `http://127.0.0.1:<port>/#session=<token>&theme=dark` en una ventana `--app` de Brave con perfil propio (`%LOCALAPPDATA%\Bitacora\brave-perfil`).
+- Abre siempre en modo oscuro: el parámetro `theme` del fragmento tiene prioridad sobre la preferencia guardada, que de todos modos no sobrevive entre arranques porque el puerto cambia. El interruptor de tema sigue funcionando durante la sesión.
 - Espera a que se cierre la última ventana y termina; el servicio detecta la salida del lanzador en unos 2 s y se cierra de forma ordenada (bloquea el vault y borra `service.lock` y `connection.json`). Si el lanzador muere a la fuerza, ocurre lo mismo.
 - Si ya hay un servicio activo, trae al frente la ventana existente en lugar de abrir otra, porque el token no se guarda en disco. Si el servicio pertenece a otra aplicación, avisa y no arranca otro.
 - Con `-Dev` arranca `pnpm dev` y abre `127.0.0.1:1420`; al cerrar la ventana detiene el árbol de procesos.

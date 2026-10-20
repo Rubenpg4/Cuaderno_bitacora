@@ -4,7 +4,7 @@ import { createInterface } from 'node:readline';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { madridDate, type Entry, type Objective, type Task } from '../shared/model';
+import { madridDate, taskDateLabel, type Entry, type Objective, type Task } from '../shared/model';
 import { addDays } from '../shared/recurrence';
 import { asvsCatalog } from '../shared/asvsCatalog';
 import { asvsDisplayRequirements, asvsTranslationProvider } from '../shared/asvsCatalogEs';
@@ -349,7 +349,7 @@ test('ASVS seguimiento: revalida fuentes, muestra cobertura y conserva señales 
     .getByRole('button', { name: `Historial de ${overview.items[1].assessment.reqId}` })
     .click();
   await expect(article.locator('.asvs-history')).toContainText('commit-1');
-  await nav.getByRole('button', { name: 'Revisión semanal', exact: true }).click();
+  await nav.getByRole('button', { name: 'Plan semanal', exact: true }).click();
   const signal = page
     .locator('.review-card')
     .filter({ hasText: 'revalidaciones pendientes' })
@@ -360,7 +360,7 @@ test('ASVS seguimiento: revalida fuentes, muestra cobertura y conserva señales 
   await expect(page.getByRole('heading', { name: signalTitle, exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Terminar revisión', exact: true }).click();
   await nav.getByRole('button', { name: 'Verificación ASVS', exact: true }).click();
-  await nav.getByRole('button', { name: 'Revisión semanal', exact: true }).click();
+  await nav.getByRole('button', { name: 'Plan semanal', exact: true }).click();
   await expect(page.getByRole('heading', { name: signalTitle, exact: true })).toHaveCount(0);
   const proposed = await mcp('asvs-revision-propose', {
     projectId,
@@ -379,7 +379,7 @@ test('ASVS seguimiento: revalida fuentes, muestra cobertura y conserva señales 
     page.getByRole('heading', { name: 'Revisión externa propuesta por codex' }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Confirmar nueva revisión', exact: true }).click();
-  await nav.getByRole('button', { name: 'Revisión semanal', exact: true }).click();
+  await nav.getByRole('button', { name: 'Plan semanal', exact: true }).click();
   await expect(page.getByRole('heading', { name: signalTitle, exact: true })).toBeVisible();
   await page
     .locator('.review-card')
@@ -1096,7 +1096,7 @@ test('captura desde cualquier vista, clasifica desde la bandeja y exige desbloqu
   await unlock(page);
   for (const view of [
     'Hoy',
-    'Revisión semanal',
+    'Plan semanal',
     'Tablero',
     'Lista',
     'Diario',
@@ -1225,107 +1225,214 @@ test('vincula un objetivo desde la tarea y muestra resultado, evidencia y valida
   );
 });
 
-test('revisión semanal agrupa, abre bloqueos y guarda fecha y siguiente paso', async ({ page }) => {
+test('plan semanal recoloca arrastrando, con menú y teclado, y permite deshacer', async ({
+  page,
+}) => {
   await unlock(page);
   const { blank } = await import('../service/domain');
-  const dependency = (await call('save', {
+  const today = madridDate();
+  const overdue = (await call('save', {
     kind: 'task',
-    data: { ...blank('task'), title: 'Preparar acceso', due: addDays(madridDate(), 2) },
+    data: { ...blank('task'), title: 'Integrar servicio', due: addDays(today, -1) },
   })) as Task;
-  const blocked = (await call('save', {
+  const later = (await call('save', {
     kind: 'task',
-    data: {
-      ...blank('task'),
-      title: 'Integrar servicio',
-      due: addDays(madridDate(), -1),
-      dependencyIds: [dependency.id],
-      nextStep: '',
-    },
+    data: { ...blank('task'), title: 'Preparar informe', due: addDays(today, 3) },
   })) as Task;
-  await call('save', {
-    kind: 'task',
-    data: {
-      ...blank('task'),
-      title: 'Preparar informe',
-      due: addDays(madridDate(), 10),
-      nextStep: '',
-    },
-  });
+  const dueOf = async (id: string) =>
+    ((await call('snapshot')).records.find((record: Task) => record.id === id) as Task).due;
   await page.reload();
-  await page.getByRole('button', { name: 'Revisión semanal', exact: true }).click();
-  const unblock = page.getByRole('region', { name: 'Desbloquear' });
-  const card = unblock.locator('.review-card', { hasText: 'Integrar servicio' });
-  await expect(card).toContainText('Vencida');
-  await expect(card).toContainText('Sin siguiente paso');
-  await expect(page.getByRole('region', { name: 'Planificar' })).toContainText('Preparar informe');
-  await card.getByRole('button', { name: /Preparar acceso/ }).click();
+  await page.getByRole('button', { name: 'Plan semanal', exact: true }).click();
+
+  const tray = page.getByRole('region', { name: 'Atrasadas' });
+  const todayColumn = page.getByRole('listitem', { name: taskDateLabel(today) });
+  await expect(tray).toContainText('Integrar servicio');
+  await tray.locator('.planner-card', { hasText: 'Integrar servicio' }).dragTo(todayColumn);
+  await expect(todayColumn).toContainText('Integrar servicio');
+  await expect(tray).toHaveCount(0);
+  expect(await dueOf(overdue.id)).toBe(today);
+
+  await page.getByRole('button', { name: 'Deshacer' }).click();
+  await expect(page.getByRole('region', { name: 'Atrasadas' })).toContainText('Integrar servicio');
+  expect(await dueOf(overdue.id)).toBe(addDays(today, -1));
+
+  const card = page.locator('.planner-card', { hasText: 'Preparar informe' });
+  await card.getByRole('button', { name: 'Mover «Preparar informe» a otro día' }).click();
+  await page
+    .getByRole('group', { name: 'Mover «Preparar informe»' })
+    .getByRole('button', { name: 'Hoy', exact: true })
+    .click();
+  await expect(todayColumn).toContainText('Preparar informe');
+  expect(await dueOf(later.id)).toBe(today);
+
+  const main = page
+    .locator('.planner-card', { hasText: 'Preparar informe' })
+    .locator('.planner-card-main');
+  await main.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(() => dueOf(later.id)).toBe(addDays(today, 1));
+  await expect(main).toBeFocused();
+
+  await main.click();
   await expect(page.getByRole('dialog', { name: 'Editar tarea' })).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'Cerrar' }).click();
-
-  const newDue = addDays(madridDate(), 5);
-  await card.getByLabel('Reprogramar fecha').fill(newDue);
-  await card.getByRole('button', { name: 'Guardar fecha' }).click();
-  await expect(card.getByLabel('Reprogramar fecha')).toHaveValue(newDue);
-  await card.getByLabel('Siguiente paso').fill('Validar la integración');
-  await card.getByRole('button', { name: 'Guardar paso' }).click();
-  await expect(card.getByLabel('Siguiente paso')).toHaveValue('Validar la integración');
-  const saved = (await call('snapshot')).records.find(
-    (record: Task) => record.id === blocked.id,
-  ) as Task;
-  expect(saved).toMatchObject({
-    due: newDue,
-    nextStep: 'Validar la integración',
-    state: blocked.state,
-  });
-
-  const currentDependency = (await call('snapshot')).records.find(
-    (record: Task) => record.id === dependency.id,
-  ) as Task;
-  await call('save', {
-    kind: 'task',
-    data: { ...currentDependency, state: 'Completada' },
-    id: dependency.id,
-    expectedVersion: currentDependency.version,
-  });
-  await expect(page.getByRole('region', { name: 'Atender' })).toContainText('Integrar servicio', {
-    timeout: 10000,
-  });
-  await expect(unblock).not.toContainText('Integrar servicio');
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({ path: 'test-results/revision-semanal.png', fullPage: true });
+  await page.screenshot({ path: 'test-results/plan-semanal.png', fullPage: true });
 });
 
-test('revisión semanal funciona con teclado y en una ventana estrecha', async ({ page }) => {
+test('plan semanal propone un reparto revisable antes de aplicarlo', async ({ page }) => {
   await unlock(page);
   const { blank } = await import('../service/domain');
-  await call('save', {
+  const { weekStart } = await import('../src/weeklyReview');
+  const monday = addDays(weekStart(madridDate()), 7);
+  for (const [title, priority] of [
+    ['Tarea importante', 'Alta'],
+    ['Tarea aplazable', 'Baja'],
+  ] as const) {
+    await call('save', { kind: 'task', data: { ...blank('task'), title, priority, due: monday } });
+  }
+  await page.reload();
+  await page.getByRole('button', { name: 'Plan semanal', exact: true }).click();
+  await page.getByRole('button', { name: 'Semana siguiente' }).click();
+  await expect(page.getByText('Próxima semana', { exact: true })).toBeVisible();
+  await page.getByLabel('Tareas por día').fill('1');
+  await page.getByRole('button', { name: 'Equilibrar semana' }).click();
+  const proposal = page.getByRole('region', { name: 'Propuesta de reparto' });
+  await expect(proposal).toContainText('Tarea aplazable');
+  await expect(proposal).not.toContainText('Tarea importante');
+  expect(
+    (await call('snapshot')).records.filter(
+      (record: Task) => record.kind === 'task' && record.due !== monday,
+    ),
+  ).toHaveLength(0);
+  await proposal.getByRole('button', { name: 'Aplicar 1 cambio' }).click();
+  await expect(proposal).toHaveCount(0);
+  const tuesday = addDays(monday, 1);
+  await expect(page.getByRole('listitem', { name: taskDateLabel(tuesday) })).toContainText(
+    'Tarea aplazable',
+  );
+  await page.getByRole('button', { name: 'Equilibrar semana' }).click();
+  await expect(page.getByText('La semana ya está equilibrada.')).toBeVisible();
+});
+
+test('plan semanal funciona con teclado y en una ventana estrecha', async ({ page }) => {
+  await unlock(page);
+  const { blank } = await import('../service/domain');
+  const task = (await call('save', {
     kind: 'task',
-    data: { ...blank('task'), title: 'Tarea de teclado', due: madridDate(), nextStep: '' },
-  });
+    data: { ...blank('task'), title: 'Tarea de teclado', due: madridDate() },
+  })) as Task;
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Abrir navegación' }).click();
-  await page.getByRole('button', { name: 'Revisión semanal', exact: true }).click();
-  const card = page.locator('.review-card', { hasText: 'Tarea de teclado' });
+  await page.getByRole('button', { name: 'Plan semanal', exact: true }).click();
+  const card = page.locator('.planner-card', { hasText: 'Tarea de teclado' });
   await expect(card).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-    true,
-  );
-  const title = card.getByRole('button', { name: 'Tarea de teclado' });
-  await title.focus();
+  const noHorizontalScroll = () =>
+    page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+  expect(await noHorizontalScroll()).toBe(true);
+  await card.locator('.planner-card-main').focus();
   await page.keyboard.press('Tab');
-  await expect(card.getByLabel('Reprogramar fecha')).toBeFocused();
-  await title.focus();
+  const toggle = card.getByRole('button', { name: 'Mover «Tarea de teclado» a otro día' });
+  await expect(toggle).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('dialog', { name: 'Editar tarea' })).toBeVisible();
-  await page.getByRole('dialog').getByRole('button', { name: 'Cerrar' }).click();
-  await card.getByLabel('Siguiente paso').focus();
-  await page.keyboard.type('Verificar con teclado');
-  await page.keyboard.press('Tab');
-  await expect(card.getByRole('button', { name: 'Guardar paso' })).toBeFocused();
+  const menu = page.getByRole('group', { name: 'Mover «Tarea de teclado»' });
+  await expect(menu).toBeVisible();
+  expect(await noHorizontalScroll()).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+  await expect(toggle).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(card.getByLabel('Siguiente paso')).toHaveValue('Verificar con teclado');
+  await menu.getByLabel('Otra fecha').fill(addDays(madridDate(), 9));
+  await menu.getByRole('button', { name: 'Mover', exact: true }).click();
+  await expect
+    .poll(
+      async () =>
+        ((await call('snapshot')).records.find((record: Task) => record.id === task.id) as Task)
+          .due,
+    )
+    .toBe(addDays(madridDate(), 9));
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({ path: 'test-results/revision-semanal-movil.png' });
+  await page.screenshot({ path: 'test-results/plan-semanal-movil.png' });
+});
+
+test('plan semanal cabe en pantallas 2K, 1080p y ventanas medianas sin recortar el menú', async ({
+  page,
+}) => {
+  await unlock(page);
+  const { blank } = await import('../service/domain');
+  const { weekStart } = await import('../src/weeklyReview');
+  const monday = addDays(weekStart(madridDate()), 7);
+  // Títulos largos: las tarjetas altas empujan el menú por debajo de la columna del día.
+  const long = 'con un título largo que ocupa varias líneas en la columna';
+  for (const [title, due] of [
+    [`Primera tarea del lunes ${long}`, monday],
+    [`Tarea del lunes ${long}`, monday],
+    [`Tarea del domingo ${long}`, addDays(monday, 6)],
+  ]) {
+    await call('save', { kind: 'task', data: { ...blank('task'), title, due } });
+  }
+  await page.reload();
+  await page.getByRole('button', { name: 'Plan semanal', exact: true }).click();
+  await page.getByRole('button', { name: 'Semana siguiente' }).click();
+  for (const viewport of [
+    { width: 2560, height: 1440 },
+    { width: 1920, height: 1080 },
+    { width: 1000, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const layout = await page.evaluate(() => {
+      const planner = document.querySelector('.weekly-planner')!.getBoundingClientRect();
+      const content = document.querySelector('.main-content')!.getBoundingClientRect();
+      const grid = document.querySelector('.planner-grid')!;
+      return {
+        pageFits: document.documentElement.scrollWidth <= window.innerWidth,
+        plannerFits: planner.right <= content.right + 1,
+        gridScrolls: grid.scrollWidth > grid.clientWidth || grid.scrollHeight > grid.clientHeight,
+      };
+    });
+    expect(layout, `${viewport.width}×${viewport.height}`).toEqual({
+      pageFits: true,
+      plannerFits: true,
+      gridScrolls: false,
+    });
+    for (const title of [`Tarea del lunes ${long}`, `Tarea del domingo ${long}`]) {
+      await page.getByRole('button', { name: `Mover «${title}» a otro día` }).click();
+      const menu = page.getByRole('group', { name: `Mover «${title}»` });
+      await expect(menu).toBeVisible();
+      const placement = await menu.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const planner = element.closest('.weekly-planner')!;
+        const bounds = planner.getBoundingClientRect();
+        // Ningún contenedor con desbordamiento oculto o desplazable puede recortar el menú.
+        let clipped = false;
+        for (
+          let node = element.parentElement;
+          node && node !== planner;
+          node = node.parentElement
+        ) {
+          const style = getComputedStyle(node);
+          const rect = node.getBoundingClientRect();
+          if (
+            (style.overflowX !== 'visible' || style.overflowY !== 'visible') &&
+            (box.left < rect.left || box.right > rect.right || box.bottom > rect.bottom)
+          )
+            clipped = true;
+        }
+        return {
+          inside: box.left >= bounds.left - 1 && box.right <= bounds.right + 1,
+          clipped,
+        };
+      });
+      expect(placement, `${title.split(' con ')[0]} a ${viewport.width}px`).toEqual({
+        inside: true,
+        clipped: false,
+      });
+      if (title.startsWith('Tarea del lunes'))
+        await page.screenshot({ path: `test-results/plan-semanal-${viewport.width}.png` });
+      await page.keyboard.press('Escape');
+      await expect(menu).toHaveCount(0);
+    }
+  }
 });
 
 test('revisión semanal crea seguimiento, pospone una señal y muestra resultados sin evidencia', async ({
@@ -1347,7 +1454,7 @@ test('revisión semanal crea seguimiento, pospone una señal y muestra resultado
     },
   });
   await page.reload();
-  await page.getByRole('button', { name: 'Revisión semanal', exact: true }).click();
+  await page.getByRole('button', { name: 'Plan semanal', exact: true }).click();
   const followUp = page.getByRole('region', { name: 'Seguimiento' });
   await expect(followUp).toContainText('Comprobar el informe');
   await followUp.getByRole('button', { name: 'Crear tarea desde acuerdo' }).click();
@@ -1367,7 +1474,7 @@ test('revisión semanal crea seguimiento, pospone una señal y muestra resultado
 
   await call('delete-task', { id: task.id, expectedVersion: task.version });
   await page.reload();
-  await page.getByRole('button', { name: 'Revisión semanal', exact: true }).click();
+  await page.getByRole('button', { name: 'Plan semanal', exact: true }).click();
   const signal = page
     .getByRole('region', { name: 'Seguimiento' })
     .locator('.review-card', { hasText: 'Comprobar el informe' });
@@ -1375,7 +1482,7 @@ test('revisión semanal crea seguimiento, pospone una señal y muestra resultado
   await signal.getByRole('button', { name: 'Posponer', exact: true }).click();
   await expect(signal).toHaveCount(0);
   await page.reload();
-  await page.getByRole('button', { name: 'Revisión semanal', exact: true }).click();
+  await page.getByRole('button', { name: 'Plan semanal', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Seguimiento' })).not.toContainText(
     'Comprobar el informe',
   );
@@ -1393,7 +1500,7 @@ test('revisión semanal crea seguimiento, pospone una señal y muestra resultado
     },
   });
   await page.reload();
-  await page.getByRole('button', { name: 'Revisión semanal', exact: true }).click();
+  await page.getByRole('button', { name: 'Plan semanal', exact: true }).click();
   const evidence = page
     .getByRole('region', { name: 'Seguimiento' })
     .locator('.review-card', { hasText: 'Resultado verificado' });
@@ -1436,7 +1543,7 @@ test('el editor de reuniones registra acuerdos individuales y vincula tareas exi
     (record: { id: string }) => record.id === meeting.id,
   );
   expect(saved.agreementItems[0].id).toBeTruthy();
-  await page.getByRole('button', { name: 'Revisión semanal', exact: true }).click();
+  await page.getByRole('button', { name: 'Plan semanal', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Seguimiento' })).toContainText(
     'Acordar pruebas de aceptación',
   );
@@ -1449,7 +1556,7 @@ test('el editor de reuniones registra acuerdos individuales y vincula tareas exi
   await editor.getByLabel('Tarea vinculada al acuerdo 1').selectOption(task.id);
   await editor.getByRole('button', { name: 'Guardar cambios' }).click();
   await expect(editor).toHaveCount(0);
-  await page.getByRole('button', { name: 'Revisión semanal', exact: true }).click();
+  await page.getByRole('button', { name: 'Plan semanal', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Seguimiento' })).not.toContainText(
     'Acordar pruebas de aceptación',
   );
@@ -2250,6 +2357,16 @@ test('el tema se conserva al reabrir y al bloquear la bitácora', async ({ page 
   await expect(page.getByRole('button', { name: 'Activar modo oscuro' })).toBeVisible();
   await page.goto(`${url}/#session=${token}`);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+});
+test('el lanzador local abre en modo oscuro aunque se guardara el claro', async ({ page }) => {
+  await page.goto(`${url}/#session=${token}`);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  // Una ventana nueva carga la página de cero; cambiar solo el fragmento no la recargaría.
+  await page.goto('about:blank');
+  await page.goto(`${url}/#session=${token}&theme=dark`);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.getByRole('button', { name: 'Activar modo claro' })).toBeVisible();
+  await expect(page).not.toHaveURL(/session=|theme=/);
 });
 
 test('recorrido completo: proyecto, tarea, diario, martes y memoria', async ({ page }) => {

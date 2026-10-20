@@ -43,6 +43,8 @@
   --green: #89c7b0;
   --amber: #dfb37c;
   --red: #e58d99;
+  --scrollbar-thumb: #8ea3bd4d;
+  --scrollbar-thumb-hover: #a9bdd48c;
   color: var(--ink);
   background: #111b2a;
 }
@@ -73,7 +75,6 @@
   background: #192b42;
 }
 :root[data-theme='dark'] .kanban-column,
-:root[data-theme='dark'] .workspace-chip,
 :root[data-theme='dark'] .task-filters,
 :root[data-theme='dark'] .decision-preview,
 :root[data-theme='dark'] .check-editor,
@@ -314,13 +315,23 @@
 :root[data-theme='dark'] .scope-tree {
   border-left-color: #2a3a4f;
 }
+:root[data-theme='dark'] .project-toggle:hover {
+  background: #1d2b3d;
+  color: var(--ink);
+}
+:root[data-theme='dark'] .scope-filter {
+  border-color: #43566f;
+  background: #172436;
+}
+:root[data-theme='dark'] .sidebar-bottom .lock-button:hover {
+  color: var(--ink);
+}
 :root[data-theme='dark'] .week-strip .week-task-summary,
 :root[data-theme='dark'] .month-task:not(.completed),
 :root[data-theme='dark'] .calendar-note-count.task,
 :root[data-theme='dark'] .kanban-column h2 > b,
 :root[data-theme='dark'] .board-day-count,
 :root[data-theme='dark'] .task-deadline,
-:root[data-theme='dark'] .avatar,
 :root[data-theme='dark'] .report-icon,
 :root[data-theme='dark'] .metric-icon.blue {
   background: #2b4566;
@@ -420,9 +431,9 @@
 :root[data-theme='dark'] .card-project,
 :root[data-theme='dark'] .journal-card > p,
 :root[data-theme='dark'] .project-list > button,
-:root[data-theme='dark'] .project-nav > button:first-child,
+:root[data-theme='dark'] .project-nav > button:nth-child(2),
 :root[data-theme='dark'] nav button,
-:root[data-theme='dark'] .sidebar-bottom > button {
+:root[data-theme='dark'] .sidebar-bottom button {
   color: #b4c5da;
 }
 :root[data-theme='dark'] .breadcrumb,

@@ -1,5 +1,6 @@
 ﻿# Abre Bitácora en una ventana de Brave y mantiene el servicio solo mientras esa ventana siga abierta.
 # Por defecto usa la versión compilada; con -Dev arranca `pnpm dev` (Vite en 127.0.0.1:1420).
+# La ventana siempre se abre en modo oscuro; el interruptor de tema sigue funcionando durante la sesión.
 param([switch]$Dev)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
@@ -75,7 +76,7 @@ function Iniciar-Compilado {
     throw 'El servicio no arrancó. Puede que Bitácora ya esté abierta desde otra aplicación.'
   }
   $conexion = $linea.Result | ConvertFrom-Json
-  return "http://127.0.0.1:$($conexion.port)/#session=$($conexion.token)"
+  return "http://127.0.0.1:$($conexion.port)/#session=$($conexion.token)&theme=dark"
 }
 
 function Iniciar-Desarrollo {
@@ -89,7 +90,7 @@ function Iniciar-Desarrollo {
     if ((Get-Date) -gt $limite) { throw 'Vite no respondió en el puerto 1420.' }
     Start-Sleep -Milliseconds 500
   }
-  return 'http://127.0.0.1:1420'
+  return 'http://127.0.0.1:1420/#theme=dark'
 }
 
 # Un solo lanzador a la vez: un doble clic mientras el primero compila o arranca solo enfoca su ventana.

@@ -12,6 +12,7 @@ import {
   nextRecurringTasks,
   readSavedFilters,
   saveFilters,
+  taskSequenceNumber,
   type TaskFilters,
 } from '../src/taskFilters';
 
@@ -311,6 +312,33 @@ describe('compareBoardTasks', () => {
 
     const sorted = [low, high, medium].sort(compareBoardTasks);
     expect(sorted.map((t) => t.id)).toEqual(['t-high', 't-med', 't-low']);
+  });
+
+  it('ordena las tareas numeradas por su número antes que por prioridad', () => {
+    const ten = { ...baseTask, id: 't-10', title: '10. Publicar', priority: 'Crítica' as const };
+    const nine = { ...baseTask, id: 't-9', title: '9. Revisar', priority: 'Baja' as const };
+    const one = { ...baseTask, id: 't-1', title: '1. Hacer un script', priority: 'Media' as const };
+    const plain = { ...baseTask, id: 't-plain', title: 'Sin número', priority: 'Crítica' as const };
+
+    const sorted = [plain, ten, one, nine].sort(compareBoardTasks);
+    expect(sorted.map((t) => t.id)).toEqual(['t-1', 't-9', 't-10', 't-plain']);
+  });
+
+  it('mantiene la fecha límite por delante del número de secuencia', () => {
+    const first = { ...baseTask, id: 't-first', title: '1. Empezar', due: '2026-03-20' };
+    const second = { ...baseTask, id: 't-second', title: '2. Seguir', due: '2026-03-12' };
+
+    expect([first, second].sort(compareBoardTasks).map((t) => t.id)).toEqual([
+      't-second',
+      't-first',
+    ]);
+  });
+
+  it('solo reconoce como secuencia un número seguido de punto y espacio', () => {
+    expect(taskSequenceNumber('12. Desplegar')).toBe(12);
+    expect(taskSequenceNumber('3.')).toBe(3);
+    expect(taskSequenceNumber('1.5 kg de material')).toBeUndefined();
+    expect(taskSequenceNumber('Paso 2. Revisar')).toBeUndefined();
   });
 
   it('ordena terciariamente priorizando tareas desbloqueadas antes que bloqueadas', () => {
