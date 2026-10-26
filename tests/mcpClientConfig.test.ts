@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mcpConfigBlock, mcpInstallCommand } from '../shared/mcpClientConfig';
+import { mcpConfigBlock, mcpInstallCommand, parseMcpMode } from '../shared/mcpClientConfig';
 
 // Synthetic paths with spaces, as in a default Windows installation.
 const launch = {
@@ -31,5 +31,23 @@ describe('configuración de clientes MCP', () => {
           },
         },
       });
+  });
+  it('añade el modo del conector solo si no es el predeterminado', () => {
+    expect(mcpInstallCommand('claude', launch, 'hibrido')).toBe(
+      mcpInstallCommand('claude', launch),
+    );
+    expect(mcpInstallCommand('claude', launch, 'codigo')).toContain(
+      '-e BITACORA_MCP_MODO=codigo -- ',
+    );
+    expect(mcpInstallCommand('codex', launch, 'herramientas')).toContain(
+      '--env BITACORA_MCP_MODO=herramientas -- ',
+    );
+    expect(mcpConfigBlock('codex', launch, 'codigo')).toContain('BITACORA_MCP_MODO = "codigo"');
+    expect(
+      JSON.parse(mcpConfigBlock('antigravity', launch, 'codigo')).mcpServers.bitacora.env,
+    ).toMatchObject({ BITACORA_MCP_MODO: 'codigo' });
+    expect(parseMcpMode(undefined)).toBe('hibrido');
+    expect(parseMcpMode('otro')).toBe('hibrido');
+    expect(parseMcpMode('codigo')).toBe('codigo');
   });
 });

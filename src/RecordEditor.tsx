@@ -44,7 +44,7 @@ import { api, saveRecord } from './api';
 import { AutoTextarea, Badge, Button, Field, Notice } from './ui';
 import TaskHistory from './TaskHistory';
 import TaskRecurrenceFields from './TaskRecurrenceFields';
-import TaskPicker from './TaskPicker';
+import TaskDependencyFields, { type TaskDependencyValue } from './TaskDependencyFields';
 import CopyRecordId from './CopyRecordId';
 import { MentionEditor } from './EntryMentions';
 import { MarkdownField } from './MarkdownField';
@@ -170,6 +170,7 @@ export default function RecordEditor({
         ...rest,
         ...(next ? { subprojectId: next } : {}),
         ...(Array.isArray(current.dependencyIds) ? { dependencyIds: [] } : {}),
+        ...(Array.isArray(current.blockedIds) ? { blockedIds: [] } : {}),
         ...(Array.isArray(current.checks) ? { checks: [] } : {}),
         ...(Array.isArray(current.taskIds) ? { taskIds: [] } : {}),
         ...(Array.isArray(current.linkedIds) ? { linkedIds: [] } : {}),
@@ -199,6 +200,12 @@ export default function RecordEditor({
   const availableDependencies = snapshot.records.filter(
     (r): r is Task => r.kind === 'task' && r.id !== record?.id,
   );
+  // Prerequisites to create and tasks to block live in the draft until the task is saved.
+  const newDependencies = (data.newDependencies ?? []) as TaskDependencyValue['newDependencies'];
+  const blockedIds = (data.blockedIds ?? []) as string[];
+  const waitingTasks = record
+    ? availableDependencies.filter((task) => task.dependencyIds.includes(record.id))
+    : [];
   const agreementItems = (data.agreementItems ?? []) as (Omit<AgreementItem, 'id'> & {
     id?: string;
   })[];
@@ -313,22 +320,39 @@ export default function RecordEditor({
       const finalTaskIds = Array.from(
         new Set([...((data.taskIds as string[]) || []), ...autoTaskIds]),
       );
+      const { newDependencies: _newDependencies, blockedIds: _blockedIds, ...recordData } = data;
+      const taskLinks =
+        kind === 'task' && (newDependencies.length || blockedIds.length)
+          ? {
+              newDependencies,
+              blocks: blockedIds.map((id) => {
+                const blocked = fullSnapshot.records.find((item) => item.id === id);
+                if (!blocked)
+                  throw Error('Una tarea de «Bloquea a» ya no existe. Quítala y vuelve a guardar.');
+                return { id, expectedVersion: blocked.version };
+              }),
+            }
+          : undefined;
+      if (taskLinks && recurrenceRule && !record)
+        throw Error(
+          'Las tareas previas nuevas y «Bloquea a» no se aplican a tareas repetidas. Quítalas o desactiva la repetición.',
+        );
       const prepared =
         kind === 'entry'
           ? {
-              ...data,
+              ...recordData,
               taskIds: finalTaskIds,
               title: data.title.trim() || `Avances del ${data.date}`,
               original: data.original || data.activity,
             }
           : kind === 'task'
             ? {
-                ...data,
+                ...recordData,
                 checks: (data.checks as Task['checks']).filter((c) =>
                   activePractices.some((p) => p.id === c.practiceId),
                 ),
               }
-            : data;
+            : recordData;
       if (capture) {
         await api('capture-convert', {
           id: capture.id,
@@ -346,8 +370,9 @@ export default function RecordEditor({
           agreementId: followUp.agreementId,
           expectedMeetingVersion: followUp.meetingVersion,
           draftKey,
+          taskLinks,
         });
-      } else await saveRecord(kind, prepared, record, draftKey);
+      } else await saveRecord(kind, prepared, record, draftKey, taskLinks);
       onSaved();
     } catch (e) {
       setError((e as Error).message);
@@ -467,7 +492,11 @@ export default function RecordEditor({
                     ...data,
                     state: data.state,
                     due: data.due,
-                    dependencyIds: (data.dependencyIds as string[]) || [],
+                    // Prerequisites created on save are still open, so they block an automatic start.
+                    dependencyIds: [
+                      ...((data.dependencyIds as string[]) || []),
+                      ...newDependencies.map((_, index) => `new:${index}`),
+                    ],
                   } as Task;
                   const nextChange = resolveTaskMoveChange(
                     currentTask,
@@ -552,10 +581,15 @@ export default function RecordEditor({
                           setError('');
                           setBusy(true);
                           try {
+                            const {
+                              newDependencies: _newDependencies,
+                              blockedIds: _blockedIds,
+                              ...seriesData
+                            } = data;
                             await api('save-task-series', {
                               id: series.id,
                               expectedVersion: series.version,
-                              data,
+                              data: seriesData,
                               rule: recurrenceRule,
                             });
                             onSaved();
@@ -601,19 +635,24 @@ export default function RecordEditor({
               )}
             </>
           )}
-          <TaskPicker
-            label="Depende de estas tareas (opcional)"
-            searchLabel="Buscar tareas de las que depende"
+          <TaskDependencyFields
             tasks={availableDependencies}
-            value={data.dependencyIds}
-            onChange={(ids) => change('dependencyIds', ids)}
+            value={{ dependencyIds: data.dependencyIds, newDependencies, blockedIds }}
+            onChange={(patch) => setData((current) => ({ ...current, ...patch }))}
+            taskDue={String(data.due || '')}
+            taskPriority={data.priority}
+            taskState={data.state}
+            allowNew={!recurrenceRule || !!record}
+            allowBlocks={!record && !recurrenceRule}
+            waitingTasks={waitingTasks}
           />
           {data.state !== 'Por hacer' &&
-            (data.dependencyIds as string[]).some((id) =>
-              availableDependencies.some(
-                (dependency) => dependency.id === id && dependency.state !== 'Completada',
-              ),
-            ) && <Notice error>Completa las tareas previas antes de iniciar esta tarea.</Notice>}
+            (newDependencies.length > 0 ||
+              (data.dependencyIds as string[]).some((id) =>
+                availableDependencies.some(
+                  (dependency) => dependency.id === id && dependency.state !== 'Completada',
+                ),
+              )) && <Notice error>Completa las tareas previas antes de iniciar esta tarea.</Notice>}
           {input('description', true)}
           {input('solution', true)}
           {input('blocked', true)}

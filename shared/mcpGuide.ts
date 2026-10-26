@@ -46,6 +46,9 @@ Cuaderno local de ingeniería y gestión de proyectos, centrado en la privacidad
 
 6. **Seguimiento (\`consultar_propuestas\`):** tus propuestas con \`status\`, \`kind\`, \`operation\`, \`targetId\` y \`title\`, de la más reciente a la más antigua. Filtra por \`status\` o \`targetId\` y pagina con \`offset\`. El ID de una propuesta nunca es el de un registro: tras aceptarse, busca el registro creado.
 
+7. **Modo código (\`ejecutar_codigo\`):** para recorrer páginas, cruzar o resumir varios registros escribe JavaScript asíncrono que llame a \`await bitacora.<herramienta>(args)\` (mismos nombres y argumentos; respuesta ya parseada) y devuelve con \`return\` solo lo necesario: los datos intermedios no llegan a la conversación. \`consultar_api\` lista las funciones y da sus tipos. Sin red, archivos ni temporizadores; como máximo 50 llamadas, 10 propuestas y 30 s por ejecución. Las propuestas siguen pendientes de revisión y la respuesta las enumera en \`propuestas\`. Para una sola consulta usa la herramienta directa si está publicada; en el modo solo código, todas las de esta guía son funciones de \`bitacora\`. Ejemplo:
+   \`const p = await bitacora.filtrar_registros({ kind: 'task', state: 'En curso', limit: 10 }); return p.items.map((t) => t.title);\`
+
 ## ASVS: consultas y propuestas separadas
 
 - \`planificar_remediacion_asvs({ projectId, category?, offset?, limit? })\` pagina hasta diez lagunas del nivel objetivo con \`es\`, \`actionGuidance\`, tareas similares y creaciones propias pendientes. Reutiliza el trabajo existente y propone un conjunto acotado. El nivel ASVS no es severidad ni certificación: confirma impacto, exposición y evidencia antes de fijar prioridad.

@@ -1,14 +1,11 @@
 import { addDays } from '../shared/recurrence';
 import { isTaskCompletedOnDay, type Task } from '../shared/model';
-import {
-  compareBoardTasks,
-  compareTaskSequence,
-  nextRecurringTasks,
-  taskSequenceNumber,
-} from './taskFilters';
+import { compareBoardTasks, nextRecurringTasks, taskSequenceNumber } from './taskFilters';
 
 export const DEFAULT_DAILY_CAPACITY = 3;
 const LATER_LIMIT = 12;
+// Semanas siguientes por las que se reparte lo que no cabe en la semana planificada.
+const OVERFLOW_WEEKS = 8;
 
 export interface PlannerTask {
   task: Task;
@@ -39,6 +36,12 @@ export interface PlannedMove {
   to: string;
 }
 
+export interface WeekBalance {
+  moves: PlannedMove[];
+  // Tareas que no se pueden recolocar sin romper una dependencia o la secuencia.
+  unplaced: Task[];
+}
+
 export function weekStart(day: string): string {
   const weekday = new Date(`${day}T12:00:00Z`).getUTCDay() || 7;
   return addDays(day, 1 - weekday);
@@ -66,22 +69,23 @@ function sequenceOf(task: Task) {
 }
 
 // Una tarea numerada no puede quedar antes que un número menor ni después que uno mayor.
-// `dueOf` puede omitir una tarea (undefined) cuya fecha todavía no cuenta como referencia.
-function keepsSequence(
-  task: Task,
-  day: string,
-  open: Task[],
-  dueOf: (task: Task) => string | undefined,
-) {
+function keepsSequence(task: Task, open: Task[]) {
   const own = sequenceOf(task);
   if (!own) return true;
   return open.every((other) => {
     const theirs = other.id === task.id ? undefined : sequenceOf(other);
     if (!theirs || theirs.group !== own.group || theirs.number === own.number) return true;
-    const otherDue = dueOf(other);
-    if (otherDue === undefined) return true;
-    return theirs.number < own.number ? otherDue <= day : otherDue >= day;
+    return theirs.number < own.number ? other.due <= task.due : other.due >= task.due;
   });
+}
+
+// `before` debe hacerse el mismo día o antes que `after`: es una dependencia suya o un paso
+// anterior de la misma secuencia.
+function mustPrecede(before: Task, after: Task) {
+  if (after.dependencyIds.includes(before.id)) return true;
+  const first = sequenceOf(before);
+  const second = sequenceOf(after);
+  return Boolean(first && second && first.group === second.group && first.number < second.number);
 }
 
 function plannerTask(task: Task, byId: Map<string, Task>, open: Task[]): PlannerTask {
@@ -95,7 +99,7 @@ function plannerTask(task: Task, byId: Map<string, Task>, open: Task[]): Planner
       ...(task.state === 'En revisión' ? ['En revisión'] : []),
       ...(task.blocked.trim() ? ['Bloqueada'] : []),
       ...(waiting ? ['Espera tareas previas'] : []),
-      ...(keepsSequence(task, task.due, open, ({ due }) => due) ? [] : ['Fuera de secuencia']),
+      ...(keepsSequence(task, open) ? [] : ['Fuera de secuencia']),
       ...(task.recurrence ? ['Recurrente'] : []),
     ],
     movable: !task.recurrence && task.state !== 'En revisión',
@@ -132,11 +136,12 @@ export function weekPlan(tasks: Task[], projectId: string, today: string, start:
 }
 
 /**
- * Propone movimientos para que ningún día supere la capacidad: primero coloca las atrasadas en
- * el primer hueco desde hoy y después desplaza las tareas de menor prioridad de los días
- * sobrecargados al día libre más cercano, sin adelantar una tarea a sus dependencias abiertas ni
- * retrasarla más allá de las tareas que esperan por ella, y conservando el orden de las tareas
- * numeradas de una misma secuencia.
+ * Recoloca de una vez todas las tareas movibles de la semana —desde hoy, con las atrasadas si es
+ * la semana actual— llenando cada día hasta la capacidad en orden: primero lo atrasado y lo más
+ * próximo, los pasos numerados de una secuencia por su número y cada tarea después de sus
+ * dependencias abiertas. Las apariciones de series y las tareas «En revisión» se quedan en su día
+ * y ocupan capacidad. Lo que no cabe se reparte por las semanas siguientes, contando lo que ya
+ * tienen; lo que no se puede colocar sin romper una dependencia o la secuencia se queda donde está.
  */
 export function balanceWeek(
   tasks: Task[],
@@ -144,57 +149,86 @@ export function balanceWeek(
   today: string,
   start: string,
   options: { capacity: number; includeWeekend: boolean },
-): PlannedMove[] {
-  const plan = weekPlan(tasks, projectId, today, start);
+): WeekBalance {
   const capacity = Math.max(1, Math.floor(options.capacity));
-  const targets = plan.days
-    .filter(({ day, past }) => !past && (options.includeWeekend || !isWeekend(day)))
-    .map(({ day }) => day);
-  if (!targets.length) return [];
+  const end = addDays(start, 6);
+  const first = start > today ? start : today;
+  if (first > end) return { moves: [], unplaced: [] };
+  const days = Array.from({ length: 7 * (OVERFLOW_WEEKS + 1) }, (_, offset) =>
+    addDays(start, offset),
+  ).filter((day) => day >= first && (options.includeWeekend || !isWeekend(day)));
 
   const open = openProjectTasks(tasks, projectId);
-  const due = new Map(open.map((task) => [task.id, task.due]));
-  const load = new Map(plan.days.map(({ day, tasks }) => [day, tasks.length]));
-  const moves: PlannedMove[] = [];
-
-  // Las atrasadas aún sin colocar no fijan límites: se recolocan después en su propio orden.
-  const scheduled = (id: string) => {
-    const day = due.get(id);
-    return day && day >= today ? day : undefined;
-  };
-  const fits = (task: Task, day: string) =>
-    (load.get(day) ?? 0) < capacity &&
-    task.dependencyIds.every((id) => (due.get(id) ?? day) <= day) &&
-    open.every(
-      (other) => !other.dependencyIds.includes(task.id) || (scheduled(other.id) ?? day) >= day,
-    ) &&
-    keepsSequence(task, day, open, (other) => scheduled(other.id));
-
-  const place = (task: Task, candidates: string[]) => {
-    const to = candidates.find((day) => fits(task, day));
-    if (!to) return;
-    if (task.due >= today && load.has(task.due)) load.set(task.due, load.get(task.due)! - 1);
-    load.set(to, (load.get(to) ?? 0) + 1);
-    due.set(task.id, to);
-    moves.push({ task, from: task.due, to });
-  };
-
-  if (today >= plan.start && today <= plan.end) {
-    // Las atrasadas numeradas se colocan en su orden para que «1.» ocupe el primer hueco.
-    const overdue = [...plan.overdue].sort((a, b) => compareTaskSequence(a.task, b.task));
-    for (const item of overdue) if (item.movable) place(item.task, targets);
+  const movable = (task: Task) => !task.recurrence && task.state !== 'En revisión';
+  const planned = open.filter(
+    (task) => movable(task) && task.due <= end && (task.due >= first || today >= start),
+  );
+  // Un paso previsto para más adelante se trae a la semana si hay en ella un paso posterior.
+  const lastStep = new Map<string, number>();
+  for (const task of planned) {
+    const step = sequenceOf(task);
+    if (step) lastStep.set(step.group, Math.max(lastStep.get(step.group) ?? 0, step.number));
+  }
+  for (const task of open) {
+    const step = sequenceOf(task);
+    if (task.due > end && movable(task) && step && step.number < (lastStep.get(step.group) ?? 0))
+      planned.push(task);
   }
 
-  for (const { day, past, tasks: dayTasks } of plan.days) {
-    if (past) continue;
-    const candidates = [
-      ...targets.filter((target) => target > day),
-      ...targets.filter((target) => target < day).reverse(),
-    ];
-    for (const item of [...dayTasks].reverse()) {
-      if ((load.get(day) ?? 0) <= capacity) break;
-      if (item.movable) place(item.task, candidates);
+  const ids = new Set(planned.map(({ id }) => id));
+  const load = new Map<string, number>();
+  const occupy = (day: string) => load.set(day, (load.get(day) ?? 0) + 1);
+  for (const task of open) if (!ids.has(task.id)) occupy(task.due);
+
+  // Un paso previo hereda la fecha más temprana de lo que espera por él para no quedarse atrás.
+  const urgency = new Map(planned.map((task) => [task.id, task.due]));
+  for (let round = 0, changed = true; changed && round < planned.length; round++) {
+    changed = false;
+    for (const before of planned) {
+      for (const after of planned) {
+        if (before === after || !mustPrecede(before, after)) continue;
+        if (urgency.get(after.id)! < urgency.get(before.id)!) {
+          urgency.set(before.id, urgency.get(after.id)!);
+          changed = true;
+        }
+      }
     }
   }
-  return moves;
+  const byUrgency = (a: Task, b: Task) =>
+    urgency.get(a.id)!.localeCompare(urgency.get(b.id)!) || compareBoardTasks(a, b);
+
+  const due = new Map(open.map((task) => [task.id, task.due]));
+  const remaining = [...planned];
+  const moves: PlannedMove[] = [];
+  const unplaced: Task[] = [];
+  while (remaining.length) {
+    const ready = remaining.filter((task) =>
+      remaining.every((other) => other === task || !mustPrecede(other, task)),
+    );
+    // Con un ciclo de dependencias no hay ninguna lista: se rompe por el orden habitual.
+    const task = (ready.length ? ready : remaining).sort(byUrgency)[0];
+    remaining.splice(remaining.indexOf(task), 1);
+
+    let earliest = first;
+    let latest: string | undefined;
+    for (const other of open) {
+      if (other === task) continue;
+      if (mustPrecede(other, task) && !remaining.includes(other) && due.get(other.id)! > earliest)
+        earliest = due.get(other.id)!;
+      if (mustPrecede(task, other) && !ids.has(other.id) && (!latest || other.due < latest))
+        latest = other.due;
+    }
+    const to = days.find(
+      (day) => day >= earliest && (!latest || day <= latest) && (load.get(day) ?? 0) < capacity,
+    );
+    if (!to) {
+      unplaced.push(task);
+      occupy(task.due);
+      continue;
+    }
+    occupy(to);
+    due.set(task.id, to);
+    if (to !== task.due) moves.push({ task, from: task.due, to });
+  }
+  return { moves, unplaced };
 }

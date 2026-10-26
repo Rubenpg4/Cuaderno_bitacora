@@ -1325,7 +1325,7 @@ test('plan semanal recoloca arrastrando, con menú y teclado, y permite deshacer
   await page.screenshot({ path: 'test-results/plan-semanal.png', fullPage: true });
 });
 
-test('plan semanal propone un reparto revisable antes de aplicarlo', async ({ page }) => {
+test('plan semanal confirma el reparto completo antes de aplicarlo', async ({ page }) => {
   await unlock(page);
   const { blank } = await import('../service/domain');
   const { weekStart } = await import('../src/weeklyReview');
@@ -1342,7 +1342,7 @@ test('plan semanal propone un reparto revisable antes de aplicarlo', async ({ pa
   await expect(page.getByText('Próxima semana', { exact: true })).toBeVisible();
   await page.getByLabel('Tareas por día').fill('1');
   await page.getByRole('button', { name: 'Equilibrar semana' }).click();
-  const proposal = page.getByRole('region', { name: 'Propuesta de reparto' });
+  const proposal = page.getByRole('dialog', { name: 'Propuesta de reparto' });
   await expect(proposal).toContainText('Tarea aplazable');
   await expect(proposal).not.toContainText('Tarea importante');
   expect(
@@ -2231,6 +2231,108 @@ test('impide aceptar una vista previa cuando el registro cambia antes de confirm
   expect(current.title).toBe('Tarea vigente');
 });
 
+test('rechaza de una vez solo las propuestas con fallo y conserva las válidas', async ({
+  page,
+}) => {
+  await unlock(page);
+  const { blank } = await import('../service/domain');
+  const project = (await call('snapshot')).records.find(
+    (record: { kind: string }) => record.kind === 'project',
+  );
+  const tasks: Task[] = [];
+  for (const title of ['Tarea vigente', 'Tarea editada', 'Tarea retocada'])
+    tasks.push(
+      await call('save', {
+        kind: 'task',
+        data: { ...blank('task'), project: project.id, title, due: '2027-12-31' },
+      }),
+    );
+  const [vigente, editada, retocada] = tasks;
+  await call('settings', { companyAuthorized: true, universityStructure: '' });
+  const grant = await call('grant', {
+    provider: 'codex',
+    scope: 'projects',
+    projectIds: [project.id],
+  });
+  async function propose(input: Record<string, unknown>) {
+    const response = await fetch(`${url}/mcp`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${grant.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'propose', input: { rationale: 'Revisión', ...input } }),
+    });
+    expect(response.status, JSON.stringify(await response.clone().json())).toBe(200);
+  }
+  for (const task of [vigente, editada, retocada])
+    await propose({
+      operation: 'update',
+      kind: 'task',
+      targetId: task.id,
+      expectedVersion: task.version,
+      patch: { description: `Propuesta para ${task.title}` },
+    });
+  await propose({
+    operation: 'create',
+    kind: 'idea',
+    patch: {
+      project: project.id,
+      title: 'Idea propuesta',
+      date: madridDate(),
+      description: 'Idea para la prueba.',
+    },
+  });
+  for (const task of [editada, retocada])
+    await call('save', {
+      kind: 'task',
+      data: { ...task, nextStep: 'Cambio posterior' },
+      id: task.id,
+      expectedVersion: task.version,
+    });
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Asistentes', exact: false }).click();
+  await page.locator('.assistants .tabbar button').last().click();
+  const rejectAll = page.getByRole('button', { name: 'Rechazar todos los fallos (2)' });
+  await expect(rejectAll).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /Aceptar todas las propuestas \(2\)/ }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Rechazar fallos (2)' })).toBeVisible();
+  await page.getByRole('button', { name: /Tareas/ }).click();
+  await expect(page.locator('.proposal-card.failed')).toHaveCount(2);
+  await expect(
+    page.locator('.proposal-card', { hasText: 'Tarea vigente' }).getByText('Con fallo'),
+  ).toHaveCount(0);
+
+  await rejectAll.click();
+  const dialog = page.getByRole('dialog', { name: 'Confirmar rechazo de fallos' });
+  await expect(dialog).toContainText('Se rechazarán 2 propuestas que ya no se pueden aceptar');
+  await expect(dialog).toContainText('Tarea editada');
+  await expect(dialog).toContainText('Tarea retocada');
+  await expect(dialog).not.toContainText('Tarea vigente');
+  await expect(dialog).toContainText('la versión actual es 2');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator('.proposal-card')).toHaveCount(3);
+
+  await rejectAll.click();
+  await dialog.getByRole('button', { name: 'Rechazar 2 propuestas' }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByText('2 propuestas con fallo rechazadas.')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Rechazar todos los fallos/ })).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: /Aceptar todas las propuestas \(2\)/ }),
+  ).toBeVisible();
+  await expect(page.getByText('2 propuestas pendientes en 2 tipos de registro.')).toBeVisible();
+  const proposals = (await call('snapshot')).proposals as {
+    targetId?: string;
+    status: string;
+  }[];
+  expect(proposals.filter((p) => p.status === 'rejected').map((p) => p.targetId)).toEqual(
+    expect.arrayContaining([editada.id, retocada.id]),
+  );
+  expect(proposals.filter((p) => p.status === 'pending')).toHaveLength(2);
+});
+
 test('copiar ID usa el registro correcto en Hoy, Tablero y Diario', async ({ page }) => {
   await unlock(page);
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: url });
@@ -2664,7 +2766,7 @@ test('dependencias y verificación de criterios desde la tarea', async ({ page }
   await page.getByRole('button', { name: 'Crear registro' }).click();
   await page.getByRole('button', { name: 'Nueva tarea', exact: true }).click();
   await page.getByLabel('Título', { exact: true }).fill('Enviar entregable');
-  await page.locator('.record-form .task-picker > summary').click();
+  await page.locator('.record-form .task-picker > summary').first().click();
   await page
     .locator('.record-form .task-picker')
     .getByRole('checkbox', { name: /Preparar entregable/ })
@@ -2778,6 +2880,80 @@ test('el selector de dependencias recupera tareas antiguas y @ vincula tareas en
       return updated.taskIds;
     })
     .toEqual([]);
+});
+
+test('crea una tarea previa y fija «Bloquea a» sin salir del formulario de la nueva tarea', async ({
+  page,
+}) => {
+  await unlock(page);
+  const { blank } = await import('../service/domain');
+  const waiting = (await call('save', {
+    kind: 'task',
+    data: { ...blank('task'), title: 'Publicar versión', due: '2027-12-31' },
+  })) as Task;
+  await call('save', {
+    kind: 'task',
+    data: { ...blank('task'), title: 'Tarea terminada', state: 'Completada', due: '2027-12-31' },
+  });
+  await page.reload();
+  await page.getByRole('button', { name: 'Tablero', exact: true }).click();
+  await page.getByRole('button', { name: 'Nueva tarea', exact: true }).click();
+  const form = page.locator('form.record-form');
+  await form.getByLabel('Título', { exact: true }).fill('Preparar versión');
+
+  await form.getByRole('button', { name: 'Crear tarea previa' }).click();
+  await form.getByLabel('Título de la tarea previa').fill('Revisar cambios');
+  await form.getByLabel('Prioridad de la tarea previa').selectOption('Alta');
+  // Enter adds the prerequisite and keeps the main form open.
+  await form.getByLabel('Título de la tarea previa').press('Enter');
+  await form.getByRole('button', { name: 'Crear tarea previa' }).click();
+  await form.getByLabel('Título de la tarea previa').fill('Previa descartada');
+  await form.getByRole('button', { name: 'Añadir tarea previa' }).click();
+  const created = form.getByRole('list', { name: 'Tareas previas que se crearán' });
+  await expect(created.getByRole('listitem')).toHaveCount(2);
+  await form.getByRole('button', { name: 'Quitar tarea previa «Previa descartada»' }).click();
+  await expect(created.getByRole('listitem')).toHaveCount(1);
+  await expect(created).toContainText('Revisar cambios');
+  await expect(form.locator('.task-picker > summary').first()).toContainText('1 nueva');
+
+  // Closing keeps the prerequisite only in the draft: nothing is created until saving.
+  await page.getByRole('button', { name: 'Cerrar' }).click();
+  await page.reload();
+  expect(
+    (await call('snapshot')).records.filter((record: Task) => record.title === 'Revisar cambios'),
+  ).toHaveLength(0);
+  await page.getByRole('button', { name: 'Tablero', exact: true }).click();
+  await page.getByRole('button', { name: 'Nueva tarea', exact: true }).click();
+  await expect(form.getByRole('list', { name: 'Tareas previas que se crearán' })).toContainText(
+    'Revisar cambios',
+  );
+
+  const blocks = form.locator('.task-picker').filter({ hasText: 'Bloquea a estas tareas' });
+  await blocks.locator('summary').click();
+  await expect(blocks.getByRole('checkbox', { name: /Tarea terminada/ })).toHaveCount(0);
+  await blocks.getByRole('checkbox', { name: /Publicar versión/ }).check();
+  await form.getByRole('button', { name: 'Crear tarea previa' }).click();
+  await page.keyboard.press('Escape');
+  await expect(form.getByLabel('Título de la tarea previa')).toHaveCount(0);
+  await expect(form).toBeVisible();
+  await form.getByRole('button', { name: 'Crear registro' }).click();
+  await expect(form).toHaveCount(0);
+
+  const records = (await call('snapshot')).records as Task[];
+  const prerequisite = records.find((record) => record.title === 'Revisar cambios')!;
+  const main = records.find((record) => record.title === 'Preparar versión')!;
+  const blocked = records.find((record) => record.id === waiting.id)!;
+  expect(prerequisite).toMatchObject({ state: 'Por hacer', priority: 'Alta' });
+  expect(records.some((record) => record.title === 'Previa descartada')).toBe(false);
+  expect(main.dependencyIds).toEqual([prerequisite.id]);
+  expect(blocked.dependencyIds).toEqual([main.id]);
+  expect(blocked.version).toBe(waiting.version + 1);
+
+  await page.getByRole('button', { name: 'Expandir todo' }).click();
+  await page.locator('.task-card').filter({ hasText: 'Preparar versión' }).click();
+  await expect(page.getByRole('dialog', { name: 'Editar tarea' })).toContainText(
+    'Esperan a esta tarea: Publicar versión.',
+  );
 });
 
 test('la entrada diaria enlaza registros con @ y permite abrirlos desde la mención', async ({
@@ -3985,6 +4161,16 @@ test('puede abrir una sesión MCP para el cuaderno activo', async ({ page }) => 
   expect(install).toContain('claude mcp add bitacora --scope user -e BITACORA_PROVIDER=claude');
   expect(install).toContain(`"BITACORA_DATA_DIR=${dir}"`);
   expect(install).not.toContain('token');
+  // The connector mode only changes the generated configuration, never the session.
+  await page.getByLabel('Modo del conector').selectOption('codigo');
+  expect(JSON.parse(await page.locator('pre.config').first().innerText())).toMatchObject({
+    mcpServers: { bitacora: { env: { BITACORA_MCP_MODO: 'codigo' } } },
+  });
+  await expect(page.getByLabel('Comando de instalación')).toContainText(
+    '-e BITACORA_MCP_MODO=codigo',
+  );
+  await page.getByLabel('Modo del conector').selectOption('hibrido');
+  await expect(page.getByLabel('Comando de instalación')).not.toContainText('BITACORA_MCP_MODO');
   // The session list tells whether the client really connected.
   const { readFileSync: readGrant } = await import('node:fs');
   const claudeGrant = JSON.parse(readGrant(join(dir, 'mcp-grant-claude.json'), 'utf8'));

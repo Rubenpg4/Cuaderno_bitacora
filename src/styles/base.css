@@ -345,6 +345,57 @@ input[type='file'] {
   max-height: 280px;
   overflow-y: auto;
 }
+.task-picker-hint {
+  display: block;
+  margin-bottom: 8px;
+}
+.task-dependencies {
+  margin-bottom: 17px;
+}
+.task-dependencies > .button {
+  margin-bottom: 14px;
+}
+.task-new-dependencies {
+  margin: -6px 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.task-new-dependencies li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.task-new-dependencies li > span:not(.badge) {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.task-new-dependencies small {
+  display: block;
+  color: var(--muted);
+}
+.task-new-dependency-form {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.task-new-dependency-form legend {
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.task-new-dependency-form > small {
+  display: block;
+  margin-top: 8px;
+}
+.task-waiting {
+  margin: 0;
+  font-size: 13px;
+}
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

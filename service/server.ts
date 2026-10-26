@@ -380,7 +380,14 @@ export async function startServer(
             );
             break;
           case '/api/save': {
-            const saved = domain.save(d.kind as Kind, d.data, d.id, d.expectedVersion, d.draftKey);
+            const saved = domain.save(
+              d.kind as Kind,
+              d.data,
+              d.id,
+              d.expectedVersion,
+              d.draftKey,
+              d.taskLinks,
+            );
             if (saved.kind === 'project') workspaces.syncTitle(saved);
             send(res, 200, saved);
             break;
@@ -411,6 +418,7 @@ export async function startServer(
                 d.agreementId,
                 d.expectedMeetingVersion,
                 d.draftKey,
+                d.taskLinks,
               ),
             );
             break;

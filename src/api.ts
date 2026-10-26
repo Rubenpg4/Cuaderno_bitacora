@@ -1,4 +1,4 @@
-import type { Kind, RecordItem, Snapshot } from '../shared/model';
+import type { Kind, RecordItem, Snapshot, TaskLinks } from '../shared/model';
 let connection: Promise<{ url: string; token: string }>;
 function connect() {
   return (connection ||= (async () => {
@@ -45,6 +45,7 @@ export function saveRecord(
   data: Record<string, unknown>,
   original?: RecordItem,
   draftKey?: string,
+  taskLinks?: TaskLinks,
 ) {
   return api<RecordItem>('save', {
     kind,
@@ -52,6 +53,7 @@ export function saveRecord(
     id: original?.id,
     expectedVersion: original?.version,
     draftKey,
+    taskLinks,
   });
 }
 export const getSnapshot = () => api<Snapshot>('snapshot');

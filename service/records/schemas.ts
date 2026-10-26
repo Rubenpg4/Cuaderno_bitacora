@@ -9,6 +9,7 @@ import {
   PRACTICE_STATES,
   PRIORITIES,
   SUBPROJECT_STATES,
+  MAX_NEW_TASK_DEPENDENCIES,
   validDay,
 } from '../../shared/model.js';
 
@@ -227,5 +228,25 @@ export const proposalSchema = z
     expectedVersion: z.number().int().positive().optional(),
     patch: z.record(z.unknown()),
     rationale: z.string().max(2000),
+  })
+  .strict();
+export const taskLinksSchema = z
+  .object({
+    newDependencies: z
+      .array(
+        z
+          .object({
+            title: short.trim().min(1, 'Escribe el título de la tarea previa.'),
+            due: day.refine(Boolean, 'Asigna un día a la tarea previa.'),
+            priority: z.enum(PRIORITIES),
+          })
+          .strict(),
+      )
+      .max(MAX_NEW_TASK_DEPENDENCIES)
+      .default([]),
+    blocks: z
+      .array(z.object({ id: short, expectedVersion: z.number().int().positive() }).strict())
+      .max(50)
+      .default([]),
   })
   .strict();

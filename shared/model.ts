@@ -107,6 +107,19 @@ export interface Task extends Base {
     overriddenFields: string[];
   };
 }
+/** Prerequisite created in the same save as the task that depends on it. */
+export interface NewTaskDependency {
+  title: string;
+  due: string;
+  priority: Task['priority'];
+}
+/** Dependency changes applied atomically when a task is saved from its editor. */
+export interface TaskLinks {
+  newDependencies: NewTaskDependency[];
+  /** Existing tasks that will wait for the saved task, at the version shown to the user. */
+  blocks: { id: string; expectedVersion: number }[];
+}
+export const MAX_NEW_TASK_DEPENDENCIES = 10;
 export interface TaskSeries extends Base {
   rule: import('./recurrence.js').RecurrenceRule;
   template: Pick<

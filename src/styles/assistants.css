@@ -159,6 +159,10 @@
   color: var(--muted, #64748b);
 }
 .proposal-group-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
   flex-shrink: 0;
 }
 .proposal-group-content {
@@ -201,6 +205,9 @@
   overflow: hidden;
   padding: 0;
   margin-bottom: 0;
+}
+.proposal-card.failed {
+  border-left: 3px solid var(--red);
 }
 .proposal-banner {
   display: flex;
@@ -351,6 +358,26 @@
 .proposal-preview-records {
   max-height: 50vh;
   overflow: auto;
+}
+.proposal-reject-dialog:focus {
+  outline: none;
+}
+.proposal-reject-list {
+  max-height: 50vh;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.proposal-reject-list li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.proposal-reject-list .muted {
+  font-size: 13px;
 }
 .proposal-preview-records > section {
   padding: 12px 0;

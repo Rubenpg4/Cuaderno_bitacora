@@ -11,6 +11,7 @@ import {
   Eye,
   KeyRound,
   FileText,
+  Ban,
 } from 'lucide-react';
 import {
   DEFAULT_IDLE_LOCK,
@@ -24,7 +25,11 @@ import {
 } from '../shared/model';
 import { asvsActive } from '../shared/asvsTracking';
 import portableSkill from '../.agents/skills/bitacora-mcp/SKILL.md?raw';
-import { planProposalReview, taskCompletionReviewGroup } from '../shared/proposalReview';
+import {
+  failedProposals,
+  planProposalReview,
+  taskCompletionReviewGroup,
+} from '../shared/proposalReview';
 import { GENERAL_SCOPE, findSubproject, grantScopes, subprojectsOf } from '../shared/subprojects';
 import {
   attachmentSummary,
@@ -34,7 +39,15 @@ import {
   type PreviewChange,
 } from '../shared/proposalPreview';
 import { inlineTextDiff } from '../shared/textDiff';
-import { mcpConfigBlock, mcpInstallCommand } from '../shared/mcpClientConfig';
+import {
+  DEFAULT_MCP_MODE,
+  MCP_MODES,
+  MCP_MODE_LABELS,
+  mcpConfigBlock,
+  mcpInstallCommand,
+  type McpLaunch,
+  type McpMode,
+} from '../shared/mcpClientConfig';
 import { playProposalSound } from './app/proposalSound';
 import { api } from './api';
 import { Badge, Button, Empty, Field, Notice } from './ui';
@@ -267,8 +280,8 @@ export default function Assistants({
     [selectedScopes, setSelectedScopes] = useState<string[]>(() =>
       currentSubprojectId ? [GENERAL_SCOPE, currentSubprojectId] : [GENERAL_SCOPE],
     ),
-    [config, setConfig] = useState(''),
-    [installCommand, setInstallCommand] = useState(''),
+    [launch, setLaunch] = useState<McpLaunch | null>(null),
+    [mcpMode, setMcpMode] = useState<McpMode>(DEFAULT_MCP_MODE),
     [activeTab, setActiveTab] = useState<'connect' | 'proposals'>(() =>
       snapshot.proposals.some((p) => p.status === 'pending') ||
       (asvsActive(snapshot.asvs) && snapshot.asvs?.proposals?.some((p) => p.status === 'pending'))
@@ -283,6 +296,8 @@ export default function Assistants({
       asvsIds: string[];
       asvsBasis: string;
     } | null>(null),
+    [rejectSelection, setRejectSelection] = useState<{ ids: string[]; label: string } | null>(null),
+    [rejecting, setRejecting] = useState(false),
     [claudeIdentity, setClaudeIdentity] = useState<ClaudeIdentityStatus | null>(null);
 
   const corporate = snapshot.mcpProfile === 'corporativo';
@@ -367,6 +382,9 @@ export default function Assistants({
   ];
   const globalPlan = planProposalReview(pending, snapshot.records);
   const acceptableGlobal = globalPlan.ordered;
+  // Proposals that no longer fit their record; ASVS proposals are reviewed in their own panel.
+  const failures = failedProposals(pending, snapshot.records);
+  const failureReasons = new Map(failures.map(({ proposal, reason }) => [proposal.id, reason]));
 
   function toggleType(kind: string) {
     setOpenTypes((prev) => ({ ...prev, [kind]: !prev[kind] }));
@@ -452,12 +470,40 @@ export default function Assistants({
     });
   }
 
+  async function confirmRejectFailures() {
+    if (!rejectSelection || rejecting) return;
+    const shown = rejectSelection.ids;
+    setRejecting(true);
+    await run(async () => {
+      // Recompute against the latest state so a proposal reviewed meanwhile is left alone.
+      const current = await api<Snapshot>('snapshot');
+      const stillFailed = new Set(
+        failedProposals(current.proposals, current.records).map(({ proposal }) => proposal.id),
+      );
+      const ids = shown.filter((id) => stillFailed.has(id));
+      setRejectSelection(null);
+      if (!ids.length) throw Error('Ya no quedan propuestas con fallo. Revisa la lista de nuevo.');
+      await api('review', { ids, accept: false });
+      const skipped = shown.length - ids.length;
+      setMessage(
+        `${ids.length} ${ids.length === 1 ? 'propuesta con fallo rechazada' : 'propuestas con fallo rechazadas'}.` +
+          (skipped
+            ? ` ${skipped} ${skipped === 1 ? 'cambió antes de confirmar y sigue pendiente' : 'cambiaron antes de confirmar y siguen pendientes'}.`
+            : ''),
+      );
+    });
+    setRejecting(false);
+  }
+
   async function rejectOne(id: string) {
     await run(async () => {
       await api('review', { id, accept: false });
       setMessage('Propuesta rechazada.');
     });
   }
+
+  const config = launch ? mcpConfigBlock(provider, launch, mcpMode) : '';
+  const installCommand = launch ? (mcpInstallCommand(provider, launch, mcpMode) ?? '') : '';
 
   async function createGrant() {
     await run(async () => {
@@ -475,8 +521,7 @@ export default function Assistants({
         durationMinutes: effectiveDuration,
         canCompleteTasks,
       });
-      setConfig(mcpConfigBlock(provider, g));
-      setInstallCommand(mcpInstallCommand(provider, g) ?? '');
+      setLaunch({ nodePath: g.nodePath, mcpPath: g.mcpPath, dataDir: g.dataDir });
       setMessage(
         `Sesión ${g.renewed ? 'renovada' : 'creada'} hasta las ${new Date(g.expiresAt).toLocaleTimeString('es-ES')}. Se revoca al bloquear Bitácora.`,
       );
@@ -590,7 +635,7 @@ export default function Assistants({
                     value={provider}
                     onChange={(e) => {
                       setProvider(e.target.value as Provider);
-                      setConfig('');
+                      setLaunch(null);
                     }}
                   >
                     {Object.entries(names)
@@ -711,6 +756,18 @@ export default function Assistants({
                     Bitácora guarda el permiso temporal fuera del repositorio y lo retira al
                     bloquear o revocar la sesión. Mantén privada la carpeta de datos local.
                   </Notice>
+                  <Field
+                    label="Modo del conector"
+                    hint="El modo código deja que el asistente encadene consultas en un sandbox aislado y reciba solo el resultado, con menos tokens. No cambia lo que la sesión puede leer o proponer. Si cambias de modo, vuelve a aplicar la configuración y reinicia el cliente MCP."
+                  >
+                    <select value={mcpMode} onChange={(e) => setMcpMode(e.target.value as McpMode)}>
+                      {MCP_MODES.map((mode) => (
+                        <option key={mode} value={mode}>
+                          {MCP_MODE_LABELS[mode]}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
                   <pre className="config">{config}</pre>
                   <div className="row">
                     <Button
@@ -905,6 +962,20 @@ export default function Assistants({
                     <CheckCheck size={16} /> Aceptar todas las propuestas ({acceptableGlobal.length}
                     )
                   </Button>
+                  {failures.length > 0 && (
+                    <Button
+                      variant="danger"
+                      title="Rechaza las propuestas cuyo registro original cambió o ya no existe"
+                      onClick={() =>
+                        setRejectSelection({
+                          ids: failures.map(({ proposal }) => proposal.id),
+                          label: 'todas las propuestas con fallo',
+                        })
+                      }
+                    >
+                      <Ban size={16} /> Rechazar todos los fallos ({failures.length})
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -923,6 +994,7 @@ export default function Assistants({
                   proposalsForKind,
                   snapshot.records,
                 ).ordered;
+                const failuresForKind = proposalsForKind.filter((p) => failureReasons.has(p.id));
                 const isTypeOpen = !!openTypes[kind];
 
                 return (
@@ -958,6 +1030,19 @@ export default function Assistants({
                         >
                           <CheckCheck size={14} /> Aceptar todas ({acceptableForKind.length})
                         </Button>
+                        {failuresForKind.length > 0 && (
+                          <Button
+                            variant="danger"
+                            onClick={() =>
+                              setRejectSelection({
+                                ids: failuresForKind.map((p) => p.id),
+                                label: `los fallos de ${(kindSectionLabels[kind] || kind).toLowerCase()}`,
+                              })
+                            }
+                          >
+                            <Ban size={14} /> Rechazar fallos ({failuresForKind.length})
+                          </Button>
+                        )}
                       </div>
                     </div>
 
@@ -1015,6 +1100,7 @@ export default function Assistants({
                                   reviewGroupPlan?.ordered.length === reviewGroup.length;
                                 const canAccept = reviewGroup.length ? canAcceptGroup : !conflict;
                                 const batchConflict = globalPlan.conflicts.get(p.id);
+                                const failure = failureReasons.get(p.id);
                                 const requiresBatch = conflict && canAcceptGroup;
                                 const acceptLabel = canAcceptGroup
                                   ? `Aceptar criterios y completar tarea (${reviewGroup.length})`
@@ -1032,7 +1118,7 @@ export default function Assistants({
 
                                 return (
                                   <article
-                                    className="proposal proposal-card"
+                                    className={`proposal proposal-card${failure ? ' failed' : ''}`}
                                     id={`proposal-${p.id}`}
                                     key={p.id}
                                   >
@@ -1080,6 +1166,7 @@ export default function Assistants({
                                                       : 'Actualización'}
                                               </Badge>
                                               <Badge>{names[p.provider]}</Badge>
+                                              {failure && <Badge tone="red">Con fallo</Badge>}
                                             </div>
                                           </div>
                                           <p className="proposal-desc">{proposalDescription}</p>
@@ -1142,8 +1229,8 @@ export default function Assistants({
                                         </dl>
                                         {conflict && !canAcceptGroup && (
                                           <Notice error>
-                                            El original ha cambiado. Rechaza esta propuesta y
-                                            solicita otra sobre un registro actualizado.
+                                            {failure ?? 'El original ha cambiado.'} Rechaza esta
+                                            propuesta y solicita otra sobre un registro actualizado.
                                           </Notice>
                                         )}
                                         <div className="row" style={{ marginTop: 12 }}>
@@ -1196,6 +1283,73 @@ export default function Assistants({
         </Suspense>
       )}
       {message && <Notice>{message}</Notice>}
+      {rejectSelection && (
+        <div className="proposal-preview-backdrop" role="presentation">
+          <section
+            className="proposal-preview-dialog proposal-reject-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirmar rechazo de fallos"
+            tabIndex={-1}
+            ref={(dialog) => {
+              if (dialog && !dialog.contains(document.activeElement)) dialog.focus();
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Escape') return;
+              // Close only this confirmation, not the Assistants window around it.
+              event.stopPropagation();
+              if (!rejecting) setRejectSelection(null);
+            }}
+          >
+            <h3>Rechazar {rejectSelection.label}</h3>
+            <p>
+              {rejectSelection.ids.length === 1
+                ? 'Se rechazará 1 propuesta que ya no se puede aceptar'
+                : `Se rechazarán ${rejectSelection.ids.length} propuestas que ya no se pueden aceptar`}
+              . Las demás seguirán pendientes.
+            </p>
+            <ul className="proposal-reject-list">
+              {rejectSelection.ids.map((id) => {
+                const proposal = pending.find((p) => p.id === id);
+                if (!proposal) return null;
+                return (
+                  <li key={id}>
+                    <strong>
+                      {String(
+                        proposal.patch.title ||
+                          snapshot.records.find((record) => record.id === proposal.targetId)
+                            ?.title ||
+                          'Propuesta',
+                      )}
+                    </strong>
+                    <span className="muted">
+                      {kindSectionLabels[proposal.kind] || proposal.kind} ·{' '}
+                      {failureReasons.get(id) ?? 'Ya no tiene fallo; no se rechazará.'}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="row" style={{ marginTop: 16 }}>
+              <Button
+                variant="danger"
+                disabled={rejecting}
+                onClick={() => void confirmRejectFailures()}
+              >
+                <Ban size={16} /> Rechazar {rejectSelection.ids.length}{' '}
+                {rejectSelection.ids.length === 1 ? 'propuesta' : 'propuestas'}
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={rejecting}
+                onClick={() => setRejectSelection(null)}
+              >
+                Volver
+              </Button>
+            </div>
+          </section>
+        </div>
+      )}
       {reviewSelection &&
         (() => {
           const preview = batchPreview(reviewSelection.proposals, snapshot.records);

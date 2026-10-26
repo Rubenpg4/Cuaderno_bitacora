@@ -48,6 +48,49 @@ export function taskCompletionReviewGroup(proposal: Proposal, pending: Proposal[
   return checks.length ? [closure, ...checks] : [];
 }
 
+/** Tasks that a closure in the list put «En revisión», which bumped their version once. */
+function closureTargets(proposals: Proposal[]) {
+  return new Set(
+    proposals
+      .filter((p) => p.previousTaskState !== undefined && p.patch.state === 'Completada')
+      .map((p) => p.targetId),
+  );
+}
+
+/** Why a proposal no longer fits its target record, regardless of the rest of the batch. */
+function recordConflict(
+  proposal: Proposal,
+  records: RecordItem[],
+  reviewingClosures: Set<string | undefined>,
+) {
+  if (proposal.operation === 'create') return undefined;
+  const record = proposal.targetId ? records.find((r) => r.id === proposal.targetId) : undefined;
+  if (!record) return 'El registro ya no existe.';
+  if (record.kind !== proposal.kind) return 'El tipo del registro ya no coincide.';
+  const versionMatches =
+    record.version === proposal.expectedVersion ||
+    (proposal.operation === 'check' &&
+      reviewingClosures.has(proposal.targetId) &&
+      record.version === (proposal.expectedVersion ?? 0) + 1);
+  return versionMatches
+    ? undefined
+    : `El registro cambió: la versión actual es ${record.version} y la propuesta esperaba ${proposal.expectedVersion}.`;
+}
+
+/**
+ * Pending proposals that can never be accepted because their target record was deleted,
+ * changed kind or moved to another version. Conflicts that only exist inside a batch are
+ * excluded: each of those proposals is still acceptable on its own.
+ */
+export function failedProposals(proposals: Proposal[], records: RecordItem[]) {
+  const pending = proposals.filter((p) => p.status === 'pending');
+  const reviewingClosures = closureTargets(pending);
+  return pending.flatMap((proposal) => {
+    const reason = recordConflict(proposal, records, reviewingClosures);
+    return reason ? [{ proposal, reason }] : [];
+  });
+}
+
 export function planProposalReview(proposals: Proposal[], records: RecordItem[]) {
   const ordered = [...proposals].sort((a, b) => {
     const rank = (p: Proposal) =>
@@ -66,11 +109,7 @@ export function planProposalReview(proposals: Proposal[], records: RecordItem[])
   const ids = new Set<string>();
   const rebasedChecks = new Set<string>();
   const deleted = new Set<string>();
-  const reviewingClosures = new Set(
-    proposals
-      .filter((p) => p.previousTaskState !== undefined && p.patch.state === 'Completada')
-      .map((p) => p.targetId),
-  );
+  const reviewingClosures = closureTargets(proposals);
 
   for (const proposal of ordered) {
     if (ids.has(proposal.id)) {
@@ -79,23 +118,9 @@ export function planProposalReview(proposals: Proposal[], records: RecordItem[])
     }
     ids.add(proposal.id);
     const record = proposal.targetId ? records.find((r) => r.id === proposal.targetId) : undefined;
-    const versionMatches =
-      record?.version === proposal.expectedVersion ||
-      (proposal.operation === 'check' &&
-        reviewingClosures.has(proposal.targetId) &&
-        record?.version === (proposal.expectedVersion ?? 0) + 1);
-    if (
-      proposal.operation !== 'create' &&
-      (!record || record.kind !== proposal.kind || !versionMatches)
-    ) {
-      conflicts.set(
-        proposal.id,
-        !record
-          ? 'El registro ya no existe.'
-          : record.kind !== proposal.kind
-            ? 'El tipo del registro ya no coincide.'
-            : `El registro cambió: la versión actual es ${record.version} y la propuesta esperaba ${proposal.expectedVersion}.`,
-      );
+    const targetConflict = recordConflict(proposal, records, reviewingClosures);
+    if (targetConflict) {
+      conflicts.set(proposal.id, targetConflict);
       continue;
     }
     const targetFields = proposal.targetId

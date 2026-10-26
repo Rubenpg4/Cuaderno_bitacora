@@ -26,6 +26,17 @@ describe('guía canónica de MCP y skill portátil', () => {
     expect(MCP_GUIDE_TEXT).toContain('Cumplido');
   });
 
+  it('la guía y la skill explican el modo código y sus límites', () => {
+    const skill = readFileSync('.agents/skills/bitacora-mcp/SKILL.md', 'utf8');
+    for (const text of [MCP_GUIDE_TEXT, skill]) {
+      expect(text).toContain('ejecutar_codigo');
+      expect(text).toContain('consultar_api');
+      expect(text).toContain('await bitacora.<herramienta>(args)');
+      expect(text).toMatch(/50 llamadas, 10 propuestas y 30 s/);
+      expect(text).toContain('pendientes de revisión');
+    }
+  });
+
   it('la guía y la skill describen la lectura ASVS por lotes y los errores de sesión', () => {
     const skill = readFileSync('.agents/skills/bitacora-mcp/SKILL.md', 'utf8');
     expect(MCP_GUIDE_TEXT).toContain('lee hasta `limit` requisitos por página');

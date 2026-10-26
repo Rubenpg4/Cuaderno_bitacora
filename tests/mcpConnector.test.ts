@@ -8,6 +8,7 @@ import { startServer } from '../service/server';
 import { blank } from '../service/domain';
 import { ASVS_VERSION } from '../shared/asvs';
 import { MCP_PROTOCOL_HEADER, MCP_PROTOCOL_MISMATCH } from '../shared/mcpProtocol';
+import { MCP_TOOLS } from '../service/mcpTools';
 
 // Runs the real stdio connector against a synthetic local service; no user data is involved.
 let dir: string, app: Awaited<ReturnType<typeof startServer>>, client: Client;
@@ -25,8 +26,8 @@ async function grant() {
     await post('/api/grant', { provider: 'codex', scope: 'projects', projectIds: [projectId] })
   ).json();
 }
-async function tool(name: string, args: Record<string, unknown> = {}) {
-  const result = (await client.callTool({ name, arguments: args })) as {
+async function tool(name: string, args: Record<string, unknown> = {}, from = client) {
+  const result = (await from.callTool({ name, arguments: args })) as {
     isError?: boolean;
     content: { text: string }[];
   };
@@ -45,22 +46,29 @@ beforeAll(async () => {
   });
   await post('/api/settings', { companyAuthorized: true, universityStructure: '' });
   await grant();
+  client = await connect();
+}, 30000);
+/** Starts a connector; `env` selects, for example, the publication mode. */
+async function connect(extra: Record<string, string> = {}) {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(
       (entry): entry is [string, string] =>
-        entry[1] !== undefined && entry[0] !== 'BITACORA_GRANT_TOKEN',
+        entry[1] !== undefined &&
+        entry[0] !== 'BITACORA_GRANT_TOKEN' &&
+        entry[0] !== 'BITACORA_MCP_MODO',
     ),
   );
-  client = new Client({ name: 'prueba', version: '1.0.0' });
-  await client.connect(
+  const connected = new Client({ name: 'prueba', version: '1.0.0' });
+  await connected.connect(
     new StdioClientTransport({
       command: process.execPath,
       args: ['--import', 'tsx', 'service/mcp.ts'],
-      env: { ...env, BITACORA_DATA_DIR: dir, BITACORA_PROVIDER: 'codex' },
+      env: { ...env, BITACORA_DATA_DIR: dir, BITACORA_PROVIDER: 'codex', ...extra },
       stderr: 'ignore',
     }),
   );
-}, 30000);
+  return connected;
+}
 afterAll(async () => {
   await client?.close();
   await app?.close();
@@ -82,8 +90,9 @@ describe('conector MCP por stdio', () => {
   });
   it('mantiene las definiciones dentro de su presupuesto, con títulos y avisos de idempotencia', async () => {
     const { tools } = await client.listTools();
-    // Measured with every ASVS tool enabled; it was 19,485 characters before trimming.
-    expect(JSON.stringify(tools).length).toBeLessThanOrEqual(16500);
+    // Measured with every ASVS tool enabled; it was 19,485 characters before trimming. Code
+    // mode adds about 1,250; the code-only mode publishes four tools (see below).
+    expect(JSON.stringify(tools).length).toBeLessThanOrEqual(17600);
     for (const t of tools) {
       expect(t.title, t.name).toBeTruthy();
       expect(t.description!.length, t.name).toBeLessThanOrEqual(400);
@@ -159,6 +168,148 @@ describe('conector MCP por stdio', () => {
       text: expect.stringContaining('status'),
     });
   });
+  it('resuelve en una ejecución de código lo que exige varias llamadas y mucho menos texto', async () => {
+    for (let i = 0; i < 12; i++)
+      await post('/api/save', {
+        kind: 'task',
+        data: {
+          ...blank('task'),
+          project: projectId,
+          title: `Lote ${i}`,
+          state: 'En curso',
+          description: `${i % 2 ? 'Sin bloqueo.' : 'Hay un bloqueo de acceso.'} ${'Contexto sintético de la tarea. '.repeat(10)}`,
+        },
+      });
+    // Individual tools: page the filter, then read every task to find the blocked ones.
+    let classic = 0;
+    const ids: string[] = [];
+    let offset: number | null = 0;
+    while (offset !== null) {
+      const page = await tool('filtrar_registros', { kind: 'task', state: 'En curso', offset });
+      classic += page.text.length;
+      const body = JSON.parse(page.text);
+      ids.push(
+        ...body.items
+          .filter((t: { title: string }) => t.title.startsWith('Lote'))
+          .map((t: { id: string }) => t.id),
+      );
+      offset = body.nextOffset;
+    }
+    for (let i = 0; i < ids.length; i += 10)
+      classic += (await tool('leer_elementos', { recordIds: ids.slice(i, i + 10) })).text.length;
+
+    const code = await tool('ejecutar_codigo', {
+      codigo: `const ids = [];
+let offset = 0;
+do {
+  const page = await bitacora.filtrar_registros({ kind: 'task', state: 'En curso', limit: 10, offset });
+  ids.push(...page.items.filter((t) => t.title.startsWith('Lote')).map((t) => t.id));
+  offset = page.nextOffset;
+} while (offset !== null);
+const pages = [];
+for (let i = 0; i < ids.length; i += 10)
+  pages.push(bitacora.leer_elementos({ recordIds: ids.slice(i, i + 10) }));
+const items = (await Promise.all(pages)).flatMap((page) => page.items);
+return items.filter((t) => /un bloqueo/.test(t.fields.description)).map((t) => t.title).sort();`,
+    });
+    expect(code.isError).toBe(false);
+    const body = JSON.parse(code.text);
+    expect(body.resultado).toEqual(['Lote 0', 'Lote 10', 'Lote 2', 'Lote 4', 'Lote 6', 'Lote 8']);
+    expect(code.text.length * 10).toBeLessThan(classic);
+  });
+  it('deja pendientes las propuestas hechas desde código e informa de ellas', async () => {
+    const run = await tool('ejecutar_codigo', {
+      codigo: `const { projects } = await bitacora.estado_sesion();
+return bitacora.proponer_cambios({
+  operation: 'create', kind: 'idea', rationale: 'Prueba sintética',
+  patch: {
+    project: projects[0].id, title: 'Idea desde código', date: '2026-01-15',
+    description: 'Idea sintética creada por el modo código.',
+  },
+});`,
+    });
+    expect(run.isError, run.text).toBe(false);
+    const body = JSON.parse(run.text);
+    expect(body.resultado).toMatchObject({ status: 'pending' });
+    expect(body.propuestas).toEqual([
+      { herramienta: 'proponer_cambios', id: body.resultado.id, status: 'pending' },
+    ]);
+    const snapshot = await (await post('/api/snapshot')).json();
+    expect(
+      snapshot.proposals.find((p: { id: string }) => p.id === body.resultado.id),
+    ).toMatchObject({ status: 'pending', provider: 'codex' });
+    // The session shows the inner tool, as with a direct call, and never its parameters.
+    const used = snapshot.grants.find((g: { provider: string }) => g.provider === 'codex');
+    expect(used.lastTool).toBe('proponer_cambios');
+    expect(JSON.stringify(used)).not.toContain(body.resultado.id);
+  });
+  it('documenta respuestas que coinciden con las reales del servicio', async () => {
+    const task = JSON.parse((await tool('filtrar_registros', { kind: 'task', limit: 1 })).text)
+      .items[0];
+    const asvs = JSON.parse((await tool('consultar_asvs', { projectId, limit: 1 })).text);
+    const calls: Record<string, Record<string, unknown>> = {
+      estado_sesion: {},
+      buscar_contexto: { query: 'Lote' },
+      leer_elementos: { recordIds: [task.id] },
+      consultar_criterios: { taskId: task.id },
+      filtrar_registros: { kind: 'task' },
+      resumir_proyecto: { projectId },
+      diagnosticar_tareas: {},
+      consultar_relaciones: { recordId: task.id },
+      consultar_propuestas: {},
+      consultar_asvs: { projectId },
+      leer_referencias_asvs: { projectId, references: [asvs.items[0].reference], limit: 1 },
+      planificar_remediacion_asvs: { projectId, limit: 1 },
+      consultar_criterios_asvs: { taskId: task.id },
+    };
+    for (const [name, args] of Object.entries(calls)) {
+      const response = await tool(name, args);
+      expect(response.isError, `${name}: ${response.text}`).toBe(false);
+      const parsed = MCP_TOOLS.find((t) => t.name === name)!.output.safeParse(
+        JSON.parse(response.text),
+      );
+      expect(parsed.success, `${name}: ${parsed.error?.message}`).toBe(true);
+    }
+  });
+  it('lista las funciones del modo código y sus firmas', async () => {
+    const index = await tool('consultar_api');
+    expect(index.text).toContain('- leer_elementos [lectura]');
+    const types = await tool('consultar_api', { funciones: ['consultar_propuestas'] });
+    expect(types.text).toContain('function consultar_propuestas(args?: {');
+    expect(await tool('consultar_api', { funciones: ['otra'] })).toMatchObject({
+      isError: true,
+      text: expect.stringContaining('Funciones no disponibles: otra'),
+    });
+  });
+  it('publica solo el modo código o solo las herramientas según BITACORA_MCP_MODO', async () => {
+    const codeOnly = await connect({ BITACORA_MCP_MODO: 'codigo' });
+    const toolsOnly = await connect({ BITACORA_MCP_MODO: 'herramientas' });
+    try {
+      const { tools } = await codeOnly.listTools();
+      expect(tools.map((t) => t.name)).toEqual([
+        'estado_sesion',
+        'consultar_guia',
+        'consultar_api',
+        'ejecutar_codigo',
+      ]);
+      // About 2,200 characters, against 17,600 in the hybrid mode.
+      expect(JSON.stringify(tools).length).toBeLessThanOrEqual(2500);
+      for (const t of tools)
+        expect(t._meta, t.name).toMatchObject({ 'anthropic/alwaysLoad': true });
+      const run = await tool(
+        'ejecutar_codigo',
+        { codigo: 'return (await bitacora.estado_sesion()).connected;' },
+        codeOnly,
+      );
+      expect(JSON.parse(run.text).resultado).toBe(true);
+      const names = (await toolsOnly.listTools()).tools.map((t) => t.name);
+      expect(names).toContain('leer_elementos');
+      expect(names).not.toContain('ejecutar_codigo');
+    } finally {
+      await codeOnly.close();
+      await toolsOnly.close();
+    }
+  }, 30000);
   it('explica la causa del rechazo y el siguiente paso', async () => {
     const current = await grant();
     const mcp = async (token: string) =>

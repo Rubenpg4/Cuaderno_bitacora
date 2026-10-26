@@ -33,7 +33,7 @@ import {
   reviewAsvsRevision,
 } from './asvs/revalidation.js';
 import { planAsvsRemediation } from './asvs/remediation.js';
-import { schemas, proposalSchema, short, text } from './records/schemas.js';
+import { schemas, proposalSchema, short, taskLinksSchema, text } from './records/schemas.js';
 import { normalizeAttachments } from './records/attachments.js';
 import {
   resolveEntryMentions,
@@ -347,6 +347,7 @@ export class Domain {
     agreementId: string,
     expectedMeetingVersion: number,
     draftKey?: string,
+    taskLinks?: unknown,
   ): Task {
     if (data.recurrence !== undefined) throw Error('La serie se gestiona desde su editor.');
     if (draftKey) this.validateDraftKey(draftKey);
@@ -363,11 +364,11 @@ export class Domain {
         (linked?.kind === 'task' && !linked.recurrence?.canceledAt)
       )
         throw Error('El acuerdo ya no necesita una tarea de seguimiento.');
-      const task = this.write('task', {
-        ...data,
-        project: meeting.project,
-        subprojectId: meeting.subprojectId,
-      }) as Task;
+      const scoped = { ...data, project: meeting.project, subprojectId: meeting.subprojectId };
+      const task =
+        taskLinks === undefined
+          ? (this.write('task', scoped) as Task)
+          : this.writeLinkedTask(scoped, taskLinks, (prepared) => this.write('task', prepared));
       this.write(
         'meeting',
         {
@@ -1246,9 +1247,12 @@ export class Domain {
     id?: string,
     expectedVersion?: number,
     draftKey?: string,
+    taskLinks?: unknown,
   ) {
     if (!(kind in schemas)) throw Error('Tipo desconocido.');
     if (kind === 'subproject') throw Error('Gestiona los subproyectos desde su panel.');
+    if (taskLinks !== undefined && kind !== 'task')
+      throw Error('Solo las tareas admiten dependencias.');
     if (kind === 'task') {
       const before = id ? this.require().records.find((record) => record.id === id) : undefined;
       if (!before && data.recurrence !== undefined)
@@ -1263,10 +1267,70 @@ export class Domain {
       throw Error('Los cuadernos se crean desde la pantalla de inicio.');
     if (draftKey) this.validateDraftKey(draftKey);
     return this.transaction(() => {
-      const item = this.write(kind, data, id, expectedVersion);
+      const item =
+        taskLinks === undefined
+          ? this.write(kind, data, id, expectedVersion)
+          : this.writeLinkedTask(
+              data,
+              taskLinks,
+              (prepared) => this.write(kind, prepared, id, expectedVersion),
+              id ? this.require().records.find((record) => record.id === id) : undefined,
+            );
       if (draftKey) delete (this.require().drafts ??= {})[draftKey];
       return item;
     });
+  }
+  /**
+   * Writes a task with the prerequisites created from its editor and makes the chosen existing
+   * tasks wait for it. Runs inside the caller's transaction, so any failure writes nothing.
+   */
+  private writeLinkedTask(
+    data: Record<string, unknown>,
+    linksInput: unknown,
+    writeTask: (data: Record<string, unknown>) => RecordItem,
+    before?: RecordItem,
+  ): Task {
+    const links = taskLinksSchema.parse(linksInput);
+    if (new Set(links.blocks.map((block) => block.id)).size !== links.blocks.length)
+      throw Error('No repitas tareas que esperan a esta.');
+    // Prerequisites share the task's project and scope; the task write re-validates both.
+    const subprojectId = 'subprojectId' in data ? data.subprojectId : before?.subprojectId;
+    const created = links.newDependencies.map((dependency) =>
+      this.write('task', {
+        ...blank('task'),
+        project: data.project,
+        ...(subprojectId ? { subprojectId } : {}),
+        ...(typeof data.phase === 'string' ? { phase: data.phase } : {}),
+        ...dependency,
+      }),
+    );
+    const dependencyIds = Array.isArray(data.dependencyIds) ? data.dependencyIds : [];
+    const task = writeTask({
+      ...data,
+      dependencyIds: [...dependencyIds, ...created.map((dependency) => dependency.id)],
+    }) as Task;
+    for (const block of links.blocks) {
+      const waiting = this.require().records.find((record) => record.id === block.id);
+      if (!waiting || waiting.kind !== 'task' || waiting.recurrence?.canceledAt)
+        throw Error('Una tarea que esperaría a esta ya no existe.');
+      if (waiting.id === task.id) throw Error('Una tarea no puede esperarse a sí misma.');
+      if (waiting.version !== block.expectedVersion)
+        throw Error(`«${waiting.title}» ha cambiado. Revisa «Bloquea a» y vuelve a guardar.`);
+      if (waiting.dependencyIds.includes(task.id)) continue;
+      try {
+        this.write(
+          'task',
+          { ...waiting, dependencyIds: [...waiting.dependencyIds, task.id] },
+          waiting.id,
+          waiting.version,
+        );
+      } catch (error) {
+        throw Error(
+          `«${waiting.title}» no puede esperar a esta tarea: ${(error as Error).message}`,
+        );
+      }
+    }
+    return task;
   }
   private capture(id: string, expectedVersion: number): QuickCapture {
     const capture = this.require().captures?.find((item) => item.id === id);

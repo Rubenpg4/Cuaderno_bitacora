@@ -25,9 +25,10 @@ import {
   balanceWeek,
   weekPlan,
   weekStart,
-  type PlannedMove,
   type PlannerTask,
+  type WeekBalance,
 } from '../weeklyReview';
+import { Modal } from '../ui';
 
 const CAPACITY_KEY = 'bitacora-planner-capacity';
 const WEEKEND_KEY = 'bitacora-planner-weekend';
@@ -392,7 +393,7 @@ export default function WeeklyReviewView({
   const [dropTarget, setDropTarget] = useState('');
   const [menuFor, setMenuFor] = useState('');
   const [history, setHistory] = useState<MoveRecord[][]>([]);
-  const [proposal, setProposal] = useState<{ moves: PlannedMove[]; selected: Set<string> }>();
+  const [proposal, setProposal] = useState<WeekBalance>();
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [finishing, setFinishing] = useState(false);
@@ -407,11 +408,7 @@ export default function WeeklyReviewView({
   const weekLoad = plan.days.map(({ day, tasks: dayTasks }) => ({ day, count: dayTasks.length }));
   const openThisWeek = weekLoad.reduce((total, { count }) => total + count, 0);
   const overloaded = weekLoad.filter(({ count }) => count > capacity).length;
-  const proposedDays = new Map(
-    proposal?.moves
-      .filter(({ task }) => proposal.selected.has(task.id))
-      .map(({ task, to }) => [task.id, to]) ?? [],
-  );
+  const proposedDays = new Map(proposal?.moves.map(({ task, to }) => [task.id, to]) ?? []);
   const query = search.trim().toLowerCase();
   const faded = (task: Task) =>
     Boolean(query) &&
@@ -495,17 +492,16 @@ export default function WeeklyReviewView({
   }
 
   function propose() {
-    const moves = balanceWeek(tasks, projectId, today, start, { capacity, includeWeekend });
+    const balance = balanceWeek(tasks, projectId, today, start, { capacity, includeWeekend });
+    const stuck = balance.unplaced.length;
     setNotice(
-      moves.length
+      balance.moves.length
         ? ''
-        : overloaded || (offset === 0 && plan.overdue.length)
-          ? 'No hay huecos libres con esta capacidad. Sube el límite diario o incluye el fin de semana.'
+        : stuck
+          ? `${stuck === 1 ? 'Una tarea no se puede recolocar' : `${stuck} tareas no se pueden recolocar`} sin romper su secuencia o sus dependencias.`
           : 'La semana ya está equilibrada.',
     );
-    setProposal(
-      moves.length ? { moves, selected: new Set(moves.map(({ task }) => task.id)) } : undefined,
-    );
+    setProposal(balance.moves.length ? balance : undefined);
   }
 
   function dropZone(day: string) {
@@ -686,62 +682,52 @@ export default function WeeklyReviewView({
       </section>
 
       {proposal && (
-        <section className="planner-proposal" aria-label="Propuesta de reparto">
-          <header>
-            <div>
-              <h2>Propuesta de reparto</h2>
-              <p>
-                Desmarca lo que prefieras dejar como está. Nada cambia hasta que apliques la
-                propuesta.
+        <Modal title="Propuesta de reparto" onClose={() => setProposal(undefined)}>
+          <div className="planner-proposal">
+            <p>
+              Se recolocará toda la semana con {capacity} {capacity === 1 ? 'tarea' : 'tareas'} por
+              día, en orden. Nada cambia hasta que confirmes; «Deshacer» revierte el reparto
+              completo.
+            </p>
+            <ul>
+              {[...proposal.moves]
+                .sort((a, b) => a.to.localeCompare(b.to))
+                .map(({ task, from, to }) => (
+                  <li key={task.id}>
+                    <span className="planner-proposal-title">{task.title}</span>
+                    <span className="planner-proposal-days">
+                      {from < today ? 'Atrasada' : shortDay(from)} → <strong>{shortDay(to)}</strong>
+                      {to > plan.end && ' · más adelante'}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+            {proposal.unplaced.length > 0 && (
+              <p className="planner-proposal-unplaced">
+                Se quedan donde están para no romper su secuencia o sus dependencias:{' '}
+                {proposal.unplaced.map(({ title }) => `«${title}»`).join(', ')}.
               </p>
+            )}
+            <div className="planner-proposal-actions">
+              <button
+                type="button"
+                className="planner-primary"
+                data-initial-focus
+                disabled={busy}
+                onClick={() => void move(proposal.moves.map(({ task, to }) => ({ task, due: to })))}
+              >
+                Aplicar {proposal.moves.length} {proposal.moves.length === 1 ? 'cambio' : 'cambios'}
+              </button>
+              <button
+                type="button"
+                className="planner-secondary"
+                onClick={() => setProposal(undefined)}
+              >
+                Cancelar
+              </button>
             </div>
-          </header>
-          <ul>
-            {proposal.moves.map(({ task, from, to }) => (
-              <li key={task.id}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={proposal.selected.has(task.id)}
-                    onChange={(event) => {
-                      const selected = new Set(proposal.selected);
-                      if (event.target.checked) selected.add(task.id);
-                      else selected.delete(task.id);
-                      setProposal({ ...proposal, selected });
-                    }}
-                  />
-                  <span className="planner-proposal-title">{task.title}</span>
-                  <span className="planner-proposal-days">
-                    {shortDay(from)} → <strong>{shortDay(to)}</strong>
-                  </span>
-                </label>
-              </li>
-            ))}
-          </ul>
-          <div className="planner-proposal-actions">
-            <button
-              type="button"
-              className="planner-primary"
-              disabled={busy || !proposal.selected.size}
-              onClick={() =>
-                void move(
-                  proposal.moves
-                    .filter(({ task }) => proposal.selected.has(task.id))
-                    .map(({ task, to }) => ({ task, due: to })),
-                )
-              }
-            >
-              Aplicar {proposal.selected.size} {proposal.selected.size === 1 ? 'cambio' : 'cambios'}
-            </button>
-            <button
-              type="button"
-              className="planner-secondary"
-              onClick={() => setProposal(undefined)}
-            >
-              Cancelar
-            </button>
           </div>
-        </section>
+        </Modal>
       )}
 
       {plan.overdue.length > 0 && (

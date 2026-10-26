@@ -7,7 +7,6 @@
   padding-bottom: 30px;
 }
 .planner-toolbar,
-.planner-proposal,
 .planner-tray,
 .review-card {
   background: var(--paper);
@@ -131,34 +130,36 @@
   font-size: 13px;
 }
 
-/* Propuesta de reparto */
-.planner-proposal {
-  padding: 16px 20px;
-  border-color: #9fbcef;
-}
-.planner-proposal header p,
+/* Propuesta de reparto (diálogo) */
+.planner-proposal > p,
 .planner-tray header p {
   color: var(--muted);
   font-size: 13px;
 }
 .planner-proposal ul {
   display: grid;
-  gap: 4px;
+  gap: 2px;
+  max-height: min(55vh, 480px);
+  overflow-y: auto;
   margin: 12px 0;
   padding: 0;
   list-style: none;
 }
-.planner-proposal label {
+.planner-proposal li {
   display: flex;
   align-items: center;
   gap: 10px;
   border-radius: 7px;
   padding: 6px 8px;
   font-size: 13px;
-  cursor: pointer;
 }
-.planner-proposal label:hover {
+.planner-proposal li:nth-child(odd) {
   background: #f2f6fc;
+}
+.planner-proposal-unplaced {
+  margin-bottom: 12px;
+  color: var(--amber);
+  font-size: 13px;
 }
 .planner-proposal-title {
   flex: 1;
@@ -647,7 +648,7 @@
 }
 :root[data-theme='dark'] .planner-card-move:hover,
 :root[data-theme='dark'] .planner-card-move[aria-expanded='true'],
-:root[data-theme='dark'] .planner-proposal label:hover,
+:root[data-theme='dark'] .planner-proposal li:nth-child(odd),
 :root[data-theme='dark'] .planner-move-days button,
 :root[data-theme='dark'] .planner-notice {
   background: #273a52;
@@ -696,10 +697,10 @@
   .planner-tray header {
     flex-direction: column;
   }
-  .planner-proposal label {
+  .planner-proposal li {
     flex-wrap: wrap;
   }
   .planner-proposal-title {
-    flex-basis: calc(100% - 30px);
+    flex-basis: 100%;
   }
 }

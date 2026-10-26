@@ -10,12 +10,17 @@ export default function TaskPicker({
   tasks,
   value,
   onChange,
+  newCount = 0,
+  hint,
 }: {
   label: string;
   searchLabel: string;
   tasks: Task[];
   value: string[];
   onChange: (ids: string[]) => void;
+  /** Tasks that will be created on save and already count as selected. */
+  newCount?: number;
+  hint?: string;
 }) {
   const [query, setQuery] = useState('');
   const selected = new Set(value);
@@ -46,11 +51,18 @@ export default function TaskPicker({
       <summary>
         <strong>{label}</strong>
         <span className="muted">
-          {value.length === 0
+          {value.length === 0 && newCount === 0
             ? 'Ninguna seleccionada'
-            : `${value.length} ${value.length === 1 ? 'seleccionada' : 'seleccionadas'}`}
+            : [
+                value.length &&
+                  `${value.length} ${value.length === 1 ? 'seleccionada' : 'seleccionadas'}`,
+                newCount && `${newCount} ${newCount === 1 ? 'nueva' : 'nuevas'}`,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
         </span>
       </summary>
+      {hint && <small className="muted task-picker-hint">{hint}</small>}
       <Field label={searchLabel}>
         <input
           type="search"

@@ -15,6 +15,7 @@ Este índice se actualiza con `pnpm run docs:sync`. Cada documento mantiene una 
 - [Mantenimiento de la documentación](mantenimiento.md): Procedimiento de actualización documental y alcance de las comprobaciones automáticas.
 - [Mapa de cambios para personas y asistentes](mapa-cambios.md): Rutas de código, contratos y comprobaciones para localizar cambios con ayuda de IA.
 - [Acceso de IA mediante MCP](mcp.md): Alcance de la IA por MCP, flujo de revisión y estrategia para reducir contexto enviado.
+- [Modo código del conector MCP](modo-codigo.md): Modo código del conector MCP: ejecución aislada de JavaScript, límites, privacidad, modos de publicación y vía de programmatic tool calling.
 - [Perfiles MCP por cuaderno (diseño)](perfiles-mcp.md): Diseño de perfiles MCP por cuaderno y requisitos de verificación de identidad corporativa.
 - [Producto](producto.md): Objetivo, capacidades actuales y límites del producto.
 - [Tareas recurrentes](recurrencia-tareas.md): Reglas, datos y verificación de las series de tareas recurrentes.
